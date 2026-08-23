@@ -21,7 +21,7 @@
 import Homey from 'homey';
 
 import { SnmpClient, SnmpUnreachableError, type SnmpVersion } from '../../lib/snmp/client.mjs';
-import { capabilityValues } from '../../lib/ups/capability-map.mjs';
+import { capabilityValues, planCapabilities } from '../../lib/ups/capability-map.mjs';
 import { syncCapabilities } from '../../lib/ups/capability-sync.mjs';
 import {
   UNKNOWN_DETAIL,
@@ -316,7 +316,7 @@ export default class UpsDevice extends Homey.Device {
    * vérifiable ailleurs que sur un vrai Homey. Même raison que pour `poll-engine`.
    */
   private async syncCapabilities(): Promise<void> {
-    const result = await syncCapabilities(this.current, {
+    const result = await syncCapabilities(planCapabilities(this.current), {
       listCapabilities: () => this.getCapabilities(),
       addCapability: (id) => this.addCapability(id),
       setCapabilityOptions: (id, options) => this.setCapabilityOptions(id, options),

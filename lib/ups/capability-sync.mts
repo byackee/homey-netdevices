@@ -10,8 +10,20 @@
  * quelques lignes. Le device se contente de brancher `this` dessus.
  */
 
-import { planCapabilities, reconcileCapabilities, type CapabilityOptions } from './capability-map.mjs';
-import type { UpsSnapshot } from './snapshot.mjs';
+import { reconcileCapabilities, type CapabilityOptions } from './capability-map.mjs';
+
+/**
+ * Ce que l'alignement attend d'un plan, quelle que soit la classe d'appareil.
+ *
+ * Il reçoit un plan et non un snapshot : c'est ce qui permet aux drivers NAS et switch
+ * de réutiliser exactement la même mécanique — et donc le même correctif — que
+ * l'onduleur, chacun avec son propre `planCapabilities`.
+ */
+export interface SyncablePlan {
+  capabilities: string[];
+  options: Map<string, CapabilityOptions>;
+  energy: { batteries: string[] } | null;
+}
 
 /** Les seuls effets Homey dont l'alignement a besoin. */
 export interface CapabilitySink {
@@ -44,10 +56,9 @@ export interface CapabilitySyncResult {
  * tick serait un défaut en soi.
  */
 export async function syncCapabilities(
-  snapshot: UpsSnapshot,
+  plan: SyncablePlan,
   sink: CapabilitySink,
 ): Promise<CapabilitySyncResult> {
-  const plan = planCapabilities(snapshot);
   const { toAdd, orphaned } = reconcileCapabilities(sink.listCapabilities(), plan.capabilities);
 
   if (toAdd.length === 0) return { added: [], orphaned, changed: false };
