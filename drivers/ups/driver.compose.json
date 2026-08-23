@@ -1,0 +1,22 @@
+{
+  "name": {
+    "en": "UPS",
+    "fr": "Onduleur",
+    "nl": "UPS"
+  },
+  "class": "sensor",
+  "capabilities": [
+    "ups_status"
+  ],
+  "platforms": [
+    "local"
+  ],
+  "connectivity": [
+    "lan"
+  ],
+  "images": {
+    "small": "/drivers/ups/assets/images/small.png",
+    "large": "/drivers/ups/assets/images/large.png",
+    "xlarge": "/drivers/ups/assets/images/xlarge.png"
+  }
+}

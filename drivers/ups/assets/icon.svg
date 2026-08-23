@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <g fill="none" stroke="#000000" stroke-width="34" stroke-linejoin="round" stroke-linecap="round">
+    <!--
+      A UPS tower rather than a bare battery symbol: the icon has to read as a
+      piece of equipment sitting on the floor, because that is what the user is
+      looking for in the app list.
+    -->
+    <rect x="352" y="136" width="320" height="752" rx="44"/>
+
+    <!-- Vent grille, and the line that separates it from the face below. -->
+    <path d="M428 236H596"/>
+    <path d="M428 288H596"/>
+    <path d="M428 340H596"/>
+    <path d="M352 400H672"/>
+
+    <!--
+      The bolt is filled while the body is stroked. Drawn as an outline it
+      collapses into an unreadable notch once the icon is scaled down to 75
+      pixels; solid, it stays a bolt.
+    -->
+    <path d="M556 440L428 672H500L468 840L596 608H524Z" fill="#000000" stroke="none"/>
+  </g>
+</svg>

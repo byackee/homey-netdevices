@@ -1,0 +1,252 @@
+{
+  "triggers": [
+    {
+      "id": "ups_went_on_battery",
+      "title": {
+        "en": "The UPS switches to battery",
+        "fr": "L’onduleur passe sur batterie",
+        "nl": "De UPS schakelt over op accu"
+      },
+      "hint": {
+        "en": "Fires within about ten seconds of a power cut. This is the card to use for shutting non-essential devices down.",
+        "fr": "Se déclenche une dizaine de secondes après une coupure. C’est la carte à utiliser pour éteindre les appareils non essentiels.",
+        "nl": "Wordt binnen ongeveer tien seconden na een stroomuitval geactiveerd. Gebruik deze kaart om niet-essentiële apparaten uit te schakelen."
+      },
+      "tokens": [
+        { "name": "runtime", "type": "string", "title": { "en": "Runtime left", "fr": "Autonomie restante", "nl": "Resterende looptijd" }, "example": { "en": "25 min" } },
+        { "name": "battery", "type": "string", "title": { "en": "Battery", "fr": "Batterie", "nl": "Accu" }, "example": { "en": "87 %" } },
+        { "name": "load", "type": "string", "title": { "en": "Load", "fr": "Charge", "nl": "Belasting" }, "example": { "en": "23 %" } }
+      ]
+    },
+    {
+      "id": "ups_mains_restored",
+      "title": {
+        "en": "Mains power comes back",
+        "fr": "Le secteur revient",
+        "nl": "De netstroom komt terug"
+      },
+      "hint": {
+        "en": "Only fires when the UPS itself says it is back on mains. If the UPS is relayed by a NAS that the outage switched off, the app cannot see the end of the outage — see the app description.",
+        "fr": "Ne se déclenche que lorsque l’onduleur lui-même annonce son retour sur secteur. Si l’onduleur est relayé par un NAS que la coupure a éteint, l’app ne voit pas la fin de la coupure — voir la description de l’app.",
+        "nl": "Wordt alleen geactiveerd wanneer de UPS zelf meldt dat hij weer op netstroom draait. Als de UPS via een NAS wordt doorgegeven die door de stroomuitval is uitgeschakeld, ziet de app het einde van de stroomuitval niet."
+      },
+      "tokens": [
+        { "name": "runtime", "type": "string", "title": { "en": "Runtime left", "fr": "Autonomie restante", "nl": "Resterende looptijd" }, "example": { "en": "25 min" } },
+        { "name": "battery", "type": "string", "title": { "en": "Battery", "fr": "Batterie", "nl": "Accu" }, "example": { "en": "62 %" } }
+      ]
+    },
+    {
+      "id": "ups_contact_lost_during_outage",
+      "title": {
+        "en": "Contact is lost while on battery",
+        "fr": "Le contact est perdu pendant une coupure",
+        "nl": "Contact verloren tijdens accubedrijf"
+      },
+      "hint": {
+        "en": "A NAS that relays the UPS is itself powered by it, and switches off partway through the outage. This card says the outage lasted long enough for that to happen — the reported status stays on \"battery\" rather than pretending the power is back.",
+        "fr": "Un NAS qui relaie l’onduleur est lui-même alimenté par lui, et s’éteint en cours de coupure. Cette carte dit que la coupure a duré assez pour cela — l’état affiché reste « sur batterie » au lieu de laisser croire que le courant est revenu.",
+        "nl": "Een NAS die de UPS doorgeeft, wordt er zelf door gevoed en schakelt halverwege de stroomuitval uit. Deze kaart geeft aan dat de storing lang genoeg duurde — de status blijft op \"accu\" staan."
+      },
+      "tokens": [
+        { "name": "runtime", "type": "string", "title": { "en": "Last runtime seen", "fr": "Dernière autonomie vue", "nl": "Laatst geziene looptijd" }, "example": { "en": "4 min" } },
+        { "name": "battery", "type": "string", "title": { "en": "Last battery seen", "fr": "Dernière batterie vue", "nl": "Laatst geziene accu" }, "example": { "en": "31 %" } }
+      ]
+    },
+    {
+      "id": "ups_battery_low",
+      "title": {
+        "en": "The battery becomes low",
+        "fr": "La batterie devient faible",
+        "nl": "De accu raakt leeg"
+      },
+      "hint": {
+        "en": "Uses the UPS's own low-battery flag, which follows the thresholds configured on the UPS — not a percentage guessed by the app.",
+        "fr": "Utilise le drapeau « batterie faible » de l’onduleur lui-même, qui suit les seuils configurés sur l’appareil — pas un pourcentage deviné par l’app.",
+        "nl": "Gebruikt de eigen lage-accuvlag van de UPS, die de op de UPS ingestelde drempels volgt — geen door de app geraden percentage."
+      },
+      "tokens": [
+        { "name": "runtime", "type": "string", "title": { "en": "Runtime left", "fr": "Autonomie restante", "nl": "Resterende looptijd" }, "example": { "en": "3 min" } },
+        { "name": "battery", "type": "string", "title": { "en": "Battery", "fr": "Batterie", "nl": "Accu" }, "example": { "en": "18 %" } }
+      ]
+    },
+    {
+      "id": "ups_runtime_below",
+      "title": {
+        "en": "Runtime drops below",
+        "fr": "L’autonomie descend sous",
+        "nl": "De looptijd zakt onder"
+      },
+      "titleFormatted": {
+        "en": "Runtime drops below [[minutes]] minutes",
+        "fr": "L’autonomie descend sous [[minutes]] minutes",
+        "nl": "De looptijd zakt onder [[minutes]] minuten"
+      },
+      "hint": {
+        "en": "Fires on the crossing, once per outage, not on every reading below the threshold. Each Flow can use its own number of minutes.",
+        "fr": "Se déclenche au franchissement, une fois par coupure, et non à chaque relevé passé sous le seuil. Chaque Flow peut avoir son propre nombre de minutes.",
+        "nl": "Wordt geactiveerd bij het passeren, eenmaal per storing, niet bij elke meting onder de drempel. Elke Flow kan zijn eigen aantal minuten gebruiken."
+      },
+      "args": [
+        {
+          "name": "minutes",
+          "type": "number",
+          "title": { "en": "Minutes", "fr": "Minutes", "nl": "Minuten" },
+          "min": 1,
+          "max": 1440,
+          "step": 1,
+          "value": 5,
+          "placeholder": { "en": "5", "fr": "5", "nl": "5" }
+        }
+      ],
+      "tokens": [
+        { "name": "runtime", "type": "string", "title": { "en": "Runtime left", "fr": "Autonomie restante", "nl": "Resterende looptijd" }, "example": { "en": "4 min" } },
+        { "name": "battery", "type": "string", "title": { "en": "Battery", "fr": "Batterie", "nl": "Accu" }, "example": { "en": "22 %" } }
+      ]
+    },
+    {
+      "id": "ups_overload",
+      "title": {
+        "en": "The UPS is overloaded",
+        "fr": "L’onduleur est en surcharge",
+        "nl": "De UPS is overbelast"
+      },
+      "hint": {
+        "en": "Too much is plugged into the UPS. Fires once when the alarm appears, not on every reading.",
+        "fr": "Trop d’appareils sont branchés sur l’onduleur. Se déclenche une fois à l’apparition de l’alarme, pas à chaque relevé.",
+        "nl": "Er is te veel op de UPS aangesloten. Wordt eenmalig geactiveerd wanneer het alarm verschijnt."
+      },
+      "tokens": [
+        { "name": "load", "type": "string", "title": { "en": "Load", "fr": "Charge", "nl": "Belasting" }, "example": { "en": "104 %" } }
+      ]
+    },
+    {
+      "id": "ups_replace_battery",
+      "title": {
+        "en": "The battery needs replacing",
+        "fr": "La batterie est à remplacer",
+        "nl": "De accu moet worden vervangen"
+      },
+      "hint": {
+        "en": "Fires once when the UPS raises the flag. A worn battery stays flagged for weeks, so this is not repeated on every reading.",
+        "fr": "Se déclenche une fois quand l’onduleur lève le drapeau. Une batterie usée le reste des semaines : l’alerte n’est pas répétée à chaque relevé.",
+        "nl": "Wordt eenmalig geactiveerd wanneer de UPS de vlag zet. Een versleten accu blijft weken gemarkeerd, dus dit wordt niet herhaald."
+      }
+    },
+    {
+      "id": "ups_status_changed",
+      "title": {
+        "en": "The status changes",
+        "fr": "L’état change",
+        "nl": "De status verandert"
+      },
+      "titleFormatted": {
+        "en": "The status changes to [[status]]",
+        "fr": "L’état passe à [[status]]",
+        "nl": "De status verandert naar [[status]]"
+      },
+      "args": [
+        {
+          "name": "status",
+          "type": "dropdown",
+          "title": { "en": "Status", "fr": "État", "nl": "Status" },
+          "values": [
+            { "id": "any", "title": { "en": "any status", "fr": "n’importe quel état", "nl": "elke status" } },
+            { "id": "normal", "title": { "en": "On mains", "fr": "Sur secteur", "nl": "Op netstroom" } },
+            { "id": "battery", "title": { "en": "On battery", "fr": "Sur batterie", "nl": "Op accu" } },
+            { "id": "bypass", "title": { "en": "Bypass — unprotected", "fr": "Bypass — sans protection", "nl": "Bypass — onbeschermd" } },
+            { "id": "booster", "title": { "en": "Boosting a low mains voltage", "fr": "Relève une tension secteur basse", "nl": "Verhoogt een lage netspanning" } },
+            { "id": "reducer", "title": { "en": "Trimming a high mains voltage", "fr": "Rabaisse une tension secteur haute", "nl": "Verlaagt een hoge netspanning" } },
+            { "id": "off", "title": { "en": "Output off", "fr": "Sortie coupée", "nl": "Uitgang uit" } },
+            { "id": "unknown", "title": { "en": "Unknown", "fr": "Inconnu", "nl": "Onbekend" } }
+          ]
+        }
+      ],
+      "tokens": [
+        { "name": "status", "type": "string", "title": { "en": "Status", "fr": "État", "nl": "Status" }, "example": { "en": "battery" } }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "id": "ups_is_on_battery",
+      "title": {
+        "en": "The UPS !{{is|is not}} on battery",
+        "fr": "L’onduleur !{{est|n’est pas}} sur batterie",
+        "nl": "De UPS !{{draait|draait niet}} op accu"
+      }
+    },
+    {
+      "id": "ups_runtime_above",
+      "title": {
+        "en": "Runtime !{{is|is not}} above",
+        "fr": "L’autonomie !{{est|n’est pas}} supérieure à",
+        "nl": "De looptijd !{{is|is niet}} hoger dan"
+      },
+      "titleFormatted": {
+        "en": "Runtime !{{is|is not}} above [[minutes]] minutes",
+        "fr": "L’autonomie !{{est|n’est pas}} supérieure à [[minutes]] minutes",
+        "nl": "De looptijd !{{is|is niet}} hoger dan [[minutes]] minuten"
+      },
+      "hint": {
+        "en": "False when the runtime is unknown: an unread value is not a comfortable margin.",
+        "fr": "Faux quand l’autonomie est inconnue : une valeur non lue n’est pas une marge confortable.",
+        "nl": "Onwaar wanneer de looptijd onbekend is: een niet-uitgelezen waarde is geen ruime marge."
+      },
+      "args": [
+        {
+          "name": "minutes",
+          "type": "number",
+          "title": { "en": "Minutes", "fr": "Minutes", "nl": "Minuten" },
+          "min": 0,
+          "max": 1440,
+          "step": 1,
+          "value": 10
+        }
+      ]
+    },
+    {
+      "id": "ups_battery_above",
+      "title": {
+        "en": "Battery !{{is|is not}} above",
+        "fr": "La batterie !{{est|n’est pas}} au-dessus de",
+        "nl": "De accu !{{is|is niet}} hoger dan"
+      },
+      "titleFormatted": {
+        "en": "Battery !{{is|is not}} above [[percent]] %",
+        "fr": "La batterie !{{est|n’est pas}} au-dessus de [[percent]] %",
+        "nl": "De accu !{{is|is niet}} hoger dan [[percent]] %"
+      },
+      "hint": {
+        "en": "False when the charge is unknown, for the same reason.",
+        "fr": "Faux quand la charge est inconnue, pour la même raison.",
+        "nl": "Onwaar wanneer de lading onbekend is, om dezelfde reden."
+      },
+      "args": [
+        {
+          "name": "percent",
+          "type": "number",
+          "title": { "en": "Percent", "fr": "Pourcentage", "nl": "Percentage" },
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "value": 50
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "ups_refresh",
+      "title": {
+        "en": "Read the UPS now",
+        "fr": "Relever l’onduleur maintenant",
+        "nl": "Lees de UPS nu uit"
+      },
+      "hint": {
+        "en": "Reads the fast group outside the schedule. The app never writes to the UPS: switching it off or starting a battery test would cut power to everything plugged into it, this Homey included.",
+        "fr": "Relève le groupe rapide hors planning. L’app n’écrit jamais sur l’onduleur : l’éteindre ou lancer un test de batterie couperait l’alimentation de tout ce qui y est branché, ce Homey compris.",
+        "nl": "Leest de snelle groep buiten de planning om. De app schrijft nooit naar de UPS: uitschakelen of een accutest starten zou alles wat erop is aangesloten uitschakelen, inclusief deze Homey."
+      }
+    }
+  ]
+}
