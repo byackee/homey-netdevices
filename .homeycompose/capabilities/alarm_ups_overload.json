@@ -1,11 +1,24 @@
 {
   "type": "boolean",
-  "title": { "en": "Overload", "fr": "Surcharge", "nl": "Overbelasting" },
+  "title": {
+    "en": "Overload",
+    "fr": "Surcharge",
+    "nl": "Overbelasting"
+  },
   "uiComponent": "sensor",
   "uiQuickAction": false,
   "getable": true,
   "setable": false,
   "insights": true,
-  "insightsTitleTrue": { "en": "Output overloaded", "fr": "Sortie en surcharge", "nl": "Uitgang overbelast" },
-  "insightsTitleFalse": { "en": "Output load back to normal", "fr": "Charge de sortie revenue à la normale", "nl": "Uitgangsbelasting weer normaal" }
+  "insightsTitleTrue": {
+    "en": "Output overloaded",
+    "fr": "Sortie en surcharge",
+    "nl": "Uitgang overbelast"
+  },
+  "insightsTitleFalse": {
+    "en": "Output load back to normal",
+    "fr": "Charge de sortie revenue à la normale",
+    "nl": "Uitgangsbelasting weer normaal"
+  },
+  "icon": "/assets/capabilities/alarm_ups_overload.svg"
 }

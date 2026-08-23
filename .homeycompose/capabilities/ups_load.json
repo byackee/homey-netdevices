@@ -1,12 +1,19 @@
 {
   "type": "number",
-  "title": { "en": "Output load", "fr": "Charge de sortie", "nl": "Uitgangsbelasting" },
+  "title": {
+    "en": "Output load",
+    "fr": "Charge de sortie",
+    "nl": "Uitgangsbelasting"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
   "insights": true,
-  "units": { "en": "%" },
+  "units": {
+    "en": "%"
+  },
   "min": 0,
   "max": 100,
-  "decimals": 1
+  "decimals": 1,
+  "icon": "/assets/capabilities/ups_load.svg"
 }

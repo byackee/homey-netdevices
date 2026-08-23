@@ -1,11 +1,20 @@
 {
   "type": "number",
-  "title": { "en": "Uptime", "fr": "Temps de fonctionnement", "nl": "Bedrijfstijd" },
+  "title": {
+    "en": "Uptime",
+    "fr": "Temps de fonctionnement",
+    "nl": "Bedrijfstijd"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
   "insights": true,
-  "units": { "en": "d", "fr": "j", "nl": "d" },
+  "units": {
+    "en": "d",
+    "fr": "j",
+    "nl": "d"
+  },
   "min": 0,
-  "decimals": 1
+  "decimals": 1,
+  "icon": "/assets/capabilities/nas_uptime.svg"
 }

@@ -1,12 +1,19 @@
 {
   "type": "number",
-  "title": { "en": "Memory used", "fr": "Mémoire utilisée", "nl": "Geheugen gebruikt" },
+  "title": {
+    "en": "Memory used",
+    "fr": "Mémoire utilisée",
+    "nl": "Geheugen gebruikt"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
   "insights": true,
-  "units": { "en": "%" },
+  "units": {
+    "en": "%"
+  },
   "min": 0,
   "max": 100,
-  "decimals": 1
+  "decimals": 1,
+  "icon": "/assets/capabilities/nas_memory_used.svg"
 }

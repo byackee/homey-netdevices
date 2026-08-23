@@ -1,11 +1,18 @@
 {
   "type": "number",
-  "title": { "en": "Outgoing traffic", "fr": "Trafic sortant", "nl": "Uitgaand verkeer" },
+  "title": {
+    "en": "Outgoing traffic",
+    "fr": "Trafic sortant",
+    "nl": "Uitgaand verkeer"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
   "insights": true,
-  "units": { "en": "Mbit/s" },
+  "units": {
+    "en": "Mbit/s"
+  },
   "min": 0,
-  "decimals": 2
+  "decimals": 2,
+  "icon": "/assets/capabilities/netswitch_tx.svg"
 }

@@ -1,11 +1,18 @@
 {
   "type": "number",
-  "title": { "en": "Negotiated speed", "fr": "Débit négocié", "nl": "Onderhandelde snelheid" },
+  "title": {
+    "en": "Negotiated speed",
+    "fr": "Débit négocié",
+    "nl": "Onderhandelde snelheid"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
   "insights": true,
-  "units": { "en": "Mbit/s" },
+  "units": {
+    "en": "Mbit/s"
+  },
   "min": 0,
-  "decimals": 0
+  "decimals": 0,
+  "icon": "/assets/capabilities/netswitch_speed.svg"
 }

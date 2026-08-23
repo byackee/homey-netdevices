@@ -1,17 +1,71 @@
 {
   "type": "enum",
-  "title": { "en": "UPS status", "fr": "État de l'onduleur", "nl": "UPS-status" },
+  "title": {
+    "en": "UPS status",
+    "fr": "État de l'onduleur",
+    "nl": "UPS-status"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
   "insights": false,
   "values": [
-    { "id": "normal", "title": { "en": "On mains", "fr": "Sur secteur", "nl": "Op netstroom" } },
-    { "id": "battery", "title": { "en": "On battery", "fr": "Sur batterie", "nl": "Op accu" } },
-    { "id": "bypass", "title": { "en": "Bypass — unprotected", "fr": "Bypass — sans protection", "nl": "Bypass — onbeschermd" } },
-    { "id": "booster", "title": { "en": "Boosting voltage", "fr": "Tension relevée", "nl": "Spanning verhoogd" } },
-    { "id": "reducer", "title": { "en": "Reducing voltage", "fr": "Tension abaissée", "nl": "Spanning verlaagd" } },
-    { "id": "off", "title": { "en": "Off", "fr": "Éteint", "nl": "Uit" } },
-    { "id": "unknown", "title": { "en": "Unknown", "fr": "Inconnu", "nl": "Onbekend" } }
-  ]
+    {
+      "id": "normal",
+      "title": {
+        "en": "On mains",
+        "fr": "Sur secteur",
+        "nl": "Op netstroom"
+      }
+    },
+    {
+      "id": "battery",
+      "title": {
+        "en": "On battery",
+        "fr": "Sur batterie",
+        "nl": "Op accu"
+      }
+    },
+    {
+      "id": "bypass",
+      "title": {
+        "en": "Bypass — unprotected",
+        "fr": "Bypass — sans protection",
+        "nl": "Bypass — onbeschermd"
+      }
+    },
+    {
+      "id": "booster",
+      "title": {
+        "en": "Boosting voltage",
+        "fr": "Tension relevée",
+        "nl": "Spanning verhoogd"
+      }
+    },
+    {
+      "id": "reducer",
+      "title": {
+        "en": "Reducing voltage",
+        "fr": "Tension abaissée",
+        "nl": "Spanning verlaagd"
+      }
+    },
+    {
+      "id": "off",
+      "title": {
+        "en": "Off",
+        "fr": "Éteint",
+        "nl": "Uit"
+      }
+    },
+    {
+      "id": "unknown",
+      "title": {
+        "en": "Unknown",
+        "fr": "Inconnu",
+        "nl": "Onbekend"
+      }
+    }
+  ],
+  "icon": "/assets/capabilities/ups_status.svg"
 }

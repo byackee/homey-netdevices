@@ -1,10 +1,15 @@
 {
   "type": "number",
-  "title": { "en": "Outbound errors (total)", "fr": "Erreurs sortantes (cumul)", "nl": "Uitgaande fouten (totaal)" },
+  "title": {
+    "en": "Outbound errors (total)",
+    "fr": "Erreurs sortantes (cumul)",
+    "nl": "Uitgaande fouten (totaal)"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
   "insights": true,
   "min": 0,
-  "decimals": 0
+  "decimals": 0,
+  "icon": "/assets/capabilities/netswitch_errors_out.svg"
 }

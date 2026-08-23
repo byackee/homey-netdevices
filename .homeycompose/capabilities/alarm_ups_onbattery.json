@@ -1,11 +1,24 @@
 {
   "type": "boolean",
-  "title": { "en": "On battery", "fr": "Sur batterie", "nl": "Op accu" },
+  "title": {
+    "en": "On battery",
+    "fr": "Sur batterie",
+    "nl": "Op accu"
+  },
   "uiComponent": "sensor",
   "uiQuickAction": false,
   "getable": true,
   "setable": false,
   "insights": true,
-  "insightsTitleTrue": { "en": "Switched to battery", "fr": "Passé sur batterie", "nl": "Overgeschakeld op accu" },
-  "insightsTitleFalse": { "en": "Mains power restored", "fr": "Secteur revenu", "nl": "Netstroom hersteld" }
+  "insightsTitleTrue": {
+    "en": "Switched to battery",
+    "fr": "Passé sur batterie",
+    "nl": "Overgeschakeld op accu"
+  },
+  "insightsTitleFalse": {
+    "en": "Mains power restored",
+    "fr": "Secteur revenu",
+    "nl": "Netstroom hersteld"
+  },
+  "icon": "/assets/capabilities/alarm_ups_onbattery.svg"
 }

@@ -1,12 +1,19 @@
 {
   "type": "number",
-  "title": { "en": "CPU load", "fr": "Charge CPU", "nl": "CPU-belasting" },
+  "title": {
+    "en": "CPU load",
+    "fr": "Charge CPU",
+    "nl": "CPU-belasting"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
   "insights": true,
-  "units": { "en": "%" },
+  "units": {
+    "en": "%"
+  },
   "min": 0,
   "max": 100,
-  "decimals": 1
+  "decimals": 1,
+  "icon": "/assets/capabilities/nas_cpu_load.svg"
 }

@@ -1,11 +1,24 @@
 {
   "type": "boolean",
-  "title": { "en": "Replace battery", "fr": "Batterie à remplacer", "nl": "Accu vervangen" },
+  "title": {
+    "en": "Replace battery",
+    "fr": "Batterie à remplacer",
+    "nl": "Accu vervangen"
+  },
   "uiComponent": "sensor",
   "uiQuickAction": false,
   "getable": true,
   "setable": false,
   "insights": true,
-  "insightsTitleTrue": { "en": "Battery needs replacing", "fr": "La batterie doit être remplacée", "nl": "Accu moet worden vervangen" },
-  "insightsTitleFalse": { "en": "Battery healthy again", "fr": "Batterie de nouveau saine", "nl": "Accu weer gezond" }
+  "insightsTitleTrue": {
+    "en": "Battery needs replacing",
+    "fr": "La batterie doit être remplacée",
+    "nl": "Accu moet worden vervangen"
+  },
+  "insightsTitleFalse": {
+    "en": "Battery healthy again",
+    "fr": "Batterie de nouveau saine",
+    "nl": "Accu weer gezond"
+  },
+  "icon": "/assets/capabilities/alarm_ups_replace_battery.svg"
 }

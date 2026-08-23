@@ -1,11 +1,20 @@
 {
   "type": "number",
-  "title": { "en": "Runtime remaining", "fr": "Autonomie restante", "nl": "Resterende looptijd" },
+  "title": {
+    "en": "Runtime remaining",
+    "fr": "Autonomie restante",
+    "nl": "Resterende looptijd"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
   "insights": true,
-  "units": { "en": "min", "fr": "min", "nl": "min" },
+  "units": {
+    "en": "min",
+    "fr": "min",
+    "nl": "min"
+  },
   "min": 0,
-  "decimals": 0
+  "decimals": 0,
+  "icon": "/assets/capabilities/ups_runtime.svg"
 }

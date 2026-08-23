@@ -1,17 +1,71 @@
 {
   "type": "enum",
-  "title": { "en": "PoE state", "fr": "État PoE", "nl": "PoE-status" },
+  "title": {
+    "en": "PoE state",
+    "fr": "État PoE",
+    "nl": "PoE-status"
+  },
   "uiComponent": "sensor",
   "getable": true,
   "setable": false,
   "insights": false,
   "values": [
-    { "id": "delivering", "title": { "en": "Delivering power", "fr": "Alimente", "nl": "Levert stroom" } },
-    { "id": "searching", "title": { "en": "Searching for a device", "fr": "Recherche un appareil", "nl": "Zoekt een apparaat" } },
-    { "id": "disabled", "title": { "en": "Disabled", "fr": "Désactivé", "nl": "Uitgeschakeld" } },
-    { "id": "fault", "title": { "en": "Fault", "fr": "Défaut", "nl": "Storing" } },
-    { "id": "otherFault", "title": { "en": "Fault on the power source", "fr": "Défaut de la source d’alimentation", "nl": "Storing in de voedingsbron" } },
-    { "id": "test", "title": { "en": "Test mode", "fr": "Mode test", "nl": "Testmodus" } },
-    { "id": "unknown", "title": { "en": "Unknown", "fr": "Inconnu", "nl": "Onbekend" } }
-  ]
+    {
+      "id": "delivering",
+      "title": {
+        "en": "Delivering power",
+        "fr": "Alimente",
+        "nl": "Levert stroom"
+      }
+    },
+    {
+      "id": "searching",
+      "title": {
+        "en": "Searching for a device",
+        "fr": "Recherche un appareil",
+        "nl": "Zoekt een apparaat"
+      }
+    },
+    {
+      "id": "disabled",
+      "title": {
+        "en": "Disabled",
+        "fr": "Désactivé",
+        "nl": "Uitgeschakeld"
+      }
+    },
+    {
+      "id": "fault",
+      "title": {
+        "en": "Fault",
+        "fr": "Défaut",
+        "nl": "Storing"
+      }
+    },
+    {
+      "id": "otherFault",
+      "title": {
+        "en": "Fault on the power source",
+        "fr": "Défaut de la source d’alimentation",
+        "nl": "Storing in de voedingsbron"
+      }
+    },
+    {
+      "id": "test",
+      "title": {
+        "en": "Test mode",
+        "fr": "Mode test",
+        "nl": "Testmodus"
+      }
+    },
+    {
+      "id": "unknown",
+      "title": {
+        "en": "Unknown",
+        "fr": "Inconnu",
+        "nl": "Onbekend"
+      }
+    }
+  ],
+  "icon": "/assets/capabilities/netswitch_poe.svg"
 }
