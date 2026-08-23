@@ -30,8 +30,16 @@ This is where the competing apps die, so it is the first thing in the settings p
 2. Hardware & Power → UPS → set the USB UPS up.
 
 **A UPS with its own network card** — on recent APC NMC firmware **SNMP is off by
-default**, both v1 and v3. Turn SNMPv1 on and leave the community as `public`, otherwise
-a subnet sweep cannot see it at all.
+default**, both v1 and v3. In the card's web interface: Configuration → Network → SNMPv1
+→ enable it, and leave the community as `public`. Until you do, a subnet sweep cannot see
+it at all.
+
+**How to tell the two failures apart.** "Nothing found" and "found but switched off" look
+identical from the outside and need opposite fixes, so the app never conflates them. When
+an address answers a ping but stays silent over SNMP, both the pairing view and the app
+settings page say exactly that — *reachable, no SNMP answer* — instead of reporting an
+empty list. That one distinction is the difference between a five-minute fix and the
+eight-year-old forum thread this app exists to close.
 
 ## What is *not* supported, plainly
 
@@ -77,6 +85,48 @@ A UPS with its own network card does not have this limitation — the card is po
 the UPS and lives as long as it does. That is the honest argument for buying one if you
 want to see an outage from beginning to end.
 
+## What you can actually build with it
+
+The point of the app is not a battery percentage on a dashboard. It is this Flow, which
+nothing else on Homey lets you write today:
+
+> **When** the UPS switches to battery → turn the media centre, the desk lamps and the
+> second NAS off.
+> **And when** runtime drops below 5 minutes → shut the main NAS down properly, before the
+> UPS drops it mid-write.
+
+The first card buys you runtime by shedding load within about ten seconds of the cut. The
+second one spends the runtime you bought on the one thing that must not be cut abruptly.
+Twelve cards ship, and they exist to make that pair of rules — and its variants —
+expressible.
+
+### Triggers
+
+| Card | Fires when | Why it is separate |
+|---|---|---|
+| **The UPS switches to battery** | Mains fails | The load-shedding card. Carries runtime, battery and load as tokens. |
+| **Mains power comes back** | The UPS says it is back on mains | Only the UPS's own word counts, never a guess from the app having regained contact. |
+| **Contact is lost while on battery** | Polling fails during an outage | The NAS relaying the UPS is powered *by* it and switches off partway through. This says "the outage is still going and I have gone blind", which is not the same as a device being offline. |
+| **The battery becomes low** | The UPS raises its own low-battery flag | Uses the threshold configured on the UPS, not a percentage invented here. |
+| **Runtime drops below** | Runtime crosses your threshold | Fires **on the crossing, once per outage** — not on every reading below it. Each Flow gets its own number of minutes. |
+| **The UPS is overloaded** | Too much is plugged in | Fires once when the alarm appears. |
+| **The battery needs replacing** | The UPS raises the flag | A worn battery stays flagged for weeks, so this must not repeat on every poll. |
+| **The status changes** | The status enters a state you pick | The catch-all, for states the specific cards do not cover. |
+
+### Conditions
+
+| Card | Notes |
+|---|---|
+| **The UPS is / is not on battery** | The plain guard for any Flow that should not run during an outage. |
+| **Runtime is / is not above *n* minutes** | **False when the runtime is unknown.** An unread value is not a comfortable margin. |
+| **Battery is / is not above *n* %** | False when the charge is unknown, for the same reason. |
+
+### Action
+
+| Card | Notes |
+|---|---|
+| **Read the UPS now** | Reads the fast group outside the schedule. It is the only action card, and it only reads — see the read-only decision above. |
+
 ## Diagnostics
 
 An app installed with `homey app install` has no readable log: Developer Tools lists App
@@ -98,10 +148,26 @@ npm run app:run          # run against a Homey on the same network
 `.homeycompose/app.json`, but it is committed anyway: the CLI reads it *before* it
 generates it, so it has to exist to bootstrap.
 
+## Adding a device
+
+Add device → *SNMP - Network Devices* → UPS. Homey sweeps your subnet for anything that
+answers over SNMP and lists what it found; pick your UPS and it is added. A full sweep of
+a /24 takes about fifteen seconds, so the view shows progress rather than freezing.
+
+Devices are matched on their **SNMP identity** — model and serial — never on their IP
+address, so a UPS that moves is still recognised as the same device. If it does move, the
+device's *Repair* flow points it at the new address without losing its history. Reserving
+a fixed address in your router is still the right fix.
+
+If the list comes back empty, the view tells you what to switch on rather than saying "no
+devices found" — see *What you have to enable* above.
+
 ## Status
 
-Work in progress. No driver is published yet — this repository currently holds the SNMP
-core, the app skeleton and the UPS reader.
+Work in progress, and close to complete for version 1: the SNMP core, the UPS reader, the
+device with its two polling rhythms, the twelve Flow cards, pairing and repair are all in.
+Nothing is published to the App Store yet, and the app name still has to change before it
+could be (see below).
 
 ## Naming note
 

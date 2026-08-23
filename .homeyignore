@@ -1,5 +1,6 @@
 test/
 .testbuild/
+.homeybuild/
 .src-images/
 .omc/
 tsconfig.test.json

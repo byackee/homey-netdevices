@@ -12,7 +12,16 @@
     background: var(--homey-color-blue, #0E7C7B); color: #fff; font: inherit;
   }
   button:disabled { opacity: .55; cursor: default; }
+  input[type="text"] {
+    padding: .5rem .6rem; border-radius: 6px; font: inherit; width: 12rem;
+    border: 1px solid var(--homey-line-color, #ccc); margin-right: .4rem;
+  }
+  .row { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; }
   .bad { color: var(--homey-color-red, #da3633); }
+  .warn { color: var(--homey-color-orange, #b06000); }
+  ul.results { margin: .75rem 0 0; padding-left: 1.1rem; font-size: .9rem; }
+  ul.results li { margin-bottom: .3rem; }
+  progress { width: 100%; margin-top: .6rem; }
   pre {
     white-space: pre-wrap; word-break: break-word; margin: .75rem 0 0;
     font-size: .85rem; line-height: 1.45;
@@ -29,6 +38,19 @@
   <li data-i18n="settings.prereq_card"></li>
   <li data-i18n="settings.prereq_nut"></li>
 </ul>
+
+<h2 data-i18n="settings.scan"></h2>
+<p class="hint" data-i18n="settings.scan_hint"></p>
+<button type="button" id="scan-run" data-i18n="settings.scan_button"></button>
+<div id="scan-result"></div>
+
+<h2 data-i18n="settings.probe"></h2>
+<p class="hint" data-i18n="settings.probe_hint"></p>
+<div class="row">
+  <input type="text" id="probe-host" inputmode="decimal" autocomplete="off">
+  <button type="button" id="probe-run" data-i18n="settings.probe_button"></button>
+</div>
+<div id="probe-result"></div>
 
 <h2 data-i18n="settings.trace"></h2>
 <p class="hint" data-i18n="settings.trace_hint"></p>
@@ -58,6 +80,20 @@
       })[c]);
     }
 
+    /*
+     * Token substitution is done here rather than left to Homey.__ because the
+     * settings-side __ has historically ignored its second argument on some
+     * Homey versions, which turns a sentence into a raw "{{host}}" in front of
+     * the user. Doing it locally behaves the same everywhere.
+     */
+    function t(key, tokens) {
+      const raw = String(Homey.__(key));
+      if (!tokens) return raw;
+      return raw.replace(/\{\{(\w+)\}\}/g, (whole, name) => (
+        Object.prototype.hasOwnProperty.call(tokens, name) ? String(tokens[name]) : whole
+      ));
+    }
+
     function call(method, path, body) {
       return new Promise((resolve, reject) => {
         Homey.api(method, path, body || null, (err, result) => {
@@ -66,6 +102,150 @@
         });
       });
     }
+
+    /*
+     * The sweep and probe endpoints land with the driver work, which may not be
+     * in the build this page is running against. A missing endpoint comes back
+     * as a generic error, so it is recognised by shape rather than by class and
+     * reported as "not in this build" instead of as a red failure the user
+     * cannot act on.
+     */
+    function isMissingEndpoint(error) {
+      return /not found|no such|unknown|404/i.test(String(error && error.message));
+    }
+
+    // ---- sweep ----------------------------------------------------------
+
+    const scanButton = document.getElementById('scan-run');
+    const scanTarget = document.getElementById('scan-result');
+
+    function renderScan(status) {
+      const found = Array.isArray(status.devices) ? status.devices : [];
+      const silent = Array.isArray(status.reachableWithoutSnmp) ? status.reachableWithoutSnmp : [];
+      const parts = [];
+
+      if (status.running) {
+        const done = Number(status.done) || 0;
+        const total = Number(status.total) || 0;
+        parts.push('<p class="hint">' + esc(t('settings.scan_running', { done, total })) + '</p>');
+        parts.push('<progress value="' + done + '" max="' + (total || 1) + '"></progress>');
+      }
+
+      if (found.length) {
+        parts.push('<p>' + esc(t('settings.scan_found', { count: found.length })) + '</p>');
+        parts.push('<ul class="results">' + found.map((d) => (
+          '<li>' + esc(d.host) + (d.model ? ' — ' + esc(d.model) : '') + '</li>'
+        )).join('') + '</ul>');
+      }
+
+      // A reachable-but-silent address is the whole point of this panel: it is
+      // the difference between "nothing is there" and "SNMP is switched off",
+      // and only the second one has an action attached to it.
+      if (silent.length) {
+        parts.push('<p class="warn">' + esc(Homey.__('pair.reachable_lead')) + '</p>');
+        parts.push('<ul class="results">' + silent.map((host) => (
+          '<li class="warn">' + esc(t('pair.reachable_item', { host })) + '</li>'
+        )).join('') + '</ul>');
+      }
+
+      if (!status.running && !found.length) {
+        parts.push('<p class="hint">' + esc(Homey.__('settings.scan_none')) + '</p>');
+      }
+
+      scanTarget.innerHTML = parts.join('');
+    }
+
+    let scanTimer = null;
+
+    async function pollScan() {
+      try {
+        const status = await call('GET', '/scan');
+        renderScan(status);
+
+        // A /24 sweep runs about sixteen seconds and an app API call is cut off
+        // at ten, so the sweep is started and then polled — it is never awaited.
+        if (status.running) {
+          scanTimer = setTimeout(pollScan, 1000);
+        } else {
+          scanTimer = null;
+          scanButton.disabled = false;
+        }
+      } catch (error) {
+        scanTimer = null;
+        scanButton.disabled = false;
+        scanTarget.innerHTML = '<p class="bad">' + esc(error.message) + '</p>';
+      }
+    }
+
+    async function startScan() {
+      if (scanTimer) return;
+      scanButton.disabled = true;
+      scanTarget.innerHTML = '<p class="hint">' + esc(t('settings.scan_running', { done: 0, total: 0 })) + '</p>';
+
+      try {
+        // Starting while a sweep is already in flight returns the one in flight
+        // rather than launching a second, so this needs no guard of its own.
+        await call('POST', '/scan', {});
+        pollScan();
+      } catch (error) {
+        scanButton.disabled = false;
+        scanTarget.innerHTML = isMissingEndpoint(error)
+          ? '<p class="hint">' + esc(Homey.__('settings.scan_unavailable')) + '</p>'
+          : '<p class="bad">' + esc(error.message) + '</p>';
+      }
+    }
+
+    scanButton.addEventListener('click', startScan);
+
+    // ---- single address -------------------------------------------------
+
+    const probeButton = document.getElementById('probe-run');
+    const probeInput = document.getElementById('probe-host');
+    const probeTarget = document.getElementById('probe-result');
+
+    probeInput.placeholder = Homey.__('settings.probe_placeholder');
+
+    async function runProbe() {
+      const host = probeInput.value.trim();
+
+      if (!host) {
+        probeTarget.innerHTML = '<p class="bad">' + esc(Homey.__('settings.probe_needs_host')) + '</p>';
+        return;
+      }
+
+      probeButton.disabled = true;
+      probeTarget.innerHTML = '<p class="hint">' + esc(t('settings.probe_running', { host })) + '</p>';
+
+      try {
+        const result = await call('POST', '/probe', { host });
+
+        // Three outcomes, deliberately not two: answered, reachable but silent,
+        // and nothing at all. Collapsing the middle one into "not found" is the
+        // exact failure that has left the forum's APC thread unresolved.
+        if (result && result.ok) {
+          probeTarget.innerHTML = '<p>' + esc(t('settings.probe_ok', {
+            host, model: result.model || '—',
+          })) + '</p>';
+        } else if (result && result.reachable) {
+          probeTarget.innerHTML = '<p class="warn">' + esc(t('settings.probe_no_snmp', { host })) + '</p>';
+        } else {
+          probeTarget.innerHTML = '<p class="hint">' + esc(t('settings.probe_silent', { host })) + '</p>';
+        }
+      } catch (error) {
+        probeTarget.innerHTML = isMissingEndpoint(error)
+          ? '<p class="hint">' + esc(Homey.__('settings.scan_unavailable')) + '</p>'
+          : '<p class="bad">' + esc(error.message) + '</p>';
+      } finally {
+        probeButton.disabled = false;
+      }
+    }
+
+    probeButton.addEventListener('click', runProbe);
+    probeInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') runProbe();
+    });
+
+    // ---- trace ----------------------------------------------------------
 
     async function loadTrace() {
       const button = document.getElementById('trace-refresh');
