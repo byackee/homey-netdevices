@@ -49,13 +49,15 @@ import {
 interface UpsSettings {
   host: string;
   community: string;
+  /** Le port UDP de l'agent. 161 partout, sauf configuration particulière. */
+  port: number;
   version: SnmpVersion;
   liveInterval: number;
   detailInterval: number;
 }
 
 /** Les réglages dont un changement invalide la conversation SNMP en cours. */
-const CONNECTION_KEYS = ['host', 'community', 'version'];
+const CONNECTION_KEYS = ['host', 'community', 'port', 'version'];
 
 /**
  * Délai avant de reconstruire le client après un changement de réglage.
@@ -121,6 +123,9 @@ export default class UpsDevice extends Homey.Device {
     return {
       host: String(this.getSetting('host') ?? ''),
       community: String(this.getSetting('community') ?? 'public'),
+      // 161 sauf mention contraire. Un agent peut écouter ailleurs — un `snmpd` non
+      // privilégié, un conteneur, ou un simulateur pendant une mise au point.
+      port: Number(this.getSetting('port') ?? 161),
       version: (this.getSetting('version') as SnmpVersion) ?? 'v2c',
       liveInterval: Number(this.getSetting('live_interval') ?? LIVE_RHYTHM.defaultSeconds),
       detailInterval: Number(this.getSetting('detail_interval') ?? DETAIL_RHYTHM.defaultSeconds),
@@ -134,10 +139,10 @@ export default class UpsDevice extends Homey.Device {
   }
 
   private buildClient(): void {
-    const { host, community, version } = this.readSettings();
+    const { host, community, version, port } = this.readSettings();
     // Un timeout court : trois OID à 10 s ne supportent pas l'attente par défaut, et
     // c'est le compteur d'échecs — pas le socket — qui décide de l'indisponibilité.
-    this.client = new SnmpClient({ host, community, version, timeout: 2_500, retries: 1 });
+    this.client = new SnmpClient({ host, community, version, port, timeout: 2_500, retries: 1 });
   }
 
   /**

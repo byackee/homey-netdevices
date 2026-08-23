@@ -383,7 +383,7 @@ export default class NetDevicesApp extends Homey.App {
   /** La sonde en cours, s'il y en a une. Voir {@link probeAddress}. */
   private probeQueue: Promise<void> = Promise.resolve();
 
-  async probeAddress(host: string, community = 'public'): Promise<AddressProbe> {
+  async probeAddress(host: string, community = 'public', port = 161): Promise<AddressProbe> {
     // 🔴 Sérialisé, comme `startScan` l'est déjà. Sans plafond, chaque appel ouvre une
     // négociation de version, jusqu'à trois sondes de dialecte, une lecture d'identité
     // et — quand SNMP a renoncé — quatre connexions TCP. Une vue qui réémettrait
@@ -393,14 +393,14 @@ export default class NetDevicesApp extends Homey.App {
     //
     // Les sondes s'enchaînent donc plutôt que de s'empiler. Une sonde dure quelques
     // secondes ; attendre son tour est préférable à épuiser les sockets de l'app.
-    const mine = this.probeQueue.then(() => this.probeOne(host, community));
+    const mine = this.probeQueue.then(() => this.probeOne(host, community, port));
     // La file ne doit pas mourir sur un échec : on la relance quoi qu'il arrive.
     this.probeQueue = mine.then(() => undefined, () => undefined);
     return mine;
   }
 
   /** La sonde elle-même, sérialisée par {@link probeAddress}. */
-  private async probeOne(host: string, community: string): Promise<AddressProbe> {
+  private async probeOne(host: string, community: string, port: number): Promise<AddressProbe> {
     const empty: AddressProbe = {
       host,
       outcome: 'silent',
@@ -411,7 +411,7 @@ export default class NetDevicesApp extends Homey.App {
       identity: null,
     };
 
-    const version = await negotiateVersion(host, community, PROBE_NEGOTIATE_MS);
+    const version = await negotiateVersion(host, community, PROBE_NEGOTIATE_MS, port);
     if (version === null) {
       const reachable = await isReachable(host);
       trace.info('probe', `${host} muet en SNMP`, { joignable: reachable });
@@ -422,6 +422,7 @@ export default class NetDevicesApp extends Homey.App {
       host,
       community,
       version,
+      port,
       timeout: PROBE_READ_MS,
       retries: 0,
       // Ce qui reste des dix secondes une fois la négociation payée. Décisif en v1,

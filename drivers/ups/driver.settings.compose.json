@@ -1,12 +1,20 @@
 [
   {
     "type": "group",
-    "label": { "en": "Connection", "fr": "Connexion", "nl": "Verbinding" },
+    "label": {
+      "en": "Connection",
+      "fr": "Connexion",
+      "nl": "Verbinding"
+    },
     "children": [
       {
         "id": "host",
         "type": "text",
-        "label": { "en": "IP address", "fr": "Adresse IP", "nl": "IP-adres" },
+        "label": {
+          "en": "IP address",
+          "fr": "Adresse IP",
+          "nl": "IP-adres"
+        },
         "hint": {
           "en": "Reserve a fixed address for the UPS — or for the NAS that relays it — in your router. A moving address is the usual reason a UPS stops answering.",
           "fr": "Réservez une adresse fixe pour l’onduleur — ou pour le NAS qui le relaie — dans votre routeur. Une adresse qui bouge est la raison habituelle d’un onduleur qui cesse de répondre.",
@@ -17,7 +25,11 @@
       {
         "id": "community",
         "type": "password",
-        "label": { "en": "SNMP community", "fr": "Communauté SNMP", "nl": "SNMP-community" },
+        "label": {
+          "en": "SNMP community",
+          "fr": "Communauté SNMP",
+          "nl": "SNMP-community"
+        },
         "hint": {
           "en": "Almost always \"public\". It is a weak shared secret, so it is masked here — but it stays editable, because getting it wrong is the most common reason a UPS answers nothing at all.",
           "fr": "Presque toujours « public ». C’est un secret partagé faible : il est donc masqué ici, mais il reste modifiable, car s’être trompé est la première cause d’un onduleur qui ne répond rien.",
@@ -26,9 +38,30 @@
         "value": "public"
       },
       {
+        "id": "port",
+        "type": "number",
+        "value": 161,
+        "min": 1,
+        "max": 65535,
+        "label": {
+          "en": "SNMP port",
+          "fr": "Port SNMP",
+          "nl": "SNMP-poort"
+        },
+        "hint": {
+          "en": "161 unless the agent was told otherwise. Change it only if you know your device listens elsewhere.",
+          "fr": "161, sauf si l'agent a été configuré autrement. À ne changer que si vous savez que votre appareil écoute ailleurs.",
+          "nl": "161, tenzij de agent anders is ingesteld. Wijzig dit alleen als u weet dat uw apparaat elders luistert."
+        }
+      },
+      {
         "id": "version",
         "type": "dropdown",
-        "label": { "en": "SNMP version", "fr": "Version SNMP", "nl": "SNMP-versie" },
+        "label": {
+          "en": "SNMP version",
+          "fr": "Version SNMP",
+          "nl": "SNMP-versie"
+        },
         "hint": {
           "en": "v2c reports missing values one by one; v1 fails the whole read when a single value is absent. Only fall back to v1 if v2c gets no answer.",
           "fr": "v2c signale les valeurs absentes une par une ; v1 fait échouer tout le relevé dès qu’une seule valeur manque. Ne passez à v1 que si v2c ne répond pas.",
@@ -36,20 +69,42 @@
         },
         "value": "v2c",
         "values": [
-          { "id": "v2c", "label": { "en": "v2c", "fr": "v2c", "nl": "v2c" } },
-          { "id": "v1", "label": { "en": "v1", "fr": "v1", "nl": "v1" } }
+          {
+            "id": "v2c",
+            "label": {
+              "en": "v2c",
+              "fr": "v2c",
+              "nl": "v2c"
+            }
+          },
+          {
+            "id": "v1",
+            "label": {
+              "en": "v1",
+              "fr": "v1",
+              "nl": "v1"
+            }
+          }
         ]
       }
     ]
   },
   {
     "type": "group",
-    "label": { "en": "Monitoring", "fr": "Surveillance", "nl": "Bewaking" },
+    "label": {
+      "en": "Monitoring",
+      "fr": "Surveillance",
+      "nl": "Bewaking"
+    },
     "children": [
       {
         "id": "live_interval",
         "type": "number",
-        "label": { "en": "Read power state every (seconds)", "fr": "Relever l’état secteur toutes les (secondes)", "nl": "Lees de voedingsstatus elke (seconden)" },
+        "label": {
+          "en": "Read power state every (seconds)",
+          "fr": "Relever l’état secteur toutes les (secondes)",
+          "nl": "Lees de voedingsstatus elke (seconden)"
+        },
         "hint": {
           "en": "Battery state, runtime and load. This is what makes a power cut reach a Flow in seconds — raising it above a minute mostly defeats the point of the app.",
           "fr": "État batterie, autonomie et charge. C’est ce qui fait qu’une coupure atteint un Flow en quelques secondes — monter au-delà d’une minute retire l’essentiel de l’intérêt de l’app.",
@@ -58,12 +113,18 @@
         "value": 10,
         "min": 5,
         "max": 3600,
-        "units": { "en": "s" }
+        "units": {
+          "en": "s"
+        }
       },
       {
         "id": "detail_interval",
         "type": "number",
-        "label": { "en": "Read voltages and temperature every (seconds)", "fr": "Relever tensions et température toutes les (secondes)", "nl": "Lees spanningen en temperatuur elke (seconden)" },
+        "label": {
+          "en": "Read voltages and temperature every (seconds)",
+          "fr": "Relever tensions et température toutes les (secondes)",
+          "nl": "Lees spanningen en temperatuur elke (seconden)"
+        },
         "hint": {
           "en": "Voltages, temperature, thresholds and model. These barely move, and some UPS network cards throttle requests — so this group is deliberately far slower than the one above.",
           "fr": "Tensions, température, seuils et modèle. Cela ne bouge presque pas, et certaines cartes réseau d’onduleur brident les requêtes — ce groupe est donc volontairement bien plus lent que le précédent.",
@@ -72,7 +133,9 @@
         "value": 300,
         "min": 60,
         "max": 86400,
-        "units": { "en": "s" }
+        "units": {
+          "en": "s"
+        }
       }
     ]
   }

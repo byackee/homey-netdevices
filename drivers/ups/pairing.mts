@@ -47,7 +47,7 @@ export interface PairingDevice {
   name: string;
   data: { id: string };
   store: { source: UpsSource; serial: string | null; mac: string | null };
-  settings: { host: string; community: string; version: SnmpVersion };
+  settings: { host: string; community: string; port: number; version: SnmpVersion };
 }
 
 /**
@@ -72,6 +72,8 @@ export interface CandidateInput {
   source: UpsSource;
   version: SnmpVersion;
   community: string;
+  /** Le port UDP de l'agent, tel que la sonde l'a effectivement interrogé. */
+  port: number;
   mac: string | null;
   vendor: string | null;
   model: string | null;
@@ -100,7 +102,7 @@ export function buildCandidate(input: CandidateInput): PairingCandidate {
       name: title,
       data: { id: deviceId(input.source, input.serial, input.model, input.sysName, input.host) },
       store: { source: input.source, serial: input.serial, mac: input.mac },
-      settings: { host: input.host, community: input.community, version: input.version },
+      settings: { host: input.host, community: input.community, port: input.port, version: input.version },
     },
   };
 }
@@ -207,4 +209,18 @@ export function hostOf(data: unknown): string {
 export function communityOf(data: unknown): string {
   const body = (data ?? {}) as { community?: unknown };
   return String(body.community ?? 'public').trim() || 'public';
+}
+
+/**
+ * Le port UDP demandé, 161 par défaut.
+ *
+ * Un agent peut écouter ailleurs : un `snmpd` lancé sans privilèges ne peut pas prendre
+ * 161, pas plus qu'un conteneur sans capacité réseau ou un simulateur de mise au point.
+ * Hors bornes ou illisible, on retombe sur 161 plutôt que d'échouer — c'est ce que
+ * l'utilisateur voulait dans tous les cas sauf celui qu'il a explicitement demandé.
+ */
+export function portOf(data: unknown): number {
+  const body = (data ?? {}) as { port?: unknown };
+  const port = Number(body.port);
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : 161;
 }

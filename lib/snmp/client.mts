@@ -291,11 +291,12 @@ export async function negotiateVersion(
   host: string,
   community: string,
   timeout = 4_000,
+  port = 161,
 ): Promise<SnmpVersion | null> {
   const probe = '1.3.6.1.2.1.1.1.0'; // sysDescr.0 — tout agent SNMP le possède.
 
   for (const version of ['v2c', 'v1'] as const) {
-    const client = new SnmpClient({ host, community, version, timeout, retries: 0 });
+    const client = new SnmpClient({ host, community, version, port, timeout, retries: 0 });
     try {
       const result = await client.get([probe]);
       if (result.get(probe) !== null) return version;

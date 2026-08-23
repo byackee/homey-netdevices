@@ -8,6 +8,7 @@ import {
   dedupeByHost,
   deviceId,
   hostOf,
+  portOf,
   suggestName,
   type CandidateInput,
 } from '../../drivers/ups/pairing.mjs';
@@ -19,6 +20,7 @@ function input(overrides: Partial<CandidateInput> = {}): CandidateInput {
     source: 'apc',
     version: 'v2c',
     community: 'public',
+    port: 161,
     mac: null,
     vendor: null,
     model: 'Smart-UPS 1500',
@@ -51,7 +53,7 @@ test('un résultat de pairing ne porte que les clés que Homey admet', () => {
 
 test('les réglages écrits au pairing sont ceux que le device relit', () => {
   const { device } = buildCandidate(input({ community: 'privé', version: 'v1' }));
-  assert.deepEqual(device.settings, { host: '192.168.1.20', community: 'privé', version: 'v1' });
+  assert.deepEqual(device.settings, { host: '192.168.1.20', community: 'privé', port: 161, version: 'v1' });
   // La source va dans le `store` : le device la relit à l'init pour ne pas re-détecter.
   assert.equal(device.store.source, 'apc');
   assert.equal(device.store.serial, 'AS1234567890');
@@ -145,4 +147,20 @@ test('ce que la vue envoie est nettoyé avant d’être cru', () => {
   assert.equal(communityOf({ community: '   ' }), 'public', 'une communauté vide n’est pas une communauté');
   assert.equal(communityOf({}), 'public');
   assert.equal(communityOf(null), 'public');
+});
+
+test('le port sondé est celui que le device relira', () => {
+  // Un agent peut écouter ailleurs que sur 161 : un `snmpd` sans privilèges, un
+  // conteneur, un simulateur. Le port qui a répondu au pairing doit suivre l'appareil,
+  // faute de quoi il serait joignable une fois puis muet à jamais.
+  const { device } = buildCandidate(input({ port: 1161 }));
+  assert.equal(device.settings.port, 1161);
+});
+
+test('portOf retombe sur 161 plutôt que d\'échouer', () => {
+  assert.equal(portOf({}), 161);
+  assert.equal(portOf({ port: 'pas un nombre' }), 161);
+  assert.equal(portOf({ port: 0 }), 161);
+  assert.equal(portOf({ port: 70_000 }), 161);
+  assert.equal(portOf({ port: 1161 }), 1161);
 });

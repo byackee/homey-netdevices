@@ -22,6 +22,7 @@ import type { UpsSource } from '../../lib/ups/snapshot.mjs';
 import {
   buildCandidate,
   communityOf,
+  portOf,
   dedupeByHost,
   hostOf,
   type PairingDevice,
@@ -307,8 +308,9 @@ export default class UpsDriver extends Homey.Driver {
       if (this.pairedHosts().has(host)) return { ...emptyFinding(host), outcome: 'already-paired' };
 
       const app = this.homey.app as NetDevicesApp;
-      const probe = await app.probeAddress(host, community);
-      const finding = this.fromProbe(probe, community, null, null);
+      const port = portOf(data);
+      const probe = await app.probeAddress(host, community, port);
+      const finding = this.fromProbe(probe, community, port, null, null);
 
       this.note(`probe ${host}: ${probe.outcome}`, finding.device?.name);
       return { ...finding, outcome: probe.outcome };
@@ -450,7 +452,7 @@ export default class UpsDriver extends Homey.Driver {
         const probe = await app.probeAddress(entry.address, community);
 
         if (probe.outcome === 'ups') {
-          const finding = this.fromProbe(probe, community, entry.mac, entry.vendor);
+          const finding = this.fromProbe(probe, community, 161, entry.mac, entry.vendor);
           this.discovered = dedupeByHost([...this.discovered, finding]);
           this.note(`découverte : ${entry.address} est un onduleur ${entry.vendor ?? ''}`.trim());
           continue;
@@ -471,6 +473,7 @@ export default class UpsDriver extends Homey.Driver {
   private fromProbe(
     probe: AddressProbe,
     community: string,
+    port: number,
     mac: string | null,
     vendor: string | null,
   ): Finding {
@@ -496,6 +499,7 @@ export default class UpsDriver extends Homey.Driver {
         source: probe.source,
         version: probe.version,
         community,
+        port,
         mac,
         vendor,
         model: identity.model,
@@ -531,6 +535,7 @@ export default class UpsDriver extends Homey.Driver {
         source: found.source,
         version: 'v2c',
         community,
+        port: 161,
         mac: null,
         vendor: null,
         model: found.model,

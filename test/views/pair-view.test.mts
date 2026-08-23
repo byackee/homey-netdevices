@@ -425,7 +425,33 @@ describe('panne 6 — la charge utile passée à createDevice', () => {
     stage.el('ups-start-add').dispatch('click');
     await settle();
 
-    assert.deepEqual(sent(stage, 'probe'), { host: '192.168.1.30', community: 'monitoring' });
+    assert.deepEqual(sent(stage, 'probe'), { host: '192.168.1.30', community: 'monitoring', port: 161 });
+  });
+
+  test('le port saisi est celui avec lequel on sonde', async () => {
+    // Un agent peut écouter ailleurs que sur 161 : un `snmpd` sans privilèges, un
+    // conteneur, un simulateur. Sans ce champ, une telle adresse est intestable.
+    const stage = await runStart({
+      handlers: { ...sweepHandlers({ found: [] }), probe: () => ({ ...SYNOLOGY, outcome: 'ups' }) },
+    });
+    stage.el('ups-start-host').value = '192.168.1.30';
+    stage.el('ups-start-port').value = '1161';
+    stage.el('ups-start-add').dispatch('click');
+    await settle();
+
+    assert.equal((sent(stage, 'probe') as { port: number }).port, 1161);
+  });
+
+  test('un port illisible retombe sur 161 plutôt que d\'échouer', async () => {
+    const stage = await runStart({
+      handlers: { ...sweepHandlers({ found: [] }), probe: () => ({ ...SYNOLOGY, outcome: 'ups' }) },
+    });
+    stage.el('ups-start-host').value = '192.168.1.30';
+    stage.el('ups-start-port').value = 'zut';
+    stage.el('ups-start-add').dispatch('click');
+    await settle();
+
+    assert.equal((sent(stage, 'probe') as { port: number }).port, 161);
   });
 
   test('une création qui échoue le dit, et laisse réessayer', async () => {
