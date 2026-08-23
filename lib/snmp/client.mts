@@ -70,6 +70,30 @@ const DEFAULT_RETRIES = 1;
 const DEFAULT_PORT = 161;
 
 /**
+ * Plafond de feuilles d'un seul parcours. Large devant tout ce que ces MIB peuvent
+ * rendre — la table de stockage d'un NAS bien fourni tient dans quelques centaines
+ * de lignes — et c'est bien pour cela qu'il est un filet, pas une limite de travail.
+ */
+const WALK_MAX_VARBINDS = 10_000;
+
+/**
+ * Compare deux OID **composant par composant**, et non comme du texte : en ordre
+ * lexical de chaînes, `1.3.6.1.2.1.25.2.3.1.10` précède `1.3.6.1.2.1.25.2.3.1.2`,
+ * et le contrôle de progression déclarerait à tort une boucle sur toute table
+ * dépassant neuf colonnes.
+ */
+function compareOids(left: string, right: string): number {
+  const a = left.split('.');
+  const b = right.split('.');
+  for (let i = 0; i < Math.min(a.length, b.length); i += 1) {
+    const delta = Number(a[i]) - Number(b[i]);
+    if (delta !== 0) return delta < 0 ? -1 : 1;
+  }
+  if (a.length === b.length) return 0;
+  return a.length < b.length ? -1 : 1;
+}
+
+/**
  * net-snmp rend les chaînes sous forme de Buffer ; seul l'appelant sait ce qu'il veut.
  * `type` et `value` sont tous deux optionnels dans les typages publiés, et un vrai
  * agent peut omettre l'un ou l'autre : aucun des deux n'est présumé ici.
@@ -84,11 +108,32 @@ function toValue(varbind: snmp.Varbind): SnmpValue {
   if (Buffer.isBuffer(value)) {
     // OctetString est le seul type Buffer qui porte du texte lisible.
     // Latin-1 évite de lever sur les octets hauts que certains firmwares émettent.
-    return varbind.type === snmp.ObjectType.OctetString ? value.toString('latin1').trim() : value;
+    if (varbind.type === snmp.ObjectType.OctetString) return value.toString('latin1').trim();
+    if (varbind.type === snmp.ObjectType.Counter64) return fromCounter64(value);
+    return value;
   }
   if (typeof value === 'bigint') return Number(value);
   if (typeof value === 'boolean') return value ? 1 : 0;
   return value;
+}
+
+/**
+ * Un Counter64 arrive en **huit octets bruts**, pas en nombre.
+ *
+ * 🔴 `net-snmp` rend `ObjectType.Counter64` sous forme de Buffer (`readUint64`), et rien
+ * en aval ne le convertissait : `toNumber` ne reconnaît que l'`Opaque Float` propriétaire
+ * — sept ou onze octets — et rendait `null` sur les huit d'un compteur. `ifHCInOctets` et
+ * `ifHCOutOctets` étaient donc **nuls sur tout switch réel**, et les capabilities de débit
+ * ne pouvaient jamais se déclarer. Le `typeof value === 'bigint'` juste au-dessus visait ce
+ * cas ; il ne l'atteignait pas, parce que la bibliothèque ne rend pas un bigint.
+ *
+ * La conversion vers `number` perd la précision au-delà de 2^53 octets — soit, à 10 Gbit/s
+ * saturés en permanence, deux cent mille ans. Le calcul de débit travaille sur des écarts,
+ * et un compteur qui recule est déjà traité comme un redémarrage d'agent.
+ */
+function fromCounter64(bytes: Buffer): number | null {
+  if (bytes.length !== 8) return null;
+  return Number(bytes.readBigUInt64BE(0));
 }
 
 /** Comme {@link toValue}, mais garde les OctetString en octets bruts, pour les chaînes de bits. */
@@ -252,20 +297,47 @@ export class SnmpClient implements SnmpReader {
    * C'est ce qu'il faut pour les tables dont le nombre de lignes est précisément ce
    * qu'on ne doit pas coder en dur : un onduleur monophasé et un triphasé ressortent
    * tous deux corrects parce que ni le compte ni les index ne sont présumés.
+   *
+   * 🔴 Le parcours s'arrête de lui-même, il ne fait pas confiance à l'agent d'en face.
+   * `net-snmp` ne conclut que sur `EndOfMibView` (index.js, `walkCb`) : un agent qui
+   * répond `noSuchObject` **sur l'OID demandé** — ce que font les agents dont le
+   * sous-arbre interrogé est simplement absent — laisse `oidInSubtree` vrai, et le
+   * `getNext` suivant repart du même point. Boucle infinie, sans erreur et sans délai
+   * d'attente : mesuré à 1,7 million de varbinds en quinze secondes sur un hôte qui
+   * ne publie pas ENTITY-SENSOR-MIB. Trois garde-fous ferment ce trou, et le premier
+   * suffit dans tous les cas observés :
+   *
+   * 1. **la progression de l'OID** — RFC 3416 §4.2.2 exige que chaque `getNext` rende
+   *    un OID strictement supérieur ; celui qui ne progresse pas termine le parcours ;
+   * 2. **le type de varbind** — `noSuchObject` / `noSuchInstance` sous la racine veut
+   *    dire « il n'y a rien ici », donc fin, pas « continue » ;
+   * 3. **un plafond de feuilles**, filet de sécurité contre un agent qui progresserait
+   *    tout en ne s'arrêtant jamais.
+   *
+   * Un parcours écourté **rend ce qu'il a lu** au lieu de lever : côté lecteurs, une
+   * ligne absente vaut déjà `null`, et c'est le même verdict qu'un sous-arbre vide.
    */
   async walk(rootOid: string, maxRepetitions = 20): Promise<Map<string, SnmpValue>> {
     const session = this.openSession();
     const out = new Map<string, SnmpValue>();
+    let previousOid: string | null = null;
 
     try {
       await new Promise<void>((resolve, reject) => {
         session.subtree(
           rootOid,
           maxRepetitions,
-          (varbinds: snmp.Varbind[]) => {
+          // Rendre `true` arrête le parcours : c'est le seul levier que `subtree`
+          // laisse à l'appelant, et il conclut par le rappel de fin sans erreur.
+          (varbinds: snmp.Varbind[]): boolean => {
             for (const vb of varbinds) {
-              if (!snmp.isVarbindError(vb)) out.set(vb.oid, toValue(vb));
+              if (snmp.isVarbindError(vb)) return true;
+              if (previousOid !== null && compareOids(vb.oid, previousOid) <= 0) return true;
+              previousOid = vb.oid;
+              out.set(vb.oid, toValue(vb));
+              if (out.size >= WALK_MAX_VARBINDS) return true;
             }
+            return false;
           },
           (error?: Error | null) => {
             if (error) reject(error);
