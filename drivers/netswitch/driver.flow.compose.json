@@ -1,0 +1,195 @@
+{
+  "triggers": [
+    {
+      "id": "netswitch_port_up",
+      "title": {
+        "en": "The link comes up",
+        "fr": "Le lien s’active",
+        "nl": "De link komt op"
+      },
+      "hint": {
+        "en": "Something was plugged in, or came back. Fires on the change, not on the state — a port that stays up does not fire again.",
+        "fr": "Quelque chose a été branché, ou est revenu. Se déclenche sur le changement, pas sur l’état — un port qui reste actif ne redéclenche rien.",
+        "nl": "Er is iets aangesloten of teruggekomen. Wordt geactiveerd bij de verandering, niet bij de status — een poort die actief blijft, activeert niet opnieuw."
+      },
+      "tokens": [
+        { "name": "port", "type": "string", "title": { "en": "Port", "fr": "Port", "nl": "Poort" }, "example": { "en": "Gi1/0/5" } },
+        { "name": "speed", "type": "string", "title": { "en": "Negotiated speed", "fr": "Débit négocié", "nl": "Onderhandelde snelheid" }, "example": { "en": "1000 Mbit/s" } }
+      ]
+    },
+    {
+      "id": "netswitch_port_down",
+      "title": {
+        "en": "The link goes down",
+        "fr": "Le lien tombe",
+        "nl": "De link valt weg"
+      },
+      "hint": {
+        "en": "The cable was unplugged, or the device at the other end went off. A poll that gets no answer does NOT fire this card — an unreachable switch makes the device unavailable instead, so a dropped SNMP packet never looks like an unplugged cable.",
+        "fr": "Le câble a été débranché, ou l’appareil au bout s’est éteint. Un relevé sans réponse ne déclenche PAS cette carte : un switch injoignable rend l’appareil indisponible, pour qu’un paquet SNMP perdu ne ressemble jamais à un câble arraché.",
+        "nl": "De kabel is losgekoppeld of het apparaat aan de andere kant ging uit. Een uitlezing zonder antwoord activeert deze kaart NIET — een onbereikbare switch maakt het apparaat onbeschikbaar, zodat een verloren SNMP-pakket nooit op een losgetrokken kabel lijkt."
+      },
+      "tokens": [
+        { "name": "port", "type": "string", "title": { "en": "Port", "fr": "Port", "nl": "Poort" }, "example": { "en": "Gi1/0/5" } },
+        { "name": "speed", "type": "string", "title": { "en": "Last negotiated speed", "fr": "Dernier débit négocié", "nl": "Laatst onderhandelde snelheid" }, "example": { "en": "1000 Mbit/s" } }
+      ]
+    },
+    {
+      "id": "netswitch_link_changed",
+      "title": {
+        "en": "The link state becomes...",
+        "fr": "L’état du lien passe à...",
+        "nl": "De linkstatus wordt..."
+      },
+      "titleFormatted": {
+        "en": "The link state becomes [[state]]",
+        "fr": "L’état du lien passe à [[state]]",
+        "nl": "De linkstatus wordt [[state]]"
+      },
+      "args": [
+        {
+          "name": "state",
+          "type": "dropdown",
+          "values": [
+            { "id": "any", "label": { "en": "any state", "fr": "n’importe lequel", "nl": "elke status" } },
+            { "id": "up", "label": { "en": "link up", "fr": "lien actif", "nl": "link actief" } },
+            { "id": "down", "label": { "en": "link down", "fr": "lien inactif", "nl": "link inactief" } },
+            { "id": "dormant", "label": { "en": "dormant", "fr": "en veille", "nl": "slapend" } },
+            { "id": "notPresent", "label": { "en": "module not present", "fr": "module absent", "nl": "module afwezig" } },
+            { "id": "lowerLayerDown", "label": { "en": "lower layer down", "fr": "couche inférieure tombée", "nl": "onderliggende laag uit" } }
+          ]
+        }
+      ],
+      "tokens": [
+        { "name": "port", "type": "string", "title": { "en": "Port", "fr": "Port", "nl": "Poort" }, "example": { "en": "Gi1/0/5" } },
+        { "name": "state", "type": "string", "title": { "en": "New state", "fr": "Nouvel état", "nl": "Nieuwe status" }, "example": { "en": "up" } }
+      ]
+    },
+    {
+      "id": "netswitch_poe_fault",
+      "title": {
+        "en": "The PoE socket reports a fault",
+        "fr": "La prise PoE signale un défaut",
+        "nl": "De PoE-aansluiting meldt een storing"
+      },
+      "hint": {
+        "en": "The switch says it cannot power this port — a short, an overload, or a device drawing more than its class. Only fires on switches whose PoE sockets the app could match to a port reliably.",
+        "fr": "Le switch dit qu’il ne peut pas alimenter ce port — court-circuit, surcharge, ou appareil tirant plus que sa classe. Ne se déclenche que sur les switchs dont les prises PoE ont pu être reliées à un port de façon sûre.",
+        "nl": "De switch meldt dat hij deze poort niet kan voeden — kortsluiting, overbelasting of een apparaat dat meer trekt dan zijn klasse. Werkt alleen op switches waarvan de PoE-aansluitingen betrouwbaar aan een poort konden worden gekoppeld."
+      },
+      "tokens": [
+        { "name": "port", "type": "string", "title": { "en": "Port", "fr": "Port", "nl": "Poort" }, "example": { "en": "Gi1/0/5" } }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "id": "netswitch_link_is_up",
+      "title": {
+        "en": "The link !{{is|is not}} up",
+        "fr": "Le lien !{{est|n’est pas}} actif",
+        "nl": "De link !{{is|is niet}} actief"
+      }
+    },
+    {
+      "id": "netswitch_poe_is_delivering",
+      "title": {
+        "en": "The PoE socket !{{is|is not}} delivering power",
+        "fr": "La prise PoE !{{alimente|n’alimente pas}}",
+        "nl": "De PoE-aansluiting !{{levert|levert geen}} stroom"
+      },
+      "hint": {
+        "en": "False when the app could not match a PoE socket to this port — it does not claim to know.",
+        "fr": "Faux quand aucune prise PoE n’a pu être reliée à ce port : l’app ne prétend pas savoir.",
+        "nl": "Onwaar wanneer de app geen PoE-aansluiting aan deze poort kon koppelen — ze doet geen aannames."
+      }
+    },
+    {
+      "id": "netswitch_speed_above",
+      "title": {
+        "en": "The negotiated speed !{{is|is not}} above...",
+        "fr": "Le débit négocié !{{dépasse|ne dépasse pas}}...",
+        "nl": "De onderhandelde snelheid !{{is|is niet}} hoger dan..."
+      },
+      "titleFormatted": {
+        "en": "The negotiated speed !{{is|is not}} above [[mbps]] Mbit/s",
+        "fr": "Le débit négocié !{{dépasse|ne dépasse pas}} [[mbps]] Mbit/s",
+        "nl": "De onderhandelde snelheid !{{is|is niet}} hoger dan [[mbps]] Mbit/s"
+      },
+      "hint": {
+        "en": "Answers false when the speed is unknown. A value that was not read is not a fast link, and it is not a slow one either.",
+        "fr": "Répond faux quand le débit est inconnu. Une valeur non lue n’est pas un lien rapide, ni un lien lent.",
+        "nl": "Antwoordt onwaar als de snelheid onbekend is. Een niet-gelezen waarde is geen snelle link, en ook geen trage."
+      },
+      "args": [
+        { "name": "mbps", "type": "number", "min": 0, "max": 400000, "step": 1, "placeholder": { "en": "1000" } }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "netswitch_refresh",
+      "title": {
+        "en": "Read this port now",
+        "fr": "Relever ce port maintenant",
+        "nl": "Lees deze poort nu uit"
+      }
+    },
+    {
+      "id": "netswitch_set_port",
+      "title": {
+        "en": "Switch the port...",
+        "fr": "Commander le port...",
+        "nl": "Schakel de poort..."
+      },
+      "titleFormatted": {
+        "en": "Switch the port [[state]]",
+        "fr": "Commander le port [[state]]",
+        "nl": "Schakel de poort [[state]]"
+      },
+      "hint": {
+        "en": "Writes ifAdminStatus on the switch. Refuses, with a message saying what to enable, unless \"Allow switching this port\" is ticked in the device settings — read the warning there first: switching off the port that feeds your Homey or your router leaves no way back except physical access.",
+        "fr": "Écrit ifAdminStatus sur le switch. Refuse, avec un message qui dit quoi activer, tant que « Autoriser la commande de ce port » n’est pas coché dans les réglages de l’appareil — lisez d’abord l’avertissement qui s’y trouve : couper le port qui alimente votre Homey ou votre routeur ne laisse aucun retour possible sans accès physique.",
+        "nl": "Schrijft ifAdminStatus op de switch. Weigert, met een bericht over wat je moet inschakelen, tenzij \"Schakelen van deze poort toestaan\" is aangevinkt in de apparaatinstellingen — lees daar eerst de waarschuwing: de poort uitschakelen die je Homey of router voedt, laat geen weg terug zonder fysieke toegang."
+      },
+      "args": [
+        {
+          "name": "state",
+          "type": "dropdown",
+          "values": [
+            { "id": "on", "label": { "en": "on", "fr": "en marche", "nl": "aan" } },
+            { "id": "off", "label": { "en": "off", "fr": "à l’arrêt", "nl": "uit" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "netswitch_set_poe",
+      "title": {
+        "en": "Switch PoE power on this port...",
+        "fr": "Commander l’alimentation PoE de ce port...",
+        "nl": "Schakel PoE-voeding op deze poort..."
+      },
+      "titleFormatted": {
+        "en": "Switch PoE power on this port [[state]]",
+        "fr": "Commander l’alimentation PoE de ce port [[state]]",
+        "nl": "Schakel PoE-voeding op deze poort [[state]]"
+      },
+      "hint": {
+        "en": "Writes pethPsePortAdminEnable. Cuts the power to what is plugged in without disabling the port itself — this is the card for power-cycling a camera or an access point. Same guard as above: it refuses unless port control is enabled, and it refuses when the app could not match a PoE socket to this port rather than aiming at a guess.",
+        "fr": "Écrit pethPsePortAdminEnable. Coupe l’alimentation de ce qui est branché sans désactiver le port lui-même — c’est la carte pour redémarrer une caméra ou un point d’accès. Même garde-fou : refuse tant que la commande n’est pas activée, et refuse aussi quand aucune prise PoE n’a pu être reliée à ce port, plutôt que de viser au jugé.",
+        "nl": "Schrijft pethPsePortAdminEnable. Onderbreekt de voeding van het aangesloten apparaat zonder de poort zelf uit te schakelen — de kaart om een camera of accesspoint opnieuw op te starten. Zelfde beveiliging: weigert zolang poortbesturing uit staat, en weigert ook wanneer de app geen PoE-aansluiting aan deze poort kon koppelen."
+      },
+      "args": [
+        {
+          "name": "state",
+          "type": "dropdown",
+          "values": [
+            { "id": "on", "label": { "en": "on", "fr": "en marche", "nl": "aan" } },
+            { "id": "off", "label": { "en": "off", "fr": "à l’arrêt", "nl": "uit" } }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "type": "number",
+  "title": { "en": "Inbound errors (total)", "fr": "Erreurs entrantes (cumul)", "nl": "Inkomende fouten (totaal)" },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true,
+  "min": 0,
+  "decimals": 0
+}

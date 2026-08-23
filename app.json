@@ -106,6 +106,232 @@
   "flow": {
     "triggers": [
       {
+        "id": "netswitch_port_up",
+        "title": {
+          "en": "The link comes up",
+          "fr": "Le lien s’active",
+          "nl": "De link komt op"
+        },
+        "hint": {
+          "en": "Something was plugged in, or came back. Fires on the change, not on the state — a port that stays up does not fire again.",
+          "fr": "Quelque chose a été branché, ou est revenu. Se déclenche sur le changement, pas sur l’état — un port qui reste actif ne redéclenche rien.",
+          "nl": "Er is iets aangesloten of teruggekomen. Wordt geactiveerd bij de verandering, niet bij de status — een poort die actief blijft, activeert niet opnieuw."
+        },
+        "tokens": [
+          {
+            "name": "port",
+            "type": "string",
+            "title": {
+              "en": "Port",
+              "fr": "Port",
+              "nl": "Poort"
+            },
+            "example": {
+              "en": "Gi1/0/5"
+            }
+          },
+          {
+            "name": "speed",
+            "type": "string",
+            "title": {
+              "en": "Negotiated speed",
+              "fr": "Débit négocié",
+              "nl": "Onderhandelde snelheid"
+            },
+            "example": {
+              "en": "1000 Mbit/s"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=netswitch"
+          }
+        ]
+      },
+      {
+        "id": "netswitch_port_down",
+        "title": {
+          "en": "The link goes down",
+          "fr": "Le lien tombe",
+          "nl": "De link valt weg"
+        },
+        "hint": {
+          "en": "The cable was unplugged, or the device at the other end went off. A poll that gets no answer does NOT fire this card — an unreachable switch makes the device unavailable instead, so a dropped SNMP packet never looks like an unplugged cable.",
+          "fr": "Le câble a été débranché, ou l’appareil au bout s’est éteint. Un relevé sans réponse ne déclenche PAS cette carte : un switch injoignable rend l’appareil indisponible, pour qu’un paquet SNMP perdu ne ressemble jamais à un câble arraché.",
+          "nl": "De kabel is losgekoppeld of het apparaat aan de andere kant ging uit. Een uitlezing zonder antwoord activeert deze kaart NIET — een onbereikbare switch maakt het apparaat onbeschikbaar, zodat een verloren SNMP-pakket nooit op een losgetrokken kabel lijkt."
+        },
+        "tokens": [
+          {
+            "name": "port",
+            "type": "string",
+            "title": {
+              "en": "Port",
+              "fr": "Port",
+              "nl": "Poort"
+            },
+            "example": {
+              "en": "Gi1/0/5"
+            }
+          },
+          {
+            "name": "speed",
+            "type": "string",
+            "title": {
+              "en": "Last negotiated speed",
+              "fr": "Dernier débit négocié",
+              "nl": "Laatst onderhandelde snelheid"
+            },
+            "example": {
+              "en": "1000 Mbit/s"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=netswitch"
+          }
+        ]
+      },
+      {
+        "id": "netswitch_link_changed",
+        "title": {
+          "en": "The link state becomes...",
+          "fr": "L’état du lien passe à...",
+          "nl": "De linkstatus wordt..."
+        },
+        "titleFormatted": {
+          "en": "The link state becomes [[state]]",
+          "fr": "L’état du lien passe à [[state]]",
+          "nl": "De linkstatus wordt [[state]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=netswitch"
+          },
+          {
+            "name": "state",
+            "type": "dropdown",
+            "values": [
+              {
+                "id": "any",
+                "label": {
+                  "en": "any state",
+                  "fr": "n’importe lequel",
+                  "nl": "elke status"
+                }
+              },
+              {
+                "id": "up",
+                "label": {
+                  "en": "link up",
+                  "fr": "lien actif",
+                  "nl": "link actief"
+                }
+              },
+              {
+                "id": "down",
+                "label": {
+                  "en": "link down",
+                  "fr": "lien inactif",
+                  "nl": "link inactief"
+                }
+              },
+              {
+                "id": "dormant",
+                "label": {
+                  "en": "dormant",
+                  "fr": "en veille",
+                  "nl": "slapend"
+                }
+              },
+              {
+                "id": "notPresent",
+                "label": {
+                  "en": "module not present",
+                  "fr": "module absent",
+                  "nl": "module afwezig"
+                }
+              },
+              {
+                "id": "lowerLayerDown",
+                "label": {
+                  "en": "lower layer down",
+                  "fr": "couche inférieure tombée",
+                  "nl": "onderliggende laag uit"
+                }
+              }
+            ]
+          }
+        ],
+        "tokens": [
+          {
+            "name": "port",
+            "type": "string",
+            "title": {
+              "en": "Port",
+              "fr": "Port",
+              "nl": "Poort"
+            },
+            "example": {
+              "en": "Gi1/0/5"
+            }
+          },
+          {
+            "name": "state",
+            "type": "string",
+            "title": {
+              "en": "New state",
+              "fr": "Nouvel état",
+              "nl": "Nieuwe status"
+            },
+            "example": {
+              "en": "up"
+            }
+          }
+        ]
+      },
+      {
+        "id": "netswitch_poe_fault",
+        "title": {
+          "en": "The PoE socket reports a fault",
+          "fr": "La prise PoE signale un défaut",
+          "nl": "De PoE-aansluiting meldt een storing"
+        },
+        "hint": {
+          "en": "The switch says it cannot power this port — a short, an overload, or a device drawing more than its class. Only fires on switches whose PoE sockets the app could match to a port reliably.",
+          "fr": "Le switch dit qu’il ne peut pas alimenter ce port — court-circuit, surcharge, ou appareil tirant plus que sa classe. Ne se déclenche que sur les switchs dont les prises PoE ont pu être reliées à un port de façon sûre.",
+          "nl": "De switch meldt dat hij deze poort niet kan voeden — kortsluiting, overbelasting of een apparaat dat meer trekt dan zijn klasse. Werkt alleen op switches waarvan de PoE-aansluitingen betrouwbaar aan een poort konden worden gekoppeld."
+        },
+        "tokens": [
+          {
+            "name": "port",
+            "type": "string",
+            "title": {
+              "en": "Port",
+              "fr": "Port",
+              "nl": "Poort"
+            },
+            "example": {
+              "en": "Gi1/0/5"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=netswitch"
+          }
+        ]
+      },
+      {
         "id": "ups_went_on_battery",
         "title": {
           "en": "The UPS switches to battery",
@@ -536,6 +762,76 @@
     ],
     "conditions": [
       {
+        "id": "netswitch_link_is_up",
+        "title": {
+          "en": "The link !{{is|is not}} up",
+          "fr": "Le lien !{{est|n’est pas}} actif",
+          "nl": "De link !{{is|is niet}} actief"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=netswitch"
+          }
+        ]
+      },
+      {
+        "id": "netswitch_poe_is_delivering",
+        "title": {
+          "en": "The PoE socket !{{is|is not}} delivering power",
+          "fr": "La prise PoE !{{alimente|n’alimente pas}}",
+          "nl": "De PoE-aansluiting !{{levert|levert geen}} stroom"
+        },
+        "hint": {
+          "en": "False when the app could not match a PoE socket to this port — it does not claim to know.",
+          "fr": "Faux quand aucune prise PoE n’a pu être reliée à ce port : l’app ne prétend pas savoir.",
+          "nl": "Onwaar wanneer de app geen PoE-aansluiting aan deze poort kon koppelen — ze doet geen aannames."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=netswitch"
+          }
+        ]
+      },
+      {
+        "id": "netswitch_speed_above",
+        "title": {
+          "en": "The negotiated speed !{{is|is not}} above...",
+          "fr": "Le débit négocié !{{dépasse|ne dépasse pas}}...",
+          "nl": "De onderhandelde snelheid !{{is|is niet}} hoger dan..."
+        },
+        "titleFormatted": {
+          "en": "The negotiated speed !{{is|is not}} above [[mbps]] Mbit/s",
+          "fr": "Le débit négocié !{{dépasse|ne dépasse pas}} [[mbps]] Mbit/s",
+          "nl": "De onderhandelde snelheid !{{is|is niet}} hoger dan [[mbps]] Mbit/s"
+        },
+        "hint": {
+          "en": "Answers false when the speed is unknown. A value that was not read is not a fast link, and it is not a slow one either.",
+          "fr": "Répond faux quand le débit est inconnu. Une valeur non lue n’est pas un lien rapide, ni un lien lent.",
+          "nl": "Antwoordt onwaar als de snelheid onbekend is. Een niet-gelezen waarde is geen snelle link, en ook geen trage."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=netswitch"
+          },
+          {
+            "name": "mbps",
+            "type": "number",
+            "min": 0,
+            "max": 400000,
+            "step": 1,
+            "placeholder": {
+              "en": "1000"
+            }
+          }
+        ]
+      },
+      {
         "id": "ups_is_on_battery",
         "title": {
           "en": "The UPS !{{is|is not}} on battery",
@@ -629,6 +925,115 @@
     ],
     "actions": [
       {
+        "id": "netswitch_refresh",
+        "title": {
+          "en": "Read this port now",
+          "fr": "Relever ce port maintenant",
+          "nl": "Lees deze poort nu uit"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=netswitch"
+          }
+        ]
+      },
+      {
+        "id": "netswitch_set_port",
+        "title": {
+          "en": "Switch the port...",
+          "fr": "Commander le port...",
+          "nl": "Schakel de poort..."
+        },
+        "titleFormatted": {
+          "en": "Switch the port [[state]]",
+          "fr": "Commander le port [[state]]",
+          "nl": "Schakel de poort [[state]]"
+        },
+        "hint": {
+          "en": "Writes ifAdminStatus on the switch. Refuses, with a message saying what to enable, unless \"Allow switching this port\" is ticked in the device settings — read the warning there first: switching off the port that feeds your Homey or your router leaves no way back except physical access.",
+          "fr": "Écrit ifAdminStatus sur le switch. Refuse, avec un message qui dit quoi activer, tant que « Autoriser la commande de ce port » n’est pas coché dans les réglages de l’appareil — lisez d’abord l’avertissement qui s’y trouve : couper le port qui alimente votre Homey ou votre routeur ne laisse aucun retour possible sans accès physique.",
+          "nl": "Schrijft ifAdminStatus op de switch. Weigert, met een bericht over wat je moet inschakelen, tenzij \"Schakelen van deze poort toestaan\" is aangevinkt in de apparaatinstellingen — lees daar eerst de waarschuwing: de poort uitschakelen die je Homey of router voedt, laat geen weg terug zonder fysieke toegang."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=netswitch"
+          },
+          {
+            "name": "state",
+            "type": "dropdown",
+            "values": [
+              {
+                "id": "on",
+                "label": {
+                  "en": "on",
+                  "fr": "en marche",
+                  "nl": "aan"
+                }
+              },
+              {
+                "id": "off",
+                "label": {
+                  "en": "off",
+                  "fr": "à l’arrêt",
+                  "nl": "uit"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "netswitch_set_poe",
+        "title": {
+          "en": "Switch PoE power on this port...",
+          "fr": "Commander l’alimentation PoE de ce port...",
+          "nl": "Schakel PoE-voeding op deze poort..."
+        },
+        "titleFormatted": {
+          "en": "Switch PoE power on this port [[state]]",
+          "fr": "Commander l’alimentation PoE de ce port [[state]]",
+          "nl": "Schakel PoE-voeding op deze poort [[state]]"
+        },
+        "hint": {
+          "en": "Writes pethPsePortAdminEnable. Cuts the power to what is plugged in without disabling the port itself — this is the card for power-cycling a camera or an access point. Same guard as above: it refuses unless port control is enabled, and it refuses when the app could not match a PoE socket to this port rather than aiming at a guess.",
+          "fr": "Écrit pethPsePortAdminEnable. Coupe l’alimentation de ce qui est branché sans désactiver le port lui-même — c’est la carte pour redémarrer une caméra ou un point d’accès. Même garde-fou : refuse tant que la commande n’est pas activée, et refuse aussi quand aucune prise PoE n’a pu être reliée à ce port, plutôt que de viser au jugé.",
+          "nl": "Schrijft pethPsePortAdminEnable. Onderbreekt de voeding van het aangesloten apparaat zonder de poort zelf uit te schakelen — de kaart om een camera of accesspoint opnieuw op te starten. Zelfde beveiliging: weigert zolang poortbesturing uit staat, en weigert ook wanneer de app geen PoE-aansluiting aan deze poort kon koppelen."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=netswitch"
+          },
+          {
+            "name": "state",
+            "type": "dropdown",
+            "values": [
+              {
+                "id": "on",
+                "label": {
+                  "en": "on",
+                  "fr": "en marche",
+                  "nl": "aan"
+                }
+              },
+              {
+                "id": "off",
+                "label": {
+                  "en": "off",
+                  "fr": "à l’arrêt",
+                  "nl": "uit"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
         "id": "ups_refresh",
         "title": {
           "en": "Read the UPS now",
@@ -651,6 +1056,184 @@
     ]
   },
   "drivers": [
+    {
+      "name": {
+        "en": "Switch port",
+        "fr": "Port de switch",
+        "nl": "Switchpoort"
+      },
+      "class": "other",
+      "capabilities": [
+        "netswitch_link"
+      ],
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "images": {
+        "small": "/drivers/netswitch/assets/images/small.png",
+        "large": "/drivers/netswitch/assets/images/large.png",
+        "xlarge": "/drivers/netswitch/assets/images/xlarge.png"
+      },
+      "pair": [
+        {
+          "id": "start"
+        }
+      ],
+      "id": "netswitch",
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Connection",
+            "fr": "Connexion",
+            "nl": "Verbinding"
+          },
+          "children": [
+            {
+              "id": "host",
+              "type": "text",
+              "label": {
+                "en": "Switch IP address",
+                "fr": "Adresse IP du switch",
+                "nl": "IP-adres van de switch"
+              },
+              "hint": {
+                "en": "Reserve a fixed address for the switch in your router. Every port you added from this switch points at this address, so a moving address silences all of them at once.",
+                "fr": "Réservez une adresse fixe pour le switch dans votre routeur. Tous les ports ajoutés depuis ce switch pointent sur cette adresse : une adresse qui bouge les rend tous muets d’un coup.",
+                "nl": "Reserveer een vast adres voor de switch in je router. Elke poort die je van deze switch hebt toegevoegd wijst naar dit adres, dus een wisselend adres legt ze allemaal tegelijk stil."
+              },
+              "value": ""
+            },
+            {
+              "id": "community",
+              "type": "password",
+              "label": {
+                "en": "SNMP community",
+                "fr": "Communauté SNMP",
+                "nl": "SNMP-community"
+              },
+              "hint": {
+                "en": "Almost always \"public\" for reading. It is a weak shared secret, so it is masked here. If you switch port control on, note that most agents need a separate write community — \"public\" is read-only on nearly all of them, and a write will be refused.",
+                "fr": "Presque toujours « public » en lecture. C’est un secret partagé faible, il est donc masqué ici. Si vous activez la commande des ports, sachez que la plupart des agents exigent une communauté d’écriture distincte — « public » est en lecture seule sur presque tous, et l’écriture sera refusée.",
+                "nl": "Vrijwel altijd \"public\" om te lezen. Het is een zwak gedeeld geheim en wordt daarom gemaskeerd. Als je poortbesturing inschakelt: de meeste agents vereisen een aparte schrijf-community — \"public\" is bij bijna alle alleen-lezen en een schrijfactie wordt geweigerd."
+              },
+              "value": "public"
+            },
+            {
+              "id": "version",
+              "type": "dropdown",
+              "label": {
+                "en": "SNMP version",
+                "fr": "Version SNMP",
+                "nl": "SNMP-versie"
+              },
+              "hint": {
+                "en": "Keep v2c. SNMPv1 has no 64-bit counter type at all, so the traffic figures simply do not exist there — the app leaves them out rather than showing zero.",
+                "fr": "Restez en v2c. SNMPv1 n’a pas de type compteur 64 bits : les valeurs de trafic n’y existent tout simplement pas — l’app ne les déclare pas plutôt que d’afficher zéro.",
+                "nl": "Houd v2c aan. SNMPv1 kent geen 64-bits tellertype, dus de verkeerscijfers bestaan daar eenvoudigweg niet — de app laat ze weg in plaats van nul te tonen."
+              },
+              "value": "v2c",
+              "values": [
+                {
+                  "id": "v2c",
+                  "label": {
+                    "en": "v2c",
+                    "fr": "v2c",
+                    "nl": "v2c"
+                  }
+                },
+                {
+                  "id": "v1",
+                  "label": {
+                    "en": "v1",
+                    "fr": "v1",
+                    "nl": "v1"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Port control",
+            "fr": "Commande du port",
+            "nl": "Poortbesturing"
+          },
+          "children": [
+            {
+              "id": "allow_control",
+              "type": "checkbox",
+              "label": {
+                "en": "Allow switching this port",
+                "fr": "Autoriser la commande de ce port",
+                "nl": "Schakelen van deze poort toestaan"
+              },
+              "hint": {
+                "en": "OFF BY DEFAULT, AND READ THIS FIRST. Switching a port off cuts the network — and, on a PoE port, the power — to whatever is plugged into it. If that happens to be the port feeding your Homey, your router, or the uplink to this switch, you cut off the very connection this app uses to reach the switch: there will be no way to switch it back on from here, and you will need physical access with a cable. While this stays off, the on/off control is not even added to the device and no write is ever sent.",
+                "fr": "DÉSACTIVÉ PAR DÉFAUT, ET LISEZ CECI D’ABORD. Couper un port coupe le réseau — et, sur un port PoE, l’alimentation — de ce qui est branché dessus. Si c’est le port qui alimente votre Homey, votre routeur, ou le lien montant vers ce switch, vous coupez la connexion même par laquelle l’app joint le switch : il n’y aura aucun moyen de le rallumer d’ici, et il faudra un accès physique avec un câble. Tant que ceci reste décoché, la commande marche/arrêt n’est même pas ajoutée à l’appareil et aucune écriture n’est jamais émise.",
+                "nl": "STANDAARD UIT, EN LEES DIT EERST. Een poort uitschakelen verbreekt het netwerk — en bij een PoE-poort de voeding — van wat erop is aangesloten. Is dat de poort die je Homey, je router of de uplink naar deze switch voedt, dan verbreek je juist de verbinding waarmee deze app de switch bereikt: je kunt hem van hieruit niet meer inschakelen en hebt fysieke toegang met een kabel nodig. Zolang dit uit staat, wordt de aan/uit-bediening niet eens aan het apparaat toegevoegd en wordt er nooit iets geschreven."
+              },
+              "value": false
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Monitoring",
+            "fr": "Surveillance",
+            "nl": "Bewaking"
+          },
+          "children": [
+            {
+              "id": "live_interval",
+              "type": "number",
+              "label": {
+                "en": "Read link state every (seconds)",
+                "fr": "Relever l’état du lien toutes les (secondes)",
+                "nl": "Lees de linkstatus elke (seconden)"
+              },
+              "hint": {
+                "en": "Link state, errors, traffic and PoE. Remember that every port you added from this switch polls it on its own — twenty-four ports at ten seconds is one request every 0.4 seconds against the same agent, and some switches throttle.",
+                "fr": "État du lien, erreurs, trafic et PoE. Chaque port ajouté depuis ce switch l’interroge pour son propre compte : vingt-quatre ports à dix secondes, c’est une requête toutes les 0,4 s contre le même agent, et certains switchs brident.",
+                "nl": "Linkstatus, fouten, verkeer en PoE. Elke toegevoegde poort van deze switch pollt zelf — vierentwintig poorten op tien seconden is één verzoek per 0,4 s tegen dezelfde agent, en sommige switches beperken dat."
+              },
+              "value": 10,
+              "min": 5,
+              "max": 3600,
+              "units": {
+                "en": "s"
+              }
+            },
+            {
+              "id": "detail_interval",
+              "type": "number",
+              "label": {
+                "en": "Re-read the port list every (seconds)",
+                "fr": "Relire la liste des ports toutes les (secondes)",
+                "nl": "Lees de poortlijst opnieuw elke (seconden)"
+              },
+              "hint": {
+                "en": "Negotiated speed, and the check that this device is still pointed at the right port. A switch that reboots can renumber its interfaces, and this is what catches it — do not set it very high.",
+                "fr": "Débit négocié, et vérification que cet appareil vise toujours le bon port. Un switch qui redémarre peut renuméroter ses interfaces, et c’est ce relevé qui le rattrape — ne le montez pas très haut.",
+                "nl": "Onderhandelde snelheid, en de controle of dit apparaat nog naar de juiste poort wijst. Een switch die herstart kan zijn interfaces hernummeren; deze uitlezing vangt dat op — zet hem niet erg hoog."
+              },
+              "value": 300,
+              "min": 60,
+              "max": 86400,
+              "units": {
+                "en": "s"
+              }
+            }
+          ]
+        }
+      ]
+    },
     {
       "name": {
         "en": "UPS",
@@ -880,6 +1463,242 @@
         "fr": "Batterie de nouveau saine",
         "nl": "Accu weer gezond"
       }
+    },
+    "netswitch_errors_in": {
+      "type": "number",
+      "title": {
+        "en": "Inbound errors (total)",
+        "fr": "Erreurs entrantes (cumul)",
+        "nl": "Inkomende fouten (totaal)"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "min": 0,
+      "decimals": 0
+    },
+    "netswitch_errors_out": {
+      "type": "number",
+      "title": {
+        "en": "Outbound errors (total)",
+        "fr": "Erreurs sortantes (cumul)",
+        "nl": "Uitgaande fouten (totaal)"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "min": 0,
+      "decimals": 0
+    },
+    "netswitch_link": {
+      "type": "enum",
+      "title": {
+        "en": "Link state",
+        "fr": "État du lien",
+        "nl": "Linkstatus"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": false,
+      "values": [
+        {
+          "id": "up",
+          "title": {
+            "en": "Link up",
+            "fr": "Lien actif",
+            "nl": "Link actief"
+          }
+        },
+        {
+          "id": "down",
+          "title": {
+            "en": "Link down",
+            "fr": "Lien inactif",
+            "nl": "Link inactief"
+          }
+        },
+        {
+          "id": "testing",
+          "title": {
+            "en": "Testing",
+            "fr": "En test",
+            "nl": "In test"
+          }
+        },
+        {
+          "id": "dormant",
+          "title": {
+            "en": "Dormant — waiting for a peer",
+            "fr": "En veille — attend un correspondant",
+            "nl": "Slapend — wacht op tegenpartij"
+          }
+        },
+        {
+          "id": "notPresent",
+          "title": {
+            "en": "Module not present",
+            "fr": "Module absent",
+            "nl": "Module afwezig"
+          }
+        },
+        {
+          "id": "lowerLayerDown",
+          "title": {
+            "en": "Down — the layer below is down",
+            "fr": "Inactif — la couche inférieure est tombée",
+            "nl": "Inactief — onderliggende laag is uit"
+          }
+        },
+        {
+          "id": "unknown",
+          "title": {
+            "en": "Unknown",
+            "fr": "Inconnu",
+            "nl": "Onbekend"
+          }
+        }
+      ]
+    },
+    "netswitch_poe": {
+      "type": "enum",
+      "title": {
+        "en": "PoE state",
+        "fr": "État PoE",
+        "nl": "PoE-status"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": false,
+      "values": [
+        {
+          "id": "delivering",
+          "title": {
+            "en": "Delivering power",
+            "fr": "Alimente",
+            "nl": "Levert stroom"
+          }
+        },
+        {
+          "id": "searching",
+          "title": {
+            "en": "Searching for a device",
+            "fr": "Recherche un appareil",
+            "nl": "Zoekt een apparaat"
+          }
+        },
+        {
+          "id": "disabled",
+          "title": {
+            "en": "Disabled",
+            "fr": "Désactivé",
+            "nl": "Uitgeschakeld"
+          }
+        },
+        {
+          "id": "fault",
+          "title": {
+            "en": "Fault",
+            "fr": "Défaut",
+            "nl": "Storing"
+          }
+        },
+        {
+          "id": "otherFault",
+          "title": {
+            "en": "Fault on the power source",
+            "fr": "Défaut de la source d’alimentation",
+            "nl": "Storing in de voedingsbron"
+          }
+        },
+        {
+          "id": "test",
+          "title": {
+            "en": "Test mode",
+            "fr": "Mode test",
+            "nl": "Testmodus"
+          }
+        },
+        {
+          "id": "unknown",
+          "title": {
+            "en": "Unknown",
+            "fr": "Inconnu",
+            "nl": "Onbekend"
+          }
+        }
+      ]
+    },
+    "netswitch_poe_power": {
+      "type": "number",
+      "title": {
+        "en": "PoE power (whole PSE group)",
+        "fr": "Puissance PoE (groupe PSE entier)",
+        "nl": "PoE-vermogen (hele PSE-groep)"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "units": {
+        "en": "W"
+      },
+      "min": 0,
+      "decimals": 1
+    },
+    "netswitch_rx": {
+      "type": "number",
+      "title": {
+        "en": "Incoming traffic",
+        "fr": "Trafic entrant",
+        "nl": "Inkomend verkeer"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "units": {
+        "en": "Mbit/s"
+      },
+      "min": 0,
+      "decimals": 2
+    },
+    "netswitch_speed": {
+      "type": "number",
+      "title": {
+        "en": "Negotiated speed",
+        "fr": "Débit négocié",
+        "nl": "Onderhandelde snelheid"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "units": {
+        "en": "Mbit/s"
+      },
+      "min": 0,
+      "decimals": 0
+    },
+    "netswitch_tx": {
+      "type": "number",
+      "title": {
+        "en": "Outgoing traffic",
+        "fr": "Trafic sortant",
+        "nl": "Uitgaand verkeer"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "units": {
+        "en": "Mbit/s"
+      },
+      "min": 0,
+      "decimals": 2
     },
     "ups_load": {
       "type": "number",

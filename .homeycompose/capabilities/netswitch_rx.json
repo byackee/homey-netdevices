@@ -1,0 +1,11 @@
+{
+  "type": "number",
+  "title": { "en": "Incoming traffic", "fr": "Trafic entrant", "nl": "Inkomend verkeer" },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true,
+  "units": { "en": "Mbit/s" },
+  "min": 0,
+  "decimals": 2
+}

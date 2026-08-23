@@ -1,0 +1,17 @@
+{
+  "type": "enum",
+  "title": { "en": "Link state", "fr": "État du lien", "nl": "Linkstatus" },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": false,
+  "values": [
+    { "id": "up", "title": { "en": "Link up", "fr": "Lien actif", "nl": "Link actief" } },
+    { "id": "down", "title": { "en": "Link down", "fr": "Lien inactif", "nl": "Link inactief" } },
+    { "id": "testing", "title": { "en": "Testing", "fr": "En test", "nl": "In test" } },
+    { "id": "dormant", "title": { "en": "Dormant — waiting for a peer", "fr": "En veille — attend un correspondant", "nl": "Slapend — wacht op tegenpartij" } },
+    { "id": "notPresent", "title": { "en": "Module not present", "fr": "Module absent", "nl": "Module afwezig" } },
+    { "id": "lowerLayerDown", "title": { "en": "Down — the layer below is down", "fr": "Inactif — la couche inférieure est tombée", "nl": "Inactief — onderliggende laag is uit" } },
+    { "id": "unknown", "title": { "en": "Unknown", "fr": "Inconnu", "nl": "Onbekend" } }
+  ]
+}

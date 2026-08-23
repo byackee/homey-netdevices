@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <g fill="none" stroke="#000000" stroke-width="34" stroke-linejoin="round" stroke-linecap="round">
+    <!--
+      A rack switch seen from the front, not an abstract network glyph: what the
+      user is looking for in the driver list is the box on the shelf, and a shape
+      that reads as equipment beats one that reads as a diagram.
+    -->
+    <rect x="88" y="336" width="848" height="352" rx="44"/>
+
+    <!-- The rack ears, which are what makes the shape read as a switch and not a modem. -->
+    <path d="M88 424H32"/>
+    <path d="M88 600H32"/>
+    <path d="M936 424H992"/>
+    <path d="M936 600H992"/>
+
+    <!--
+      Eight ports on one row. Drawn as squares rather than the usual RJ45 outline:
+      the little notch of a real connector collapses into noise at 75 pixels, and
+      what has to survive that size is the *row* — the fact that there are many.
+    -->
+    <rect x="160" y="452" width="88" height="72" rx="10"/>
+    <rect x="272" y="452" width="88" height="72" rx="10"/>
+    <rect x="384" y="452" width="88" height="72" rx="10"/>
+    <rect x="496" y="452" width="88" height="72" rx="10"/>
+    <rect x="160" y="572" width="88" height="72" rx="10"/>
+    <rect x="272" y="572" width="88" height="72" rx="10"/>
+    <rect x="384" y="572" width="88" height="72" rx="10"/>
+    <rect x="496" y="572" width="88" height="72" rx="10"/>
+  </g>
+
+  <!--
+    One port lit, filled rather than stroked. It is the whole point of the driver —
+    a port is a device, and this is the one you added — and an outline at icon size
+    would be indistinguishable from the seven others.
+  -->
+  <rect x="664" y="452" width="88" height="72" rx="10" fill="#000000"/>
+
+  <!--
+    The PoE bolt, filled for the same reason the UPS icon fills its own: drawn as
+    an outline it collapses into an unreadable notch once scaled down.
+  -->
+  <path d="M712 566l-64 116h48l-16 84 72-124h-52z" fill="#000000"/>
+</svg>

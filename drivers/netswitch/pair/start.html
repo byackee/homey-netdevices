@@ -1,0 +1,667 @@
+<!--
+  L'unique vue de pairing du switch.
+
+  🔴 Une vue custom ne peut pas naviguer vers un template système : la navigation échoue
+  en écran blanc, ou l'assistant se ferme sans avoir rien créé (rétro §8.1, panne 5). Il
+  n'y a donc ici qu'UNE vue, et elle bascule entre ses deux panneaux dans le MÊME
+  document. C'est elle qui appelle `Homey.createDevice()` puis `Homey.done()`.
+
+  🔴 Elle crée PLUSIEURS appareils — un par port coché. C'est permis du moment qu'ils
+  appartiennent au même driver et que chacun a son propre `data.id`, ce que le driver
+  garantit et que `lib/netswitch/pairing.mts` teste. C'est aussi ce qui rend une
+  collision d'identifiants coûteuse : vingt-quatre ports cochés, vingt-trois appareils
+  créés, aucun message.
+
+  Contrat attendu des handlers `onPair` du driver :
+
+    viewLog(message: string)      -> pousse la ligne dans le tampon de traces
+    scan_start({community})       -> { started, reason?, subnet, total }
+                                     rend la main tout de suite ; un balayage déjà en vol
+                                     est retourné tel quel, il n'en part pas un second
+    scan_status(null)             -> { running, done, total, subnet, error, devices }
+                                     `devices` = TOUT ce qui parle SNMP. Le tri
+                                     « est-ce un switch » se fait à l'ouverture, pas ici :
+                                     inventorier 254 adresses coûterait des minutes.
+    ports({host, community})      -> { outcome, host, name, description, version,
+                                       looksLikeSwitch, poe, ports: PortRow[] }
+                                     outcome: 'ok' | 'no-host' | 'silent' | 'no-ports'
+    adopted({host, ids})          -> signale ce que la vue a réellement créé
+
+    PortRow = { id, label, detail, linkUp, paired, device }
+
+  🔴 `row.device` est la charge utile de pairing, et elle se passe TELLE QUELLE à
+  `Homey.createDevice()`. Elle est assemblée par `lib/netswitch/pairing.mts`, seul endroit
+  du dépôt où un résultat de pairing de port est fabriqué : ses clés sont vérifiées par le
+  compilateur et par `test/netswitch/pairing.test.mts`. La vue ne la reconstruit pas, ne
+  l'enrichit pas et n'en retire rien — une clé en trop vide la liste sans un mot, et le
+  SDK type ça `any`.
+
+  🔴 La sélection est tenue dans un Set JavaScript, PAS dans l'état `checked` de cases à
+  cocher. Deux raisons, et la seconde est la vraie : une case dont on lit `checked` au
+  moment du clic dépend de l'ordre exact où le navigateur applique le changement, et
+  surtout un `<input type="checkbox">` n'est pas ce que la vue relit — elle relit son
+  propre modèle, qui est le seul état dont elle a besoin.
+-->
+
+<style>
+  .nsw-start-intro { color: var(--homey-text-color-light); margin-bottom: 1rem; line-height: 1.45; }
+
+  .nsw-start-row {
+    display: flex; align-items: center; gap: .75rem;
+    width: 100%; box-sizing: border-box; text-align: left;
+    padding: .75rem .85rem; margin-bottom: .5rem;
+    border: 1px solid var(--homey-line-color); border-radius: 8px;
+    background: var(--homey-background-color); color: var(--homey-text-color);
+    font: inherit; cursor: pointer;
+  }
+  .nsw-start-row:hover { border-color: var(--homey-color-blue, #1B6AC9); }
+  .nsw-start-row:disabled { opacity: .55; cursor: default; }
+  .nsw-start-row.picked { border-color: var(--homey-color-blue, #1B6AC9); border-width: 2px; padding: calc(.75rem - 1px) calc(.85rem - 1px); }
+  .nsw-start-row .nsw-start-name { font-weight: 600; }
+  .nsw-start-row .nsw-start-meta { color: var(--homey-text-color-light); font-size: .85rem; }
+  .nsw-start-row .nsw-start-grow { flex: 1; min-width: 0; }
+  .nsw-start-row .nsw-start-name,
+  .nsw-start-row .nsw-start-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nsw-start-row .nsw-start-tick { width: 1.2rem; text-align: center; color: var(--homey-color-blue, #1B6AC9); font-weight: 700; }
+
+  .nsw-start-status { margin: 1rem 0; color: var(--homey-text-color-light); line-height: 1.45; }
+  .nsw-start-status.bad { color: var(--homey-color-red, #da3633); }
+
+  .nsw-start-help {
+    margin: 1rem 0; padding: .9rem 1rem; line-height: 1.5;
+    border: 1px solid var(--homey-line-color); border-radius: 8px;
+    background: var(--homey-background-color);
+  }
+  .nsw-start-help h2 { font-size: 1rem; margin: 0 0 .6rem; }
+  .nsw-start-help h2 + p { margin-top: 0; }
+  .nsw-start-help p { margin: .6rem 0; color: var(--homey-text-color-light); }
+  .nsw-start-help p:last-child { margin-bottom: 0; }
+
+  .nsw-start-manual { margin-top: 1.5rem; border-top: 1px solid var(--homey-line-color); padding-top: 1rem; }
+  .nsw-start-manual summary { cursor: pointer; color: var(--homey-text-color-light); }
+  .nsw-start-manual-hint { color: var(--homey-text-color-light); font-size: .9rem; margin: .6rem 0 0; }
+  .nsw-start-fields { display: flex; gap: .5rem; margin-top: .75rem; }
+  .nsw-start-fields input {
+    flex: 1; min-width: 0; padding: .55rem .65rem; font-size: 1rem;
+    border: 1px solid var(--homey-line-color); border-radius: 6px;
+    background: var(--homey-background-color); color: var(--homey-text-color);
+  }
+
+  .nsw-start-button {
+    padding: .55rem 1rem; border-radius: 6px; border: 0; cursor: pointer;
+    background: var(--homey-color-blue, #1B6AC9); color: #fff; font: inherit;
+  }
+  .nsw-start-button:disabled { opacity: .55; cursor: default; }
+  .nsw-start-link {
+    background: none; border: 0; padding: 0; font: inherit; cursor: pointer;
+    color: var(--homey-text-color-light); text-decoration: underline;
+  }
+  #nsw-start-search { width: 100%; padding: .7rem 1rem; font-weight: 600; }
+  #nsw-start-add { width: 100%; padding: .7rem 1rem; font-weight: 600; margin-top: .75rem; }
+  .nsw-start-hidden { display: none; }
+
+  .nsw-start-actions { display: flex; align-items: center; gap: .75rem; margin: .75rem 0 .25rem; }
+  .nsw-start-actions .nsw-start-grow { flex: 1; }
+
+  /* Un balayage /24 prend une quinzaine de secondes. Un écran figé aussi longtemps se
+     lit comme cassé, donc quelque chose bouge en permanence. */
+  .nsw-start-spinner {
+    display: inline-block; width: 15px; height: 15px; margin-right: .5rem;
+    vertical-align: -2px; border-radius: 50%;
+    border: 2px solid var(--homey-line-color);
+    border-top-color: var(--homey-color-blue, #1B6AC9);
+    animation: nsw-start-spin .8s linear infinite;
+  }
+  @keyframes nsw-start-spin { to { transform: rotate(360deg); } }
+
+  .nsw-start-bar { height: 3px; border-radius: 2px; background: var(--homey-line-color); margin: .75rem 0 1rem; overflow: hidden; }
+  .nsw-start-bar > span {
+    display: block; height: 100%; width: 40%; border-radius: 2px;
+    background: var(--homey-color-blue, #1B6AC9);
+    animation: nsw-start-slide 1.4s ease-in-out infinite;
+  }
+  @keyframes nsw-start-slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+</style>
+
+<h1 id="nsw-start-title">Find your switch</h1>
+<p class="nsw-start-intro" id="nsw-start-intro">
+  Homey will sweep your network for devices that answer over SNMP. Pick your switch, then
+  tick the ports you want to follow — each port becomes its own device.
+</p>
+
+<button type="button" class="nsw-start-button" id="nsw-start-search">Searching the network…</button>
+<div class="nsw-start-bar nsw-start-hidden" id="nsw-start-progress"><span></span></div>
+<div class="nsw-start-status" id="nsw-start-status"></div>
+<div class="nsw-start-help nsw-start-hidden" id="nsw-start-help"></div>
+
+<div id="nsw-start-devices"></div>
+
+<div class="nsw-start-hidden" id="nsw-start-ports-panel">
+  <div class="nsw-start-actions">
+    <div class="nsw-start-grow" id="nsw-start-switch"></div>
+    <button type="button" class="nsw-start-link" id="nsw-start-back">Back to the list</button>
+  </div>
+  <div class="nsw-start-status" id="nsw-start-ports-hint"></div>
+  <div id="nsw-start-ports"></div>
+  <button type="button" class="nsw-start-button" id="nsw-start-add">Add the ticked ports</button>
+</div>
+
+<details class="nsw-start-manual">
+  <summary id="nsw-start-manual-summary">My switch is not in the list</summary>
+  <p class="nsw-start-manual-hint" id="nsw-start-manual-hint">
+    Enter its address to ask it directly. Use this when the switch is on another subnet,
+    or answers on a community other than the one above.
+  </p>
+  <div class="nsw-start-fields">
+    <input type="text" id="nsw-start-host" placeholder="192.168.1.2">
+    <button type="button" class="nsw-start-button" id="nsw-start-open">Open</button>
+  </div>
+  <div class="nsw-start-fields">
+    <input type="text" id="nsw-start-community" value="public" placeholder="public">
+  </div>
+</details>
+
+<script>
+(function () {
+  'use strict';
+
+  /** Le journal remonte au driver, donc au tampon de traces : sans lui, un pairing muet
+      ne se diagnostique pas. Une app installée par CLI n'a aucun log lisible ailleurs. */
+  function report(message) {
+    try { Homey.emit('viewLog', message); } catch (e) { /* la vue ne tombe pas pour un log */ }
+  }
+
+  function t(key, fallback, tags) {
+    try {
+      var value = Homey.__(key, tags);
+      if (value && value !== key) return value;
+    } catch (e) {
+      report('__(' + key + ') threw: ' + e.message);
+    }
+    return fallback;
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  var searchEl = document.getElementById('nsw-start-search');
+  var progressEl = document.getElementById('nsw-start-progress');
+  var statusEl = document.getElementById('nsw-start-status');
+  var helpEl = document.getElementById('nsw-start-help');
+  var devicesEl = document.getElementById('nsw-start-devices');
+  var portsPanelEl = document.getElementById('nsw-start-ports-panel');
+  var portsEl = document.getElementById('nsw-start-ports');
+  var portsHintEl = document.getElementById('nsw-start-ports-hint');
+  var switchEl = document.getElementById('nsw-start-switch');
+  var backEl = document.getElementById('nsw-start-back');
+  var addEl = document.getElementById('nsw-start-add');
+  var hostEl = document.getElementById('nsw-start-host');
+  var communityEl = document.getElementById('nsw-start-community');
+  var openEl = document.getElementById('nsw-start-open');
+
+  var adopting = false;
+  var sweeping = false;
+  var opening = false;
+  /** Les lignes de port du switch ouvert, et les identifiants cochés. */
+  var rows = [];
+  var picked = {};
+  var openHost = '';
+
+  function setStatus(text, bad) {
+    statusEl.textContent = text || '';
+    statusEl.className = bad ? 'nsw-start-status bad' : 'nsw-start-status';
+  }
+
+  /** Une erreur passe toujours par `pair.error`, jamais brute à l'écran. */
+  function setError(message) {
+    var text = (message && message.message) || message;
+    setStatus(t('pair.error', 'Something went wrong: {{message}}', { message: String(text) })
+      .replace('{{message}}', String(text)), true);
+  }
+
+  function setSearching(on, text) {
+    progressEl.className = on ? 'nsw-start-bar' : 'nsw-start-bar nsw-start-hidden';
+    if (on) {
+      statusEl.className = 'nsw-start-status';
+      statusEl.innerHTML = '<span class="nsw-start-spinner"></span>' + escapeHtml(text || '');
+    }
+  }
+
+  function hideHelp() {
+    helpEl.className = 'nsw-start-help nsw-start-hidden';
+    helpEl.innerHTML = '';
+  }
+
+  function paragraph(text) {
+    return '<p>' + escapeHtml(text) + '</p>';
+  }
+
+  /*
+   * Ce qui remplace « aucun appareil trouvé ».
+   *
+   * Un switch non administrable n'a pas d'agent SNMP du tout, et beaucoup de switchs
+   * administrables sortent d'usine avec SNMP désactivé. « No devices found » décrit donc
+   * la mauvaise chose : ce n'est pas qu'il n'y a rien, c'est que rien ne répond encore.
+   */
+  function showHelp() {
+    var parts = [];
+    parts.push('<h2>' + escapeHtml(t('pair.sw_empty_title', 'Nothing answered over SNMP — here is what to switch on')) + '</h2>');
+    parts.push(paragraph(t('pair.sw_empty_lead',
+      'An empty list nearly always means SNMP is still switched off rather than that there is no switch.')));
+    parts.push(paragraph(t('pair.sw_empty_managed',
+      'Managed switch: look for SNMP in its web interface — often under System, Management or Monitoring — enable SNMPv2c and leave the read community as "public".')));
+    parts.push(paragraph(t('pair.sw_empty_unmanaged',
+      'Unmanaged switch: there is no agent to talk to, and nothing here will find it. Only managed and smart switches can be read.')));
+    parts.push(paragraph(t('pair.sw_empty_retry', 'Switch it on, then search again.')));
+    helpEl.innerHTML = parts.join('');
+    helpEl.className = 'nsw-start-help';
+  }
+
+  /** Comment nommer une adresse qu'on n'a jamais vue. */
+  function labelFor(device) {
+    return device.name || device.description || device.host;
+  }
+
+  /** La communauté saisie, qui est aussi celle avec laquelle on balaie. */
+  function community() {
+    return communityEl.value.trim() || 'public';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Panneau 1 — les adresses
+  // ---------------------------------------------------------------------------
+
+  function renderDevices(devices) {
+    devicesEl.innerHTML = '';
+    for (var i = 0; i < devices.length; i += 1) {
+      devicesEl.appendChild(deviceRow(devices[i]));
+    }
+  }
+
+  function deviceRow(device) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'nsw-start-row';
+    var meta = [device.host, device.description].filter(Boolean).join(' · ');
+    button.innerHTML =
+      '<div class="nsw-start-grow">' +
+        '<div class="nsw-start-name">' + escapeHtml(labelFor(device)) + '</div>' +
+        '<div class="nsw-start-meta">' + escapeHtml(meta) + '</div>' +
+      '</div>';
+    button.addEventListener('click', function () { openSwitch(device.host); });
+    return button;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Panneau 2 — les ports
+  // ---------------------------------------------------------------------------
+
+  function showPorts(on) {
+    portsPanelEl.className = on ? '' : 'nsw-start-hidden';
+    devicesEl.className = on ? 'nsw-start-hidden' : '';
+    searchEl.className = on ? 'nsw-start-button nsw-start-hidden' : 'nsw-start-button';
+  }
+
+  /**
+   * Ouvre un switch : le driver l'inventorie et rend ses ports.
+   *
+   * Un seul aller-retour, mais un long : c'est un `walk` de tables plus un premier relevé
+   * par port. La vue le dit, parce qu'un écran figé de plusieurs secondes se lit comme
+   * cassé — c'est la même raison que la barre de progression du balayage.
+   */
+  function openSwitch(host) {
+    if (opening) return Promise.resolve();
+    opening = true;
+    openHost = host;
+    hideHelp();
+    setSearching(true, t('pair.sw_opening', 'Reading the port list from {{host}}…', { host: host })
+      .replace('{{host}}', host));
+    report('ports: opening ' + host);
+
+    return Promise.resolve(Homey.emit('ports', { host: host, community: community() }))
+      .then(function (reply) {
+        setSearching(false);
+        if (!reply) {
+          setError('no answer from ' + host);
+          return null;
+        }
+        if (reply.outcome === 'no-host') {
+          setError(t('pair.sw_no_host', 'Enter an address first.'));
+          return null;
+        }
+        if (reply.outcome === 'silent') {
+          setStatus('');
+          showHelp();
+          return null;
+        }
+        if (reply.outcome === 'no-ports' || !reply.ports.length) {
+          setError(t('pair.sw_no_ports', '{{host}} answers SNMP but lists no physical port. It is probably not a switch.',
+            { host: host }).replace('{{host}}', host));
+          return null;
+        }
+        renderPorts(reply);
+        return null;
+      })
+      .catch(function (error) {
+        setSearching(false);
+        report('ports failed: ' + ((error && error.message) || error));
+        setError(error);
+      })
+      .then(function () { opening = false; });
+  }
+
+  function renderPorts(reply) {
+    rows = reply.ports;
+    picked = {};
+    setStatus('');
+
+    switchEl.innerHTML =
+      '<div class="nsw-start-name">' + escapeHtml(reply.name || reply.host) + '</div>' +
+      '<div class="nsw-start-meta">' + escapeHtml([reply.host, reply.version, reply.poe ? 'PoE' : null].filter(Boolean).join(' · ')) + '</div>';
+
+    // Un appareil qui ne ressemble pas à un switch n'est pas refusé : l'utilisateur a
+    // désigné cette adresse, il sait mieux que l'heuristique ce qu'il y a au bout.
+    portsHintEl.textContent = reply.looksLikeSwitch
+      ? t('pair.sw_pick', 'Tick the ports you want as devices. Ports with a live link are ticked already.')
+      : t('pair.sw_pick_unsure', 'This does not look like a switch, but it does publish network ports. Tick the ones you want as devices.');
+
+    portsEl.innerHTML = '';
+    for (var i = 0; i < rows.length; i += 1) {
+      // Un port déjà dans Homey n'est pas re-proposé : le recréer échouerait, ou
+      // dédoublerait l'appareil selon la version du SDK.
+      if (!rows[i].paired && rows[i].linkUp) picked[rows[i].id] = true;
+      portsEl.appendChild(portRow(rows[i]));
+    }
+
+    showPorts(true);
+    refreshAddButton();
+  }
+
+  function portRow(row) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'nsw-start-row';
+    if (row.paired) button.disabled = true;
+
+    var detail = row.paired
+      ? t('pair.sw_already', 'already added') + ' · ' + row.detail
+      : row.detail;
+
+    button.innerHTML =
+      '<div class="nsw-start-tick" id="tick-' + escapeHtml(row.id) + '"></div>' +
+      '<div class="nsw-start-grow">' +
+        '<div class="nsw-start-name">' + escapeHtml(row.label) + '</div>' +
+        '<div class="nsw-start-meta">' + escapeHtml(detail) + '</div>' +
+      '</div>';
+
+    if (!row.paired) {
+      button.addEventListener('click', function () { toggle(row.id, button); });
+    }
+    paint(button, row.paired ? false : !!picked[row.id]);
+    return button;
+  }
+
+  function toggle(id, button) {
+    if (picked[id]) delete picked[id];
+    else picked[id] = true;
+    paint(button, !!picked[id]);
+    refreshAddButton();
+  }
+
+  function paint(button, on) {
+    button.className = on ? 'nsw-start-row picked' : 'nsw-start-row';
+    var tick = button.children[0];
+    if (tick) tick.textContent = on ? '✓' : '';
+  }
+
+  function count() {
+    var n = 0;
+    for (var id in picked) if (Object.prototype.hasOwnProperty.call(picked, id)) n += 1;
+    return n;
+  }
+
+  function refreshAddButton() {
+    var n = count();
+    addEl.disabled = n === 0 || adopting;
+    addEl.textContent = n === 1
+      ? t('pair.sw_add_one', 'Add 1 port')
+      : t('pair.sw_add_many', 'Add {{count}} ports', { count: n }).replace('{{count}}', String(n));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Adoption
+  // ---------------------------------------------------------------------------
+
+  /**
+   * 🔴 `row.device` part TEL QUEL. Le tenter d'améliorer — ajouter `class`, recopier
+   * l'adresse au premier niveau, glisser l'index à côté des réglages — vide la liste sans
+   * un message, et le SDK type ça `any` : ni le compilateur ni `homey app validate` ne le
+   * verraient. Le seul endroit du dépôt qui fabrique un résultat de pairing de port est
+   * `lib/netswitch/pairing.mts`.
+   *
+   * 🔴 Les créations sont SÉQUENTIELLES. Vingt-quatre `createDevice()` lancés de front
+   * arriveraient dans un ordre quelconque, et une erreur au milieu laisserait un état que
+   * personne ne peut décrire — combien d'appareils existent ? lesquels ? En série, la
+   * réponse est toujours « ceux d'avant l'erreur », et la vue peut le dire.
+   */
+  function adoptPicked() {
+    if (adopting) return Promise.resolve();
+
+    var chosen = [];
+    for (var i = 0; i < rows.length; i += 1) {
+      if (picked[rows[i].id]) chosen.push(rows[i]);
+    }
+    if (!chosen.length) return Promise.resolve();
+
+    adopting = true;
+    refreshAddButton();
+    setStatus(t('pair.adding', 'Adding…'));
+    report('adopting ' + chosen.length + ' port(s) of ' + openHost);
+
+    var created = [];
+
+    function next(index) {
+      if (index >= chosen.length) return Promise.resolve();
+      return Promise.resolve(Homey.createDevice(chosen[index].device))
+        .then(function () {
+          created.push(chosen[index].id);
+          report('created ' + chosen[index].id);
+          return next(index + 1);
+        });
+    }
+
+    return next(0)
+      .then(function () {
+        // Ce que la vue a réellement créé. Sans ce retour, un `createDevice()` qui échoue
+        // côté Homey ne laisse aucune trace du côté de l'app.
+        try { Homey.emit('adopted', { host: openHost, ids: created }); }
+        catch (e) { /* la trace vaut mieux que rien, mais les appareils existent déjà */ }
+        setStatus(t('pair.added', 'Added.'));
+        // Une vue custom ne navigue pas : elle se termine. C'est `done()` qui ferme
+        // l'assistant, et rien d'autre.
+        Homey.done();
+      })
+      .catch(function (error) {
+        report('createDevice failed after ' + created.length + ': ' + ((error && error.message) || error));
+        try { Homey.emit('adopted', { host: openHost, ids: created }); } catch (e) { /* idem */ }
+        // Dire combien ont abouti : « ça a échoué » après dix-sept créations réussies
+        // enverrait l'utilisateur tout recommencer sur un Homey qui en a déjà dix-sept.
+        setError(t('pair.sw_partial', '{{done}} of {{total}} ports were added, then the switch stopped answering.',
+          { done: created.length, total: chosen.length })
+          .replace('{{done}}', String(created.length))
+          .replace('{{total}}', String(chosen.length)));
+        adopting = false;
+        refreshAddButton();
+      });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Le balayage
+  // ---------------------------------------------------------------------------
+
+  /*
+   * 🔴 Lancer, puis interroger. Jamais attendre.
+   *
+   * Un appel d'API d'app est coupé à dix secondes et un balayage /24 en prend une
+   * quinzaine : un unique `scan` qui rendrait la liste finie ne peut pas exister. Donc
+   * `scan_start` rend la main aussitôt, et `scan_status` est interrogé toutes les 1,5 s —
+   * en requête/réponse. Surtout pas de `session.emit()` en push : un balayage tombé et un
+   * événement jamais arrivé y seraient indiscernables (panne 9).
+   */
+  function sweep() {
+    if (sweeping) return Promise.resolve();
+    sweeping = true;
+    searchEl.disabled = true;
+    devicesEl.innerHTML = '';
+    showPorts(false);
+    hideHelp();
+    setSearching(true, t('pair.scanning', 'Searching the network…'));
+    report('sweep: requesting scan_start');
+
+    return Promise.resolve(Homey.emit('scan_start', { community: community() }))
+      .then(function (started) {
+        report('sweep: scan_start returned ' + JSON.stringify(started));
+        if (!started || !started.started) {
+          setSearching(false);
+          setError((started && started.reason) || 'scan_start refused');
+          return null;
+        }
+        return poll(0);
+      })
+      .catch(function (error) {
+        report('sweep failed: ' + ((error && error.message) || error));
+        setSearching(false);
+        setError(error);
+      })
+      .then(function () {
+        setSearching(false);
+        sweeping = false;
+        searchEl.disabled = false;
+        searchEl.textContent = t('pair.scan_button', 'Search again');
+      });
+  }
+
+  /** Une passe d'interrogation. Récursive plutôt que bouclée : rien à réaffecter. */
+  function poll(attempt) {
+    if (attempt >= 30) {
+      report('sweep: gave up waiting after ' + attempt + ' polls');
+      setSearching(false);
+      setError('the scan did not finish');
+      return Promise.resolve();
+    }
+
+    return wait(1500)
+      .then(function () { return Homey.emit('scan_status', null); })
+      .then(function (data) {
+        if (!data) {
+          report('sweep: scan_status returned nothing');
+          setSearching(false);
+          setError('lost track of the scan');
+          return null;
+        }
+
+        var devices = data.devices || [];
+        renderDevices(devices);
+
+        if (data.running) {
+          setSearching(true, progressText(data));
+          return poll(attempt + 1);
+        }
+
+        report('sweep: finished — ' + devices.length + ' snmp device(s)');
+        setSearching(false);
+
+        // Une erreur de balayage n'est pas une liste vide : dire « activez le SNMP » à
+        // quelqu'un dont le balayage n'a pas pu démarrer l'envoie chercher ailleurs.
+        if (data.error) {
+          setError(data.error);
+          return null;
+        }
+
+        if (devices.length) {
+          hideHelp();
+          setStatus(devices.length === 1
+            ? t('pair.sw_found_one', '1 device answered. Open it to see its ports.')
+            : t('pair.sw_found_many', '{{count}} devices answered. Open yours to see its ports.', { count: devices.length })
+                .replace('{{count}}', String(devices.length)));
+        } else {
+          setStatus('');
+          showHelp();
+        }
+        return null;
+      });
+  }
+
+  /** « 61 adresses sur 254 » quand le driver compte, sinon la phrase seule. */
+  function progressText(data) {
+    if (typeof data.done === 'number' && typeof data.total === 'number' && data.total > 0) {
+      return t('pair.scanning_progress', 'Searching — {{done}} of {{total}} addresses checked.',
+        { done: data.done, total: data.total })
+        .replace('{{done}}', String(data.done))
+        .replace('{{total}}', String(data.total));
+    }
+    return t('pair.scanning', 'Searching the network…');
+  }
+
+  function wait(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  /*
+   * L'amorçage, et seulement lui, après que TOUT ce qui précède est affecté.
+   *
+   * 🔴 Le bug de course de vtherm est exactement là : `start()` lisait une valeur déclarée
+   * mais pas encore affectée, et ne se manifestait QUE lorsque l'API était déjà prête —
+   * donc jamais en développement, toujours chez l'utilisateur.
+   */
+  function boot() {
+    report('view script running');
+
+    searchEl.addEventListener('click', function () { sweep(); });
+    addEl.addEventListener('click', function () { adoptPicked(); });
+    backEl.addEventListener('click', function () { showPorts(false); setStatus(''); });
+    openEl.addEventListener('click', function () { openSwitch(hostEl.value.trim()); });
+    hostEl.addEventListener('keydown', function (event) {
+      if (event && event.key === 'Enter') openSwitch(hostEl.value.trim());
+    });
+
+    translate('nsw-start-title', 'pair.sw_title');
+    translate('nsw-start-intro', 'pair.sw_intro');
+    translate('nsw-start-manual-summary', 'pair.sw_manual');
+    translate('nsw-start-manual-hint', 'pair.sw_manual_hint');
+    translate('nsw-start-search', 'pair.scanning');
+    translate('nsw-start-back', 'pair.sw_back');
+    translate('nsw-start-open', 'pair.sw_open');
+    hostEl.placeholder = t('pair.sw_manual_placeholder', hostEl.placeholder);
+
+    report('view ready, starting sweep');
+    sweep();
+  }
+
+  /** Remplace le texte anglais du document par sa traduction, s'il y en a une. */
+  function translate(id, key) {
+    var element = document.getElementById(id);
+    if (element) element.textContent = t(key, element.textContent);
+  }
+
+  // `Homey.ready()` en premier, avant tout autre appel — et jamais `Homey.setTitle()`,
+  // qui appelé trop tôt tuait le script avant sa première ligne utile. Jamais
+  // `onHomeyReady` non plus : c'est la convention des pages de *settings*, elle n'est
+  // jamais appelée en pairing, et la vue reste blanche sans un mot.
+  var ready;
+  try {
+    ready = Homey.ready();
+  } catch (e) {
+    ready = null;
+    report('Homey.ready() threw: ' + e.message);
+  }
+  if (ready && typeof ready.then === 'function') ready.then(boot, boot);
+  else boot();
+})();
+</script>

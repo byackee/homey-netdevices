@@ -1,0 +1,27 @@
+{
+  "name": {
+    "en": "Switch port",
+    "fr": "Port de switch",
+    "nl": "Switchpoort"
+  },
+  "class": "other",
+  "capabilities": [
+    "netswitch_link"
+  ],
+  "platforms": [
+    "local"
+  ],
+  "connectivity": [
+    "lan"
+  ],
+  "images": {
+    "small": "/drivers/netswitch/assets/images/small.png",
+    "large": "/drivers/netswitch/assets/images/large.png",
+    "xlarge": "/drivers/netswitch/assets/images/xlarge.png"
+  },
+  "pair": [
+    {
+      "id": "start"
+    }
+  ]
+}

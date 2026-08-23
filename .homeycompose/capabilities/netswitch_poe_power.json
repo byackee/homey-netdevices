@@ -1,0 +1,11 @@
+{
+  "type": "number",
+  "title": { "en": "PoE power (whole PSE group)", "fr": "Puissance PoE (groupe PSE entier)", "nl": "PoE-vermogen (hele PSE-groep)" },
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true,
+  "units": { "en": "W" },
+  "min": 0,
+  "decimals": 1
+}
