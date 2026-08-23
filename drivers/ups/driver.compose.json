@@ -19,5 +19,15 @@
     "small": "/drivers/ups/assets/images/small.png",
     "large": "/drivers/ups/assets/images/large.png",
     "xlarge": "/drivers/ups/assets/images/xlarge.png"
-  }
+  },
+  "pair": [
+    {
+      "id": "start"
+    }
+  ],
+  "repair": [
+    {
+      "id": "repair"
+    }
+  ]
 }

@@ -1,0 +1,613 @@
+<!--
+  L'unique vue de pairing de l'onduleur.
+
+  🔴 Une vue custom ne peut pas naviguer vers un template système : la navigation
+  échoue en écran blanc, ou l'assistant se ferme sans avoir rien créé. Il n'y a donc
+  ici qu'UNE vue, et c'est elle qui appelle `Homey.createDevice()` puis `Homey.done()`.
+
+  Contrat attendu des handlers `onPair` du driver.
+
+  Il reprend mot pour mot le vocabulaire du balayage partagé de l'app (`app.mts`,
+  `api.mts`) : les handlers du driver sont un passage plat, pas une traduction.
+
+    viewLog(message: string)      -> pousse la ligne dans le tampon de traces
+    scan_start({community})       -> { started: boolean, reason?: string }
+                                     rend la main tout de suite ; un balayage déjà en
+                                     vol est retourné tel quel, il n'en part pas un second
+    scan_status(null)             -> { running, done, total, error,
+                                       found: Finding[], others: Finding[] }
+                                     `found`  = a répondu un dialecte onduleur
+                                     `others` = parle SNMP, mais n'est pas un onduleur.
+                                                Une information, pas du bruit : « le SNMP
+                                                marche ici, mais pas sur l'onduleur »
+                                                n'envoie pas au même endroit que
+                                                « rien n'a répondu du tout ».
+    probe({host, community})      -> Probe
+
+    adopted({host, id})           -> signale ce que la vue a réellement créé
+
+    Finding = { host, name, model, manufacturer, serial, source, version, description,
+                vendor, device? }
+    Probe   = Finding & { outcome: 'ups'|'snmp'|'reachable'|'silent'|'no-host'|'already-paired' }
+
+  🔴 `finding.device` est la charge utile de pairing, et elle se passe TELLE QUELLE à
+  `Homey.createDevice()`. Elle est assemblée par `drivers/ups/pairing.mts`, seul endroit
+  du dépôt où un résultat de pairing est fabriqué : ses clés sont vérifiées par le
+  compilateur et par `test/drivers/pairing.test.mts`. La vue ne la reconstruit pas, ne
+  l'enrichit pas et n'en retire rien — un second constructeur dériverait du premier sans
+  que rien ne le signale, et une clé en trop vide la liste sans un mot. Elle n'est
+  présente que sur un onduleur : un `Finding` sans `device` s'affiche, mais ne s'adopte
+  pas.
+
+  🔴 `outcome: 'reachable'` — l'adresse est vivante mais muette en SNMP — est le cas qui
+  compte. Le replier dans « rien trouvé » est exactement ce qui laisse un utilisateur
+  devant « no devices found » avec un onduleur parfaitement sain sur le réseau.
+
+  Un `Finding` n'est PAS un résultat de pairing : c'est son champ `device` qui l'est.
+-->
+
+<style>
+  .ups-start-intro { color: var(--homey-text-color-light); margin-bottom: 1rem; line-height: 1.45; }
+
+  .ups-start-row {
+    display: flex; align-items: center; gap: .75rem;
+    width: 100%; box-sizing: border-box; text-align: left;
+    padding: .75rem .85rem; margin-bottom: .5rem;
+    border: 1px solid var(--homey-line-color); border-radius: 8px;
+    background: var(--homey-background-color); color: var(--homey-text-color);
+    font: inherit; cursor: pointer;
+  }
+  .ups-start-row:hover { border-color: var(--homey-color-blue, #1B6AC9); }
+  .ups-start-row:disabled { opacity: .55; cursor: default; }
+  .ups-start-row .ups-start-name { font-weight: 600; }
+  .ups-start-row .ups-start-meta { color: var(--homey-text-color-light); font-size: .85rem; }
+  .ups-start-row .ups-start-grow { flex: 1; min-width: 0; }
+  .ups-start-row .ups-start-name,
+  .ups-start-row .ups-start-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .ups-start-status { margin: 1rem 0; color: var(--homey-text-color-light); line-height: 1.45; }
+  .ups-start-status.bad { color: var(--homey-color-red, #da3633); }
+
+  /* Le panneau « ce qu'il faut aller activer ». Il remplace le « aucun appareil
+     trouvé » qui laisse le fil APC du forum Homey en échec depuis 2018. */
+  .ups-start-help {
+    margin: 1rem 0; padding: .9rem 1rem; line-height: 1.5;
+    border: 1px solid var(--homey-line-color); border-radius: 8px;
+    background: var(--homey-background-color);
+  }
+  .ups-start-help h2 { font-size: 1rem; margin: 0 0 .6rem; }
+  .ups-start-help h2 + p { margin-top: 0; }
+  .ups-start-help p { margin: .6rem 0; color: var(--homey-text-color-light); }
+  .ups-start-help p:last-child { margin-bottom: 0; }
+  .ups-start-help .ups-start-reachable { color: var(--homey-text-color); font-weight: 600; }
+
+  .ups-start-manual { margin-top: 1.5rem; border-top: 1px solid var(--homey-line-color); padding-top: 1rem; }
+  .ups-start-manual summary { cursor: pointer; color: var(--homey-text-color-light); }
+  .ups-start-manual-hint { color: var(--homey-text-color-light); font-size: .9rem; margin: .6rem 0 0; }
+  .ups-start-fields { display: flex; gap: .5rem; margin-top: .75rem; }
+  .ups-start-fields input {
+    flex: 1; min-width: 0; padding: .55rem .65rem; font-size: 1rem;
+    border: 1px solid var(--homey-line-color); border-radius: 6px;
+    background: var(--homey-background-color); color: var(--homey-text-color);
+  }
+
+  .ups-start-button {
+    padding: .55rem 1rem; border-radius: 6px; border: 0; cursor: pointer;
+    background: var(--homey-color-blue, #1B6AC9); color: #fff; font: inherit;
+  }
+  .ups-start-button:disabled { opacity: .55; cursor: default; }
+  #ups-start-search { width: 100%; padding: .7rem 1rem; font-weight: 600; }
+  .ups-start-hidden { display: none; }
+
+  /* Un balayage /24 prend une quinzaine de secondes. Un écran figé aussi longtemps
+     se lit comme cassé, donc quelque chose bouge en permanence. */
+  .ups-start-spinner {
+    display: inline-block; width: 15px; height: 15px; margin-right: .5rem;
+    vertical-align: -2px; border-radius: 50%;
+    border: 2px solid var(--homey-line-color);
+    border-top-color: var(--homey-color-blue, #1B6AC9);
+    animation: ups-start-spin .8s linear infinite;
+  }
+  @keyframes ups-start-spin { to { transform: rotate(360deg); } }
+
+  .ups-start-bar { height: 3px; border-radius: 2px; background: var(--homey-line-color); margin: .75rem 0 1rem; overflow: hidden; }
+  .ups-start-bar > span {
+    display: block; height: 100%; width: 40%; border-radius: 2px;
+    background: var(--homey-color-blue, #1B6AC9);
+    animation: ups-start-slide 1.4s ease-in-out infinite;
+  }
+  @keyframes ups-start-slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+  }
+</style>
+
+<!--
+  Les libellés sont écrits en clair ici, en anglais, et le script les REMPLACE par la
+  traduction. Pas de `data-i18n` : une clé manquante laisserait un titre vide et un
+  bouton qui a l'air mort. Ici, le pire cas reste lisible.
+-->
+<h1 id="ups-start-title">Find your UPS</h1>
+<p id="ups-start-intro" class="ups-start-intro">Homey will sweep your network for devices that answer over SNMP — a UPS with its own network card, or a Synology NAS relaying a USB UPS.</p>
+
+<button type="button" id="ups-start-search" class="ups-start-button" disabled>Searching the network…</button>
+<div id="ups-start-progress" class="ups-start-bar ups-start-hidden"><span></span></div>
+<div id="ups-start-status" class="ups-start-status"></div>
+<div id="ups-start-help" class="ups-start-help ups-start-hidden"></div>
+<div id="ups-start-list"></div>
+
+<details id="ups-start-manual" class="ups-start-manual">
+  <summary id="ups-start-manual-summary">Or enter an address yourself</summary>
+  <p id="ups-start-manual-hint" class="ups-start-manual-hint">Use this if the sweep found nothing but you know where the device is.</p>
+  <div class="ups-start-fields">
+    <input type="text" id="ups-start-host" inputmode="decimal" autocomplete="off" placeholder="192.168.1.20">
+    <input type="text" id="ups-start-community" autocomplete="off" value="public" style="max-width:9rem">
+    <button type="button" id="ups-start-add" class="ups-start-button">Test this address</button>
+  </div>
+</details>
+
+<script type="text/javascript">
+/*
+ * Tout est enfermé dans une IIFE, et tous les identifiants sont préfixés `ups-start-`.
+ *
+ * 🔴 Ce n'est pas de la coquetterie : toutes les vues d'un même driver partagent UN
+ * document ET la portée JavaScript globale. Sans préfixe, `getElementById('list')`
+ * rend celui de la PREMIÈRE vue chargée — sur vtherm, une page recevait bien ses
+ * données et remplissait tranquillement la liste de sa voisine cachée. Sans IIFE,
+ * deux vues qui déclarent `escapeHtml` s'écrasent l'une l'autre, en silence.
+ *
+ * Et il n'y a volontairement AUCUN `<script src="/homey.js">` : Homey injecte déjà
+ * son API dans une vue de pairing. Une seconde copie construit une instance qui n'est
+ * rattachée à aucune session — le script tourne, le bouton se renomme, et chaque
+ * `emit` part dans le vide sans la moindre erreur. (Une page de *settings*, elle, doit
+ * bien l'inclure : ne pas confondre les deux.)
+ */
+(function () {
+  'use strict';
+
+  /** Pousse une ligne dans le tampon de traces du driver. Ne doit jamais jeter. */
+  function report(message) {
+    try { Homey.emit('viewLog', '[pair/start] ' + String(message)); } catch (e) { /* rien à faire */ }
+  }
+
+  // Posés avant tout le reste : c'est ce qui distingue « la vue n'a jamais démarré »
+  // de « la vue a démarré et a explosé à sa troisième ligne ».
+  window.addEventListener('error', function (event) {
+    report('window error: ' + (event && event.message) + ' @' + (event && event.lineno));
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    var reason = event && event.reason;
+    report('unhandled rejection: ' + ((reason && reason.message) || reason));
+  });
+
+  /** Traduit, et retombe sur le texte anglais déjà présent — jamais sur une clé nue. */
+  function t(key, fallback, tags) {
+    try {
+      var value = tags ? Homey.__(key, tags) : Homey.__(key);
+      if (value && value !== key) return value;
+    } catch (e) {
+      report('translate failed for ' + key + ': ' + e.message);
+    }
+    return fallback;
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  var searchEl = document.getElementById('ups-start-search');
+  var progressEl = document.getElementById('ups-start-progress');
+  var statusEl = document.getElementById('ups-start-status');
+  var helpEl = document.getElementById('ups-start-help');
+  var listEl = document.getElementById('ups-start-list');
+  var hostEl = document.getElementById('ups-start-host');
+  var communityEl = document.getElementById('ups-start-community');
+  var addEl = document.getElementById('ups-start-add');
+
+  var adopting = false;
+  var sweeping = false;
+
+  function setStatus(text, bad) {
+    statusEl.textContent = text || '';
+    statusEl.className = bad ? 'ups-start-status bad' : 'ups-start-status';
+  }
+
+  /** Une erreur passe toujours par `pair.error`, jamais brute à l'écran. */
+  function setError(message) {
+    var text = (message && message.message) || message;
+    setStatus(t('pair.error', 'Something went wrong: {{message}}', { message: String(text) })
+      .replace('{{message}}', String(text)), true);
+  }
+
+  function setSearching(on, text) {
+    progressEl.className = on ? 'ups-start-bar' : 'ups-start-bar ups-start-hidden';
+    if (on) {
+      statusEl.className = 'ups-start-status';
+      statusEl.innerHTML = '<span class="ups-start-spinner"></span>' + escapeHtml(text || '');
+    }
+  }
+
+  function hideHelp() {
+    helpEl.className = 'ups-start-help ups-start-hidden';
+    helpEl.innerHTML = '';
+  }
+
+  function paragraph(text, className) {
+    return '<p' + (className ? ' class="' + className + '"' : '') + '>' + escapeHtml(text) + '</p>';
+  }
+
+  /*
+   * 🔴 Ce qui remplace « aucun appareil trouvé ».
+   *
+   * Les deux chemins que cette app sait lire exigent que l'utilisateur ait activé
+   * quelque chose, et sur les firmwares APC NMC récents le SNMP est désactivé
+   * d'usine. « No new devices found » décrit donc, neuf fois sur dix, la mauvaise
+   * chose : ce n'est pas qu'il n'y a rien, c'est que rien ne répond encore.
+   *
+   * Trois situations, trois endroits où aller — et surtout pas le même message :
+   *
+   *   others    des appareils parlent SNMP, aucun n'est un onduleur. Le SNMP marche,
+   *             c'est la carte de l'onduleur qui est encore muette (ou on balaie le
+   *             mauvais sous-réseau).
+   *   reachable une adresse répond au ping et rien en SNMP. Le service y est éteint.
+   *   rien      personne n'a répondu : la marche à suivre complète.
+   */
+  function showHelp(others, reachable) {
+    var parts = [];
+
+    // Le SNMP répond quelque part sur ce réseau : le diagnostic est bien plus étroit
+    // que « activez le SNMP », et c'est la première chose à dire.
+    if (others && others.length) {
+      parts.push('<h2>' + escapeHtml(t('pair.others_title', 'SNMP works here, but no UPS answered')) + '</h2>');
+      parts.push(paragraph(t('pair.others_lead',
+        'These addresses answered SNMP but do not speak any UPS MIB. So SNMP itself is fine on your network — it is the UPS that is not answering, either because SNMP is off on its card or because it sits on another subnet.')));
+      for (var j = 0; j < others.length; j += 1) {
+        parts.push(paragraph(describe(others[j]), 'ups-start-reachable'));
+      }
+    }
+
+    // Une adresse qui répond au ping mais pas en SNMP est un diagnostic, pas un
+    // échec : le service y est presque toujours simplement éteint.
+    if (reachable && reachable.length) {
+      parts.push('<h2>' + escapeHtml(t('pair.reachable_title', 'Reachable, but silent over SNMP')) + '</h2>');
+      parts.push(paragraph(t('pair.reachable_lead',
+        'These addresses answered a ping but not an SNMP request. That is the signature of SNMP being switched off on a device that is otherwise perfectly healthy.')));
+      for (var i = 0; i < reachable.length; i += 1) {
+        parts.push(paragraph(
+          t('pair.reachable_item', '{{host}} — reachable, no SNMP answer', { host: reachable[i] })
+            .replace('{{host}}', reachable[i]),
+          'ups-start-reachable'));
+      }
+    }
+
+    parts.push('<h2>' + escapeHtml(t('pair.empty_title', 'Nothing answered over SNMP — here is what to switch on')) + '</h2>');
+    parts.push(paragraph(t('pair.empty_lead',
+      'An empty list nearly always means SNMP is still switched off, not that there is no UPS. Both supported paths need you to enable something first.')));
+    parts.push(paragraph(t('pair.empty_synology',
+      'Synology NAS relaying a USB UPS: Control Panel → Terminal & SNMP → tick SNMP service and SNMPv1/v2c. Then Hardware & Power → UPS → enable UPS support.')));
+    parts.push(paragraph(t('pair.empty_card',
+      'UPS with its own network card: on recent APC NMC firmware SNMP ships switched off, v1 and v3 alike. In the card’s web interface, Configuration → Network → SNMPv1 → enable it, and leave the community as "public".')));
+    parts.push(paragraph(t('pair.empty_nut',
+      'A plain Linux machine running NUT is not supported: NUT has no SNMP agent, so there is nothing here to find.')));
+    parts.push(paragraph(t('pair.empty_retry', 'Switch it on, then search again.')));
+
+    helpEl.innerHTML = parts.join('');
+    helpEl.className = 'ups-start-help';
+  }
+
+  /** « 192.168.1.30 — Synology DiskStation ». L'adresse d'abord : c'est l'actionnable. */
+  function describe(finding) {
+    var what = labelFor(finding);
+    return what === finding.host ? finding.host : finding.host + ' — ' + what;
+  }
+
+  /**
+   * Comment nommer un appareil qu'on n'a jamais vu.
+   *
+   * Le nom que l'agent se donne (`sysName`) passe avant le modèle : c'est celui que
+   * l'utilisateur reconnaît, parce que c'est lui qui l'a écrit. À défaut, le couple
+   * constructeur/modèle, puis la description tronquée, puis l'adresse — qui n'apprend
+   * rien mais n'est jamais vide.
+   */
+  function labelFor(finding) {
+    return (finding.device && finding.device.name) ||
+      finding.name ||
+      [finding.manufacturer, finding.model].filter(Boolean).join(' ') ||
+      finding.description ||
+      finding.host;
+  }
+
+  /** La communauté saisie, qui est aussi celle avec laquelle on balaie. */
+  function community() {
+    return communityEl.value.trim() || 'public';
+  }
+
+  function render(findings) {
+    listEl.innerHTML = '';
+    for (var i = 0; i < findings.length; i += 1) {
+      listEl.appendChild(rowFor(findings[i]));
+    }
+  }
+
+  function rowFor(finding) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ups-start-row';
+    var meta = [finding.host, finding.serial, finding.source].filter(Boolean).join(' · ');
+    button.innerHTML =
+      '<div class="ups-start-grow">' +
+        '<div class="ups-start-name">' + escapeHtml(labelFor(finding)) + '</div>' +
+        '<div class="ups-start-meta">' + escapeHtml(meta) + '</div>' +
+      '</div>';
+    button.addEventListener('click', function () { adopt(finding); });
+    return button;
+  }
+
+  /**
+   * Adopter, c'est repasser au SDK ce que le driver a déjà assemblé.
+   *
+   * 🔴 `finding.device` part TEL QUEL. Le tenter d'améliorer — ajouter `class`, recopier
+   * l'adresse au premier niveau, glisser la source à côté des réglages — vide la liste
+   * sans un message, et le SDK type ça `any` : ni le compilateur ni `homey app validate`
+   * ne le verraient. Le seul endroit du dépôt qui fabrique un résultat de pairing est
+   * `drivers/ups/pairing.mts`, et c'est très bien ainsi.
+   */
+  function adopt(finding) {
+    if (adopting) return Promise.resolve();
+
+    // Un `Finding` sans charge utile n'est pas un onduleur : l'offrir à l'adoption
+    // créerait un appareil qui ne relèvera jamais rien.
+    if (!finding.device) {
+      setError('this address answered, but not as a UPS');
+      return Promise.resolve();
+    }
+
+    adopting = true;
+    setStatus(t('pair.adding', 'Adding…'));
+    report('adopting ' + finding.host);
+
+    return Promise.resolve(Homey.createDevice(finding.device))
+      .then(function () {
+        report('created ' + finding.host);
+        // Ce que la vue a réellement créé. Sans ce retour, un `createDevice()` qui
+        // échoue côté Homey ne laisse aucune trace du côté de l'app — et une adoption
+        // muette est indiscernable d'une vue qui n'a jamais parlé.
+        report('adopted ' + finding.device.data.id);
+        try { Homey.emit('adopted', { host: finding.host, id: finding.device.data.id }); }
+        catch (e) { /* la trace vaut mieux que rien, mais l'appareil existe déjà */ }
+        setStatus(t('pair.added', 'Added.'));
+        // Une vue custom ne navigue pas : elle se termine. C'est `done()` qui ferme
+        // l'assistant, et rien d'autre.
+        Homey.done();
+      })
+      .catch(function (error) {
+        report('createDevice failed: ' + ((error && error.message) || error));
+        setError(error);
+        adopting = false;
+      });
+  }
+
+  /*
+   * 🔴 Lancer, puis interroger. Jamais attendre.
+   *
+   * Un appel d'API d'app est coupé à dix secondes et un balayage /24 en prend une
+   * quinzaine : un unique `scan` qui rendrait la liste finie ne peut pas exister.
+   * Donc `scan_start` rend la main aussitôt, et `scan_status` est interrogé toutes
+   * les 1,5 s — en requête/réponse. Surtout pas de `session.emit()` en push : un
+   * balayage tombé et un événement jamais arrivé y seraient indiscernables.
+   */
+  function sweep() {
+    if (sweeping) return Promise.resolve();
+    sweeping = true;
+    searchEl.disabled = true;
+    listEl.innerHTML = '';
+    hideHelp();
+    setSearching(true, t('pair.scanning', 'Searching the network…'));
+    report('sweep: requesting scan_start');
+
+    return Promise.resolve(Homey.emit('scan_start', { community: community() }))
+      .then(function (started) {
+        report('sweep: scan_start returned ' + JSON.stringify(started));
+        if (!started || !started.started) {
+          setSearching(false);
+          setError((started && started.reason) || 'scan_start refused');
+          return null;
+        }
+        return poll(0);
+      })
+      .catch(function (error) {
+        report('sweep failed: ' + ((error && error.message) || error));
+        setSearching(false);
+        setError(error);
+      })
+      .then(function () {
+        setSearching(false);
+        sweeping = false;
+        searchEl.disabled = false;
+        searchEl.textContent = t('pair.scan_button', 'Search again');
+      });
+  }
+
+  /** Une passe d'interrogation. Récursive plutôt que bouclée : rien à réaffecter. */
+  function poll(attempt) {
+    if (attempt >= 30) {
+      report('sweep: gave up waiting after ' + attempt + ' polls');
+      setSearching(false);
+      setError('the scan did not finish');
+      return Promise.resolve();
+    }
+
+    return wait(1500)
+      .then(function () { return Homey.emit('scan_status', null); })
+      .then(function (data) {
+        if (!data) {
+          report('sweep: scan_status returned nothing');
+          setSearching(false);
+          setError('lost track of the scan');
+          return null;
+        }
+
+        var found = data.found || [];
+        var others = data.others || [];
+        render(found);
+
+        if (data.running) {
+          setSearching(true, progressText(data));
+          return poll(attempt + 1);
+        }
+
+        report('sweep: finished — ' + found.length + ' ups, ' + others.length + ' other snmp');
+        setSearching(false);
+
+        // Une erreur de balayage n'est pas une liste vide : dire « activez le SNMP »
+        // à quelqu'un dont le balayage n'a pas pu démarrer l'envoie chercher ailleurs.
+        if (data.error) {
+          setError(data.error);
+          return null;
+        }
+
+        if (found.length) {
+          hideHelp();
+          setStatus(found.length === 1
+            ? t('pair.found_one', '1 UPS found.')
+            : t('pair.found_many', '{{count}} UPS found.', { count: found.length })
+                .replace('{{count}}', String(found.length)));
+        } else {
+          setStatus('');
+          showHelp(others, data.reachable || []);
+        }
+        return null;
+      });
+  }
+
+  /** « 61 adresses sur 254 » quand le driver compte, sinon la phrase seule. */
+  function progressText(data) {
+    if (typeof data.done === 'number' && typeof data.total === 'number' && data.total > 0) {
+      return t('pair.scanning_progress', 'Searching — {{done}} of {{total}} addresses checked.',
+        { done: data.done, total: data.total })
+        .replace('{{done}}', String(data.done))
+        .replace('{{total}}', String(data.total));
+    }
+    return t('pair.scanning', 'Searching the network…');
+  }
+
+  function wait(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  /**
+   * Tester une adresse qu'on connaît déjà.
+   *
+   * C'est la sortie de secours du balayage : une communauté qui n'est pas « public »,
+   * un onduleur sur un autre sous-réseau, un firmware qui ignore les requêtes en
+   * rafale. La sonde dit ce qu'elle a trouvé, et chaque réponse mène ailleurs.
+   */
+  function addManually() {
+    var host = hostEl.value.trim();
+    if (!host) return Promise.resolve();
+
+    addEl.disabled = true;
+    hideHelp();
+    setStatus(t('pair.probing', 'Contacting…'));
+    report('probing ' + host);
+
+    return Promise.resolve(Homey.emit('probe', { host: host, community: community() }))
+      .then(function (probe) {
+        if (!probe) {
+          setError('no answer from ' + host);
+          return null;
+        }
+
+        // Un onduleur : on adopte, c'est tout ce que la vue avait à faire.
+        if (probe.outcome === 'ups') {
+          setStatus('');
+          return adopt(probe);
+        }
+
+        // Ça parle SNMP, mais ce n'est pas un onduleur. L'utilisateur s'est trompé
+        // d'adresse, ou c'est le NAS sans son onduleur configuré — deux choses qu'on
+        // ne devine pas, mais qu'on peut nommer.
+        if (probe.outcome === 'snmp') {
+          setStatus('');
+          showHelp([probe], []);
+          return null;
+        }
+
+        // Déjà dans Homey. Le dire, plutôt que « n'a pas répondu » : l'utilisateur
+        // cherche un appareil qu'il a sous les yeux dans une autre pièce.
+        if (probe.outcome === 'already-paired') {
+          setError(t('pair.probe_already', '{{host}} is already added to Homey.', { host: host })
+            .replace('{{host}}', host));
+          return null;
+        }
+
+        // Vivante et muette : le cas qui mérite la marche à suivre, pas un échec.
+        if (probe.outcome === 'reachable') {
+          setStatus('');
+          showHelp([], [host]);
+          return null;
+        }
+
+        setError(t('pair.probe_silent', '{{host}} did not answer at all. Check the address, or that the device is switched on.',
+          { host: host }).replace('{{host}}', host));
+        return null;
+      })
+      .catch(function (error) {
+        report('probe failed: ' + ((error && error.message) || error));
+        setError(error);
+      })
+      .then(function () { addEl.disabled = false; });
+  }
+
+  /*
+   * L'amorçage, et seulement lui, après que TOUT ce qui précède est affecté.
+   *
+   * 🔴 Le bug de course de vtherm est exactement là : `start()` lisait une valeur
+   * déclarée mais pas encore affectée, et ne se manifestait QUE lorsque l'API était
+   * déjà prête — donc jamais en développement, toujours chez l'utilisateur. Les deux
+   * chemins de démarrage sont exercés par `test/views/pair-view.test.mts`.
+   */
+  function boot() {
+    report('view script running');
+
+    searchEl.addEventListener('click', function () { sweep(); });
+    addEl.addEventListener('click', function () { addManually(); });
+    hostEl.addEventListener('keydown', function (event) {
+      if (event && event.key === 'Enter') addManually();
+    });
+
+    translate('ups-start-title', 'pair.title');
+    translate('ups-start-intro', 'pair.intro');
+    translate('ups-start-manual-summary', 'pair.manual');
+    translate('ups-start-manual-hint', 'pair.manual_hint');
+    translate('ups-start-search', 'pair.scanning');
+    translate('ups-start-add', 'pair.manual_button');
+    hostEl.placeholder = t('pair.manual_placeholder', hostEl.placeholder);
+
+    report('view ready, starting sweep');
+    sweep();
+  }
+
+  /** Remplace le texte anglais du document par sa traduction, s'il y en a une. */
+  function translate(id, key) {
+    var element = document.getElementById(id);
+    if (element) element.textContent = t(key, element.textContent);
+  }
+
+  // `Homey.ready()` en premier, avant tout autre appel — et jamais `Homey.setTitle()`,
+  // qui appelé trop tôt tuait le script avant sa première ligne utile. Jamais
+  // `onHomeyReady` non plus : c'est la convention des pages de *settings*, elle n'est
+  // jamais appelée en pairing, et la vue reste blanche sans un mot.
+  var ready;
+  try {
+    ready = Homey.ready();
+  } catch (e) {
+    ready = null;
+    report('Homey.ready() threw: ' + e.message);
+  }
+  if (ready && typeof ready.then === 'function') ready.then(boot, boot);
+  else boot();
+})();
+</script>
