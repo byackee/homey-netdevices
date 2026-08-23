@@ -76,7 +76,13 @@ export interface SynologyUpsDetail {
   batteryChargeLow: number | null;
   /** Seuil d'autonomie `LB`, **en minutes** — l'agent le donne en secondes lui aussi. */
   runtimeLowMinutes: number | null;
-  /** ⚠️ Tension **batterie** (DC). Synology n'expose pas la tension de sortie. */
+  /** Tension **secteur** (AC), en V. */
+  inputVoltage: number | null;
+  /** Tension nominale du secteur, en V — 230 en Europe. */
+  inputVoltageNominal: number | null;
+  /** Tension de **sortie** (AC), en V. */
+  outputVoltage: number | null;
+  /** ⚠️ Tension **batterie** (DC) — à ne pas confondre avec les deux precedentes. */
   batteryVoltage: number | null;
   batteryVoltageNominal: number | null;
   /** Capacité de la batterie, en Ah. */
@@ -106,6 +112,9 @@ const LIVE_OIDS = [
 ];
 
 const DETAIL_OIDS = [
+  SYNOLOGY_UPS_OID.inputVoltageValue,
+  SYNOLOGY_UPS_OID.inputVoltageNominal,
+  SYNOLOGY_UPS_OID.outputVoltageValue,
   SYNOLOGY_UPS_OID.batteryChargeLow,
   SYNOLOGY_UPS_OID.batteryRuntimeLow,
   SYNOLOGY_UPS_OID.batteryVoltageValue,
@@ -228,6 +237,9 @@ export class SynologyUpsReader {
     return {
       batteryChargeLow: asMeasure(values.get(SYNOLOGY_UPS_OID.batteryChargeLow), 0, 100),
       runtimeLowMinutes: secondsToMinutes(asNumber(values.get(SYNOLOGY_UPS_OID.batteryRuntimeLow))),
+      inputVoltage: asNumber(values.get(SYNOLOGY_UPS_OID.inputVoltageValue)),
+      inputVoltageNominal: asNumber(values.get(SYNOLOGY_UPS_OID.inputVoltageNominal)),
+      outputVoltage: asNumber(values.get(SYNOLOGY_UPS_OID.outputVoltageValue)),
       batteryVoltage: asNumber(values.get(SYNOLOGY_UPS_OID.batteryVoltageValue)),
       batteryVoltageNominal: asNumber(values.get(SYNOLOGY_UPS_OID.batteryVoltageNominal)),
       batteryCapacity: asNumber(values.get(SYNOLOGY_UPS_OID.batteryCapacity)),
@@ -298,8 +310,12 @@ export class SynologyUpsSource implements UpsSourceReader {
   async readDetail(client: SnmpSource): Promise<UpsDetail> {
     const detail = await new SynologyUpsReader(client).readDetail();
     return {
-      inputVoltage: null,
-      outputVoltage: null,
+      inputVoltage: detail.inputVoltage,
+      outputVoltage: detail.outputVoltage,
+      // La branche porte `upsInfoRealPowerValue`, mais le seul onduleur reel observe ne
+      // publie que son **nominal** (390 W) et pas la mesure. Deriver des watts en
+      // multipliant la charge par ce nominal donnerait un nombre plausible et faux :
+      // `measure_power` doit rester une mesure, pas une estimation deguisee.
       outputPower: null,
       batteryVoltage: detail.batteryVoltage,
       // Deux sondes possibles, une seule case dans le contrat commun. Sur les onduleurs

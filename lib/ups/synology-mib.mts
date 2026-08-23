@@ -60,6 +60,36 @@ export const SYNOLOGY_UPS_OID = {
   batteryRuntimeValue: `${BASE}.3.6.1.0`,
   /** upsBatteryRuntimeLow — seuil `LB` exprimé en secondes lui aussi. */
   batteryRuntimeLow: `${BASE}.3.6.2.0`,
+
+  // --- Entrée secteur `.4` -------------------------------------------------
+  //
+  // 🔴 Ce groupe manquait, et son absence tenait à une erreur de méthode : la première
+  // version n'a retenu que les objets recoupés par **deux** sources indépendantes — la
+  // MIB officielle, un article Paessler, un script de production. Ces deux sources
+  // s'arrêtaient toutes deux au groupe batterie, et l'accord de deux inventaires
+  // incomplets a été pris pour un inventaire complet.
+  //
+  // Confirmé sur un vrai onduleur — un CyberPower VP700ELCD derrière un Synology, relevé
+  // par un utilisateur : entrée 231 V, sortie 232 V, là où l'app affichait « inconnu ».
+  //
+  /** upsInputVoltageValue — tension **secteur** (AC), Opaque Float. */
+  inputVoltageValue: `${BASE}.4.1.1.0`,
+  /** upsInputVoltageNominal — la tension attendue du réseau, 230 V en Europe. */
+  inputVoltageNominal: `${BASE}.4.1.4.0`,
+  /**
+   * upsInputTransferReason — la raison du dernier passage sur batterie, en toutes lettres.
+   *
+   * ⚠️ Absent du relevé de terrain : l'onduleur USB testé ne le remplit pas. Défini ici
+   * parce que la MIB le porte, mais aucune capability ne s'y appuie tant qu'un appareil
+   * n'aura pas prouvé qu'il répond.
+   */
+  inputTransferReason: `${BASE}.4.2.1.0`,
+
+  // --- Sortie `.5` ---------------------------------------------------------
+  /** upsOutputVoltageValue — tension de sortie (AC), Opaque Float. */
+  outputVoltageValue: `${BASE}.5.1.1.0`,
+  /** upsOutputVoltageNominal. */
+  outputVoltageNominal: `${BASE}.5.1.2.0`,
 } as const;
 
 export type SynologyUpsField = keyof typeof SYNOLOGY_UPS_OID;
@@ -72,6 +102,10 @@ export type SynologyUpsField = keyof typeof SYNOLOGY_UPS_OID;
  * pour une valeur pourtant lue. La liste est explicitement close par le `satisfies`.
  */
 export const FLOAT_OIDS = [
+  'inputVoltageValue',
+  'inputVoltageNominal',
+  'outputVoltageValue',
+  'outputVoltageNominal',
   'infoTemperature',
   'infoLoadValue',
   'batteryChargeValue',

@@ -57,9 +57,15 @@ export interface UpsLive {
 
 /** Ce qui peut attendre le rythme lent (~5 min) : tensions, températures, seuils. */
 export interface UpsDetail {
-  /** Tension d'entrée secteur (AC), en V. `null` chez Synology, qui ne l'expose pas. */
+  /**
+   * Tension d'entrée secteur (AC), en V.
+   *
+   * Ce commentaire disait « `null` chez Synology, qui ne l'expose pas ». C'était faux :
+   * `SYNOLOGY-UPS-MIB` porte un groupe `upsInput` complet, que la première lecture de la
+   * MIB avait manqué. Mesuré à 231 V sur un CyberPower VP700ELCD derrière un Synology.
+   */
   inputVoltage: number | null;
-  /** Tension de sortie (AC), en V. `null` chez Synology. */
+  /** Tension de sortie (AC), en V. Idem : Synology l'expose bien, sous `upsOutput`. */
   outputVoltage: number | null;
   /** Puissance de sortie, en W. Absente de beaucoup d'agents. */
   outputPower: number | null;
