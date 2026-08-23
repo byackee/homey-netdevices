@@ -174,18 +174,33 @@ export default class UpsDevice extends Homey.Device {
    * appareil détruit.
    */
   private scheduleLive(): void {
+    if (this.stopped) return;
     this.liveTimer = this.homey.setTimeout(() => {
       void this.pollLive().finally(() => this.scheduleLive());
     }, intervalMs(this.readSettings().liveInterval, LIVE_RHYTHM));
   }
 
   private scheduleDetail(): void {
+    if (this.stopped) return;
     this.detailTimer = this.homey.setTimeout(() => {
       void this.pollDetail().finally(() => this.scheduleDetail());
     }, intervalMs(this.readSettings().detailInterval, DETAIL_RHYTHM));
   }
 
+  /**
+   * L'appareil est-il retiré, ou l'app en train de s'arrêter ?
+   *
+   * 🔴 `clearTimers()` annule le timer **en attente**, mais un relevé déjà **en vol** au
+   * moment de la suppression rappelle `schedule…()` depuis son `.finally()` — après le
+   * nettoyage. La chaîne ressuscitait donc toute seule, et un appareil supprimé
+   * continuait d'interroger le réseau jusqu'au redémarrage de l'app.
+   *
+   * Le drapeau est la seule chose qu'un `.finally()` en retard puisse encore consulter.
+   */
+  private stopped = false;
+
   private clearTimers(): void {
+    this.stopped = true;
     if (this.liveTimer !== null) this.homey.clearTimeout(this.liveTimer);
     if (this.detailTimer !== null) this.homey.clearTimeout(this.detailTimer);
     this.liveTimer = null;
@@ -452,6 +467,8 @@ export default class UpsDevice extends Homey.Device {
     if (changedKeys.includes('live_interval') || changedKeys.includes('detail_interval')) {
       this.homey.setTimeout(() => {
         this.clearTimers();
+        // Un changement de réglage rebranche la chaîne : ce n'est pas un arrêt.
+        this.stopped = false;
         this.scheduleLive();
         this.scheduleDetail();
       }, SETTINGS_SETTLE_MS);

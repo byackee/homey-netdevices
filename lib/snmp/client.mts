@@ -29,7 +29,25 @@ export interface SnmpOptions {
   /** Réessais *après* la première tentative. */
   retries?: number;
   port?: number;
+  /**
+   * Budget total d'un `get`, en millisecondes. `undefined` = aucun plafond.
+   *
+   * 🔴 Nécessaire à cause du chemin v1, où `get` se démultiplie en un paquet par OID.
+   * Sept OID à 2,5 s avec un réessai font trente-cinq secondes, alors qu'un appel à
+   * l'API d'une app est coupé à dix. Le commentaire d'origine comptait des *appels*
+   * là où v1 compte des *paquets* — mesuré à 12,4 s sur le chemin de sonde complet.
+   *
+   * Passé le budget, les OID restants valent `null` : « on n'a pas eu le temps de
+   * demander » et « l'appareil ne l'a pas » se ressemblent côté lecteur, et c'est
+   * acceptable pour une lecture partielle — contrairement à un appel qui n'aboutit
+   * jamais, où l'utilisateur ne voit qu'un timeout sans explication.
+   */
+  budgetMs?: number;
 }
+
+/** Combien de paquets v1 partent de front. Assez pour tenir le budget, assez peu pour
+ * ne pas noyer un agent embarqué — une carte d'onduleur n'est pas un serveur. */
+const V1_CONCURRENCY = 6;
 
 /** Une valeur lue sur l'appareil, déjà sortie de la forme Buffer de net-snmp. */
 export type SnmpValue = string | number | Buffer | null;
@@ -102,20 +120,28 @@ export class SnmpClient implements SnmpReader {
   private readonly timeout: number;
   private readonly retries: number;
   private readonly port: number;
+  /** Plafond de temps d'un `get`, décisif sur le chemin v1. `undefined` = aucun. */
+  private readonly budgetMs: number | undefined;
 
   constructor(options: SnmpOptions) {
     this.host = options.host;
     this.community = options.community;
     this.version = options.version;
     this.timeout = options.timeout ?? DEFAULT_TIMEOUT;
+    this.budgetMs = options.budgetMs;
     this.retries = options.retries ?? DEFAULT_RETRIES;
     this.port = options.port ?? DEFAULT_PORT;
   }
 
-  private openSession(): snmp.Session {
+  /**
+   * @param timeoutMs plafonne le délai de cette requête-ci, sous le délai configuré.
+   *   Sert au budget v1 : sans lui, le budget empêche seulement de *démarrer* une
+   *   requête après l'échéance, et celle qui est déjà en vol la dépasse librement.
+   */
+  private openSession(timeoutMs?: number): snmp.Session {
     return snmp.createSession(this.host, this.community, {
       version: this.version === 'v1' ? snmp.Version1 : snmp.Version2c,
-      timeout: this.timeout,
+      timeout: timeoutMs === undefined ? this.timeout : Math.max(1, Math.min(this.timeout, timeoutMs)),
       retries: this.retries,
       port: this.port,
     });
@@ -160,14 +186,33 @@ export class SnmpClient implements SnmpReader {
     }
   }
 
-  /** Le chemin v1 : isoler chaque OID pour qu'une feuille non supportée n'empoisonne pas le reste. */
+  /**
+   * Le chemin v1 : isoler chaque OID pour qu'une feuille non supportée n'empoisonne pas
+   * le reste — au prix d'un paquet par OID, que v2c fait tenir dans un seul.
+   *
+   * Les paquets partent par lots plutôt qu'un par un, et le budget arrête les frais :
+   * séquentiel et sans plafond, sept OID dépassaient largement les dix secondes d'un
+   * appel d'API d'app.
+   */
   private async getOneByOne(oids: string[], keepRaw: boolean): Promise<Map<string, SnmpValue>> {
     const out = new Map<string, SnmpValue>();
     let reachable = false;
     let lastError = 'aucune réponse';
+    const deadline = this.budgetMs === undefined ? Infinity : Date.now() + this.budgetMs;
 
-    for (const oid of oids) {
-      const session = this.openSession();
+    const askOne = async (oid: string): Promise<void> => {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        // Non demandé faute de temps. `null` est la seule réponse honnête.
+        out.set(oid, null);
+        return;
+      }
+      // Le délai de CE paquet est borné par ce qui reste du budget : un réessai qui
+      // déborderait l'échéance ne sert personne, l'appel d'API sera déjà coupé.
+      const attempts = this.retries + 1;
+      const session = this.openSession(
+        deadline === Infinity ? undefined : Math.floor(remaining / attempts),
+      );
       try {
         const varbinds = await new Promise<snmp.Varbind[]>((resolve, reject) => {
           session.get([oid], (error, result) => {
@@ -189,8 +234,14 @@ export class SnmpClient implements SnmpReader {
       } finally {
         session.close();
       }
+    };
+
+    for (let i = 0; i < oids.length; i += V1_CONCURRENCY) {
+      await Promise.all(oids.slice(i, i + V1_CONCURRENCY).map(askOne));
     }
 
+    // Un budget épuisé n'est pas une injoignabilité : si une seule feuille a répondu,
+    // l'appareil est là et la lecture est simplement partielle.
     if (!reachable) throw new SnmpUnreachableError(this.host, lastError);
     return out;
   }

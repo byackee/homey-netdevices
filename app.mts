@@ -36,6 +36,14 @@ const SYS_NAME = '1.3.6.1.2.1.1.5.0';
 const IF_NUMBER = '1.3.6.1.2.1.2.1.0';
 
 /**
+ * Ce qu'une sonde d'adresse s'autorise en lectures SNMP, négociation déduite.
+ *
+ * Un appel à l'API d'une app est coupé à dix secondes. On en garde deux de marge pour
+ * la négociation de version et le repli TCP, et on plafonne le reste.
+ */
+const PROBE_BUDGET_MS = 6_000;
+
+/**
  * One probe during a sweep: a single packet, no retry.
  *
  * A device slower than this is not idle, and 254 addresses at any longer a
@@ -365,8 +373,34 @@ export default class NetDevicesApp extends Homey.App {
    * The whole path is budgeted to stay inside the ten seconds an API call gets:
    * negotiation is capped at two short attempts, dialect probes at three shorter
    * ones, and the TCP reachability check only runs when SNMP already gave up.
+   *
+   * 🔴 That accounting was in *calls*, and v1 counts *packets*: `get` there sends one
+   * packet per OID, so a seven-OID read multiplied into thirty-five seconds. Measured
+   * at 12.4 s over the whole probe path before this budget existed. The client now
+   * carries an explicit ceiling; OIDs it did not get to are `null`, which is a partial
+   * reading rather than a call that never returns.
    */
+  /** La sonde en cours, s'il y en a une. Voir {@link probeAddress}. */
+  private probeQueue: Promise<void> = Promise.resolve();
+
   async probeAddress(host: string, community = 'public'): Promise<AddressProbe> {
+    // 🔴 Sérialisé, comme `startScan` l'est déjà. Sans plafond, chaque appel ouvre une
+    // négociation de version, jusqu'à trois sondes de dialecte, une lecture d'identité
+    // et — quand SNMP a renoncé — quatre connexions TCP. Une vue qui réémettrait
+    // `/probe` en rafale, ou un onglet dupliqué, empilerait tout cela sans limite sur
+    // un Homey dont le nombre de descripteurs est compté — c'est d'ailleurs la raison
+    // d'être du plafond de concurrence du balayage.
+    //
+    // Les sondes s'enchaînent donc plutôt que de s'empiler. Une sonde dure quelques
+    // secondes ; attendre son tour est préférable à épuiser les sockets de l'app.
+    const mine = this.probeQueue.then(() => this.probeOne(host, community));
+    // La file ne doit pas mourir sur un échec : on la relance quoi qu'il arrive.
+    this.probeQueue = mine.then(() => undefined, () => undefined);
+    return mine;
+  }
+
+  /** La sonde elle-même, sérialisée par {@link probeAddress}. */
+  private async probeOne(host: string, community: string): Promise<AddressProbe> {
     const empty: AddressProbe = {
       host,
       outcome: 'silent',
@@ -384,7 +418,16 @@ export default class NetDevicesApp extends Homey.App {
       return { ...empty, outcome: reachable ? 'reachable' : 'silent' };
     }
 
-    const client = new SnmpClient({ host, community, version, timeout: PROBE_READ_MS, retries: 0 });
+    const client = new SnmpClient({
+      host,
+      community,
+      version,
+      timeout: PROBE_READ_MS,
+      retries: 0,
+      // Ce qui reste des dix secondes une fois la négociation payée. Décisif en v1,
+      // sans effet en v2c où un `get` tient dans un paquet.
+      budgetMs: PROBE_BUDGET_MS,
+    });
 
     let description: string | null = null;
     let name: string | null = null;
