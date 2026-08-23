@@ -31,7 +31,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const PAIR_DIR = path.join(ROOT, 'drivers/nas/pair');
 
 function readView(name: string): { html: string; parsed: ParsedView; code: string } {
-  const html = readFileSync(path.join(PAIR_DIR, `${name}.html`), 'utf8');
+  // 🔴 Les vues de réparation vivent sous `repair/`, pas `pair/`. Homey les y cherche,
+  // et `homey app validate` ne parcourt que `drivers[].pair[]` : une vue mal rangée
+  // valide proprement et ne casse qu'au moment où l'utilisateur appuie sur Maintenance.
+  const dir = name === 'repair' ? PAIR_DIR.replace(/pair$/, 'repair') : PAIR_DIR;
+  const html = readFileSync(path.join(dir, `${name}.html`), 'utf8');
   const parsed = parseView(html);
   return { html, parsed, code: parsed.scripts.map(stripComments).join('\n') };
 }
