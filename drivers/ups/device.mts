@@ -21,7 +21,7 @@
 import Homey from 'homey';
 
 import { SnmpClient, SnmpUnreachableError, type SnmpVersion } from '../../lib/snmp/client.mjs';
-import { capabilityValues, planCapabilities } from '../../lib/ups/capability-map.mjs';
+import { capabilityValues, planCapabilities, type CapabilityValue } from '../../lib/ups/capability-map.mjs';
 import { syncCapabilities } from '../../lib/ups/capability-sync.mjs';
 import {
   UNKNOWN_DETAIL,
@@ -354,9 +354,31 @@ export default class UpsDevice extends Homey.Device {
   private async writeValues(): Promise<void> {
     await this.syncCapabilities();
     for (const { id, value } of capabilityValues(this.current, this.getCapabilities())) {
-      await this.setCapabilityValue(id, value).catch((e: Error) =>
+      await this.setCapabilityValue(id, this.displayable(id, value)).catch((e: Error) =>
         this.error(`Impossible d'écrire ${id} : ${e.message}`));
     }
+  }
+
+  /**
+   * Le texte d'alarme est la seule capability dont l'absence se **dit** au lieu de rester
+   * vide.
+   *
+   * Elle n'apparaît qu'à la première alarme, et n'est jamais retirée — `removeCapability`
+   * détruirait l'historique Insights. Une fois l'incident passé, elle resterait donc un
+   * champ vide en permanence, ce qui se lit comme « cassé » et non comme « tout va bien » :
+   * c'est exactement ce qu'a rapporté la première installation réelle.
+   *
+   * La traduction vit ici et pas dans `lib/` : le device est le seul à connaître la langue
+   * de l'utilisateur. Les autres capabilities gardent `null` — une mesure inconnue doit
+   * rester visiblement inconnue, et surtout pas se déguiser en valeur.
+   */
+  private displayable(id: string, value: CapabilityValue['value']): CapabilityValue['value'] {
+    if (id !== 'ups_alarm_text' || value !== null) return value;
+    return this.homey.__({
+      en: 'No alarm',
+      fr: 'Aucune alarme',
+      nl: 'Geen alarm',
+    });
   }
 
   // -------------------------------------------------------------------------

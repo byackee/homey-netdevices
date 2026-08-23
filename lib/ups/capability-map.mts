@@ -238,6 +238,19 @@ export function capabilityValues(
       out.push({ id, value: snapshot.status });
       continue;
     }
+    // 🔴 Cette capability manquait ici, et le manque ne se voyait pas : une fois déclarée
+    // — ce qui n'arrive qu'à la première alarme — elle n'était **plus jamais réécrite**.
+    // Elle restait donc figée sur l'alarme du jour où elle est apparue, ou vide quand
+    // l'alarme s'était déjà dissipée au moment de la synchronisation. Signalé depuis une
+    // vraie installation : « an additional capability, with no value: Alarm ».
+    //
+    // Un texte d'alarme périmé est pire qu'aucun : il décrit un incident passé avec
+    // l'autorité du présent. Il est donc réécrit à chaque cycle, `null` compris — le
+    // device traduit cette absence en « rien à signaler », car lui seul connaît la langue.
+    if (id === 'ups_alarm_text') {
+      out.push({ id, value: snapshot.alarmSummary });
+      continue;
+    }
     const measure = MEASURES.find((rule) => rule.id === id);
     if (measure) {
       out.push({ id, value: measure.read(snapshot) });

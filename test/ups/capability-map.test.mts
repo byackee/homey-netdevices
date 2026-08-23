@@ -342,3 +342,35 @@ test('une mesure perdue un cycle est signalée orpheline, pas retirée', () => {
   assert.deepEqual(result.orphaned, ['measure_power']);
   assert.deepEqual(result.toAdd, []);
 });
+
+/**
+ * Le texte d'alarme doit être **réécrit à chaque cycle**, une fois déclaré.
+ *
+ * 🔴 `capabilityValues` ne le traitait pas. La capability n'apparaît qu'à la première
+ * alarme et n'est jamais retirée — `removeCapability` détruirait l'historique Insights —
+ * si bien qu'elle restait ensuite figée sur l'incident du jour de sa création, ou vide
+ * quand l'alarme s'était déjà dissipée. Rapporté depuis une vraie installation :
+ * « an additional capability, with no value: Alarm ».
+ *
+ * Un texte d'alarme périmé est pire qu'aucun : il décrit un incident passé avec
+ * l'autorité du présent.
+ */
+test('🔴 le texte d’alarme suit l’état, au lieu de rester figé', () => {
+  const declared = ['ups_status', 'ups_alarm_text'];
+
+  const during = capabilityValues(
+    { ...fullSnapshot(), alarmSummary: 'ventilateur en panne' },
+    declared,
+  );
+  assert.equal(
+    during.find((v) => v.id === 'ups_alarm_text')?.value,
+    'ventilateur en panne',
+  );
+
+  // L'incident passé, la valeur doit repartir — `null` ici, que le device rend en
+  // « aucune alarme » dans la langue de l'utilisateur. Ce qui compte est qu'elle **change**.
+  const after = capabilityValues({ ...fullSnapshot(), alarmSummary: null }, declared);
+  const cleared = after.find((v) => v.id === 'ups_alarm_text');
+  assert.ok(cleared, 'la capability déclarée doit toujours recevoir une valeur');
+  assert.equal(cleared.value, null);
+});
