@@ -74,6 +74,15 @@ const SCENARIOS = {
   },
 
   /**
+   * Une coupure en cours, figée.
+   *
+   * Le scénario `outage` se vide en une minute, ce qui est juste pour exercer les
+   * transitions et impraticable pour observer — le temps de regarder, la batterie est
+   * à zéro. Celui-ci tient l'état intermédiaire indéfiniment.
+   */
+  held: () => ({ status: 'OB DISCHRG', charge: 68, runtimeSec: 2400, load: 24 }),
+
+  /**
    * L'onduleur répond mais ne publie aucune mesure : tout est absent.
    * Sert à vérifier que l'app affiche « inconnu » et **jamais 0 %** — le zéro
    * silencieux étant ce qui déclencherait une fausse alerte de coupure.
