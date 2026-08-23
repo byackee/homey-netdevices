@@ -25,21 +25,25 @@ import {
   type UpsAlarms,
   type UpsStatus,
 } from './nut-status.mjs';
-
-/** Ce qu'un agent SNMP peut rendre pour un objet. Identique au `SnmpValue` du client. */
-export type SnmpValue = string | number | Buffer | null;
+import type {
+  SnmpSource,
+  SnmpValue,
+  UpsDetail,
+  UpsIdentity,
+  UpsLive,
+  UpsSourceReader,
+} from './snapshot.mjs';
 
 /**
- * Le strict nécessaire que le lecteur demande au transport.
+ * `SnmpValue` et `SnmpSource` viennent maintenant du contrat commun.
  *
- * Décrit structurellement plutôt qu'importé : le `SnmpClient` du socle le satisfait sans
- * rien déclarer, et un objet de test de trois lignes aussi. Le lecteur reste donc
- * testable sans réseau — c'est la seule façon d'épingler les conversions d'unité, qui
- * sont ce qui casse en silence.
+ * Ils étaient déclarés ici quand Synology était la seule source ; les quatre dialectes
+ * partagent désormais la même frontière avec le transport, et deux définitions
+ * structurellement identiques mais distinctes finiraient par diverger sans que le
+ * compilateur s'en plaigne. Ils restent réexportés : le lecteur reste testable sans
+ * réseau, avec un objet de test de trois lignes.
  */
-export interface SnmpSource {
-  get(oids: string[]): Promise<Map<string, SnmpValue>>;
-}
+export type { SnmpSource, SnmpValue };
 
 /** Identité de l'onduleur. Lue au pairing puis au rythme lent : elle ne bouge pas. */
 export interface SynologyUpsIdentity {
@@ -232,3 +236,75 @@ export class SynologyUpsReader {
     };
   }
 }
+
+/**
+ * Le lecteur Synology vu à travers le contrat commun.
+ *
+ * `SynologyUpsReader` reste ce qu'il est — riche, spécifique, il porte les jetons NUT
+ * bruts, la tension nominale et la capacité en Ah dont aucune autre source ne dispose,
+ * et le tampon de traces en a besoin pour le diagnostic. Cet adaptateur ne le remplace
+ * pas : il en expose la part que les quatre dialectes ont en commun, pour que le device
+ * puisse traiter un NAS, une carte RFC 1628 et un APC exactement de la même façon.
+ *
+ * La différence de forme est délibérée. `SynologyUpsReader` reçoit son transport au
+ * constructeur ; `UpsSourceReader` le reçoit à chaque appel, parce que la liste ordonnée
+ * de `sources.mts` est construite une fois pour toutes alors que le client, lui, est
+ * propre à un appareil apparié.
+ *
+ * 🔴 Trois champs de `UpsDetail` restent `null` ici, et c'est la vérité de cette source :
+ * **Synology ne relaie ni la tension d'entrée, ni la tension de sortie, ni la puissance.**
+ * NUT les connaît parfois ; la MIB de DSM ne les publie pas. Le lot 4 s'en sert pour ne
+ * pas déclarer une capability qu'il ne saurait pas remplir.
+ */
+export class SynologyUpsSource implements UpsSourceReader {
+  readonly source = 'synology' as const;
+
+  /**
+   * « Y a-t-il un onduleur derrière ce NAS ? », en une seule requête.
+   *
+   * `upsInfoStatus` est le bon témoin : DSM ne publie la branche `6574.4` que si un
+   * onduleur est effectivement configuré dans « Matériel & Alimentation ». Un NAS Synology
+   * sans onduleur répond `noSuchObject`, et c'est exactement ce qu'on veut — l'app ne doit
+   * pas proposer d'apparier un appareil qui n'a rien à dire.
+   */
+  async probe(client: SnmpSource): Promise<boolean> {
+    const values = await client.get([SYNOLOGY_UPS_OID.infoStatus]);
+    return asString(values.get(SYNOLOGY_UPS_OID.infoStatus)) !== null;
+  }
+
+  async readIdentity(client: SnmpSource): Promise<UpsIdentity> {
+    return new SynologyUpsReader(client).readIdentity();
+  }
+
+  async readLive(client: SnmpSource): Promise<UpsLive> {
+    const live = await new SynologyUpsReader(client).readLive();
+    return {
+      status: live.status,
+      alarms: live.alarms,
+      batteryCharge: live.batteryCharge,
+      runtimeMinutes: live.runtimeMinutes,
+      load: live.load,
+    };
+  }
+
+  async readDetail(client: SnmpSource): Promise<UpsDetail> {
+    const detail = await new SynologyUpsReader(client).readDetail();
+    return {
+      inputVoltage: null,
+      outputVoltage: null,
+      outputPower: null,
+      batteryVoltage: detail.batteryVoltage,
+      // Deux sondes possibles, une seule case dans le contrat commun. Sur les onduleurs
+      // domestiques visés, `ups.temperature` et `battery.temperature` décrivent la même
+      // enceinte, et la plupart des modèles n'en publient qu'une des deux : préférer la
+      // batterie puis se rabattre donne une température là où l'alternative — n'en garder
+      // qu'une — n'en donnerait aucune sur la moitié du parc.
+      batteryTemperature: detail.batteryTemperature ?? detail.upsTemperature,
+      batteryChargeLow: detail.batteryChargeLow,
+      runtimeLowMinutes: detail.runtimeLowMinutes,
+    };
+  }
+}
+
+/** L'instance partagée — la première de l'ordre d'essai de `sources.mts`. */
+export const synologyUpsSource = new SynologyUpsSource();
