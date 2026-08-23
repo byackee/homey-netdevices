@@ -49,13 +49,14 @@ import {
 interface NasSettings {
   host: string;
   community: string;
+  port: number;
   version: SnmpVersion;
   liveInterval: number;
   detailInterval: number;
 }
 
 /** Les réglages dont un changement invalide la conversation SNMP en cours. */
-const CONNECTION_KEYS = ['host', 'community', 'version'];
+const CONNECTION_KEYS = ['host', 'community', 'port', 'version'];
 
 /**
  * Délai avant de reconstruire le client après un changement de réglage.
@@ -123,6 +124,9 @@ export default class NasDevice extends Homey.Device {
     return {
       host: String(this.getSetting('host') ?? ''),
       community: String(this.getSetting('community') ?? 'public'),
+      // 161 sauf mention contraire. Un agent peut ecouter ailleurs — un `snmpd` non
+      // privilegie, un conteneur, une redirection de port vers un NAS distant.
+      port: Number(this.getSetting('port') ?? 161),
       version: (this.getSetting('version') as SnmpVersion) ?? 'v2c',
       liveInterval: Number(this.getSetting('live_interval') ?? NAS_LIVE_RHYTHM.defaultSeconds),
       detailInterval: Number(this.getSetting('detail_interval') ?? NAS_DETAIL_RHYTHM.defaultSeconds),
@@ -130,11 +134,11 @@ export default class NasDevice extends Homey.Device {
   }
 
   private buildClient(): void {
-    const { host, community, version } = this.readSettings();
+    const { host, community, port, version } = this.readSettings();
     // Un timeout plus long que celui de l'onduleur, et un rythme six fois plus lent pour
     // le payer : le relevé lent parcourt deux tables, et un NAS occupé à reconstruire un
     // RAID répond lentement sans être en panne.
-    this.client = new SnmpClient({ host, community, version, timeout: 4_000, retries: 1 });
+    this.client = new SnmpClient({ host, community, version, port, timeout: 4_000, retries: 1 });
   }
 
   // -------------------------------------------------------------------------

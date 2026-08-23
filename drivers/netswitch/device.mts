@@ -41,6 +41,12 @@ import { LinkChangeDetector, type LinkChangeSet } from '../../lib/netswitch/link
 interface PortSettings {
   host: string;
   community: string;
+  /**
+   * Le port **UDP de l'agent SNMP**, sans le moindre rapport avec le port du switch que
+   * cet appareil represente. Les deux notions se croisent partout dans ce driver : c'est
+   * pour cela qu'il nomme la premiere `snmpPort` la ou l'ambiguite serait possible.
+   */
+  port: number;
   version: SnmpVersion;
   allowControl: boolean;
   liveInterval: number;
@@ -48,7 +54,7 @@ interface PortSettings {
 }
 
 /** Les réglages dont un changement invalide la conversation SNMP en cours. */
-const CONNECTION_KEYS = ['host', 'community', 'version'];
+const CONNECTION_KEYS = ['host', 'community', 'port', 'version'];
 
 /**
  * Délai avant de reconstruire le client après un changement de réglage.
@@ -113,6 +119,7 @@ export default class NetSwitchPortDevice extends Homey.Device {
     return {
       host: String(this.getSetting('host') ?? ''),
       community: String(this.getSetting('community') ?? 'public'),
+      port: Number(this.getSetting('port') ?? 161),
       version: (this.getSetting('version') as SnmpVersion) ?? 'v2c',
       // 🔴 Le défaut est `false`, et il l'est **ici aussi**. Un appareil appairé avant que
       // le réglage existe n'en porte aucune valeur : le lire comme vrai ouvrirait
@@ -137,10 +144,10 @@ export default class NetSwitchPortDevice extends Homey.Device {
   }
 
   private buildClient(): void {
-    const { host, community, version } = this.readSettings();
+    const { host, community, port, version } = this.readSettings();
     // Un timeout court : N ports du même switch interrogent le même agent toutes les 10 s,
     // et c'est le compteur d'échecs — pas le socket — qui décide de l'indisponibilité.
-    this.client = new SnmpClient({ host, community, version, timeout: 2_500, retries: 1 });
+    this.client = new SnmpClient({ host, community, version, port, timeout: 2_500, retries: 1 });
   }
 
   // -------------------------------------------------------------------------
@@ -426,9 +433,11 @@ export default class NetSwitchPortDevice extends Homey.Device {
   private async applyDecision(decision: ControlDecision, what: string): Promise<void> {
     if (!decision.allowed) throw new Error(this.refusal(decision.reason));
 
-    const { host, community, version } = this.readSettings();
+    const { host, community, port, version } = this.readSettings();
     this.log(`Écriture demandée : ${what}`);
-    await writeVarbinds({ host, community, version }, decision.writes);
+    // Le port compte **aussi** en ecriture : un agent joignable seulement ailleurs qu'en
+    // 161 accepterait la lecture et verrait partir ses commandes dans le vide.
+    await writeVarbinds({ host, community, port, version }, decision.writes);
 
     // Le relevé rapide confirmera — ou infirmera — dans la seconde qui suit. C'est lui qui
     // fait foi : un SET accepté par l'agent n'est pas encore un port qui a changé d'état.
