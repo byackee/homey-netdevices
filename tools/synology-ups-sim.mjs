@@ -123,6 +123,10 @@ const SCALARS = [
   ['batteryChargeValue', O.batteryChargeValue, snmp.ObjectType.Opaque],
   ['batteryChargeLow', O.batteryChargeLow, snmp.ObjectType.Opaque],
   ['batteryVoltageValue', O.batteryVoltageValue, snmp.ObjectType.Opaque],
+  // Le groupe secteur, que l'app a longtemps ignore faute de l'avoir lu dans la MIB.
+  ['inputVoltageValue', O.inputVoltageValue, snmp.ObjectType.Opaque],
+  ['inputVoltageNominal', O.inputVoltageNominal, snmp.ObjectType.Opaque],
+  ['outputVoltageValue', O.outputVoltageValue, snmp.ObjectType.Opaque],
   ['batteryRuntimeValue', O.batteryRuntimeValue, snmp.ObjectType.Integer],
   ['batteryRuntimeLow', O.batteryRuntimeLow, snmp.ObjectType.Integer],
   // sysDescr / sysName, pour que la sonde de classification ait de quoi mordre.
@@ -170,6 +174,14 @@ function refresh() {
   if (s.runtimeSec !== null) mib.setScalarValue('batteryRuntimeValue', s.runtimeSec);
   mib.setScalarValue('batteryChargeLow', opaqueFloat(30));
   mib.setScalarValue('batteryVoltageValue', opaqueFloat(13.4));
+
+  // Valeurs relevees sur un vrai CyberPower VP700ELCD derriere un Synology. Sur batterie,
+  // l'entree tombe a zero — c'est ce que mesure un onduleur dont le secteur a disparu, et
+  // c'est la difference que la tuile doit rendre visible.
+  const onMains = !s.status.split(/\s+/).includes('OB');
+  mib.setScalarValue('inputVoltageValue', opaqueFloat(onMains ? 231 : 0));
+  mib.setScalarValue('inputVoltageNominal', opaqueFloat(230));
+  mib.setScalarValue('outputVoltageValue', opaqueFloat(232));
   mib.setScalarValue('batteryRuntimeLow', 300);
 
   if (s.status !== lastStatus) {
