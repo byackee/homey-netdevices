@@ -84,6 +84,21 @@
       "method": "GET",
       "path": "/trace",
       "role": "owner"
+    },
+    "getScan": {
+      "method": "GET",
+      "path": "/scan",
+      "role": "owner"
+    },
+    "postScan": {
+      "method": "POST",
+      "path": "/scan",
+      "role": "owner"
+    },
+    "postProbe": {
+      "method": "POST",
+      "path": "/probe",
+      "role": "owner"
     }
   }
 }
