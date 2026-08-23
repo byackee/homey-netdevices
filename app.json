@@ -1757,6 +1757,23 @@
               "value": "public"
             },
             {
+              "id": "port",
+              "type": "number",
+              "value": 161,
+              "min": 1,
+              "max": 65535,
+              "label": {
+                "en": "SNMP port",
+                "fr": "Port SNMP",
+                "nl": "SNMP-poort"
+              },
+              "hint": {
+                "en": "161 unless the agent was told otherwise. Change it only if you know your device listens elsewhere.",
+                "fr": "161, sauf si l'agent a été configuré autrement. À ne changer que si vous savez que votre appareil écoute ailleurs.",
+                "nl": "161, tenzij de agent anders is ingesteld. Wijzig dit alleen als u weet dat uw apparaat elders luistert."
+              }
+            },
+            {
               "id": "version",
               "type": "dropdown",
               "label": {
