@@ -25,6 +25,15 @@ export interface TraceSource {
 const SYS_DESCR = '1.3.6.1.2.1.1.1.0';
 /** `sysName.0` — what the device calls itself; used to name a candidate. */
 const SYS_NAME = '1.3.6.1.2.1.1.5.0';
+/**
+ * `ifNumber.0` — how many network interfaces the agent declares.
+ *
+ * 🔴 Read during the sweep, in the same packet, because it is the cheapest thing that
+ * separates a switch from everything else that speaks SNMP. Found the hard way: the
+ * Epson printer on the test network has `ifNumber = 1` and was being offered as a
+ * switch, because the only heuristic that would have refused it ran one step too late.
+ */
+const IF_NUMBER = '1.3.6.1.2.1.2.1.0';
 
 /**
  * One probe during a sweep: a single packet, no retry.
@@ -61,6 +70,13 @@ export interface ScanFinding {
   description: string | null;
   /** `sysName`, when the agent publishes one. */
   name: string | null;
+  /**
+   * `ifNumber` — interfaces declared, or `null` when the agent does not say.
+   *
+   * A switch has eight, twenty-four or forty-eight. A printer, a UPS card or a NAS has
+   * one or two. `null` is not zero: an agent that stays silent must not be ruled out.
+   */
+  interfaces: number | null;
   model: string | null;
   manufacturer: string | null;
   serial: string | null;
@@ -277,7 +293,7 @@ export default class NetDevicesApp extends Homey.App {
 
     let system: Map<string, string | number | Buffer | null>;
     try {
-      system = await client.get([SYS_DESCR, SYS_NAME]);
+      system = await client.get([SYS_DESCR, SYS_NAME, IF_NUMBER]);
     } catch {
       return null;
     }
@@ -286,11 +302,19 @@ export default class NetDevicesApp extends Homey.App {
     const name = asText(system.get(SYS_NAME));
     if (description === null && name === null) return null;
 
+    // `null` quand l'agent ne publie pas `ifNumber` : « il ne le dit pas » n'est pas
+    // « il n'en a aucune », et confondre les deux exclurait un switch silencieux.
+    const declared = system.get(IF_NUMBER);
+    const interfaces = typeof declared === 'number' && Number.isFinite(declared) && declared >= 0
+      ? declared
+      : null;
+
     const base: ScanFinding = {
       host: client.host,
       source: null,
       description,
       name,
+      interfaces,
       model: null,
       manufacturer: null,
       serial: null,

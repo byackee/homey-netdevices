@@ -34,7 +34,13 @@ import {
 } from '../../lib/netswitch/pairing.mjs';
 import { NO_THROUGHPUT } from '../../lib/netswitch/throughput.mjs';
 import { UNKNOWN_LIVE, type PortSnapshot } from '../../lib/netswitch/port.mjs';
-import { looksLikeSwitch, readInventory, readPortLive, readSwitchIdentity } from '../../lib/netswitch/reader.mjs';
+import {
+  PORTS_FOR_A_SWITCH,
+  looksLikeSwitch,
+  readInventory,
+  readPortLive,
+  readSwitchIdentity,
+} from '../../lib/netswitch/reader.mjs';
 import type NetSwitchPortDevice from './device.mjs';
 
 /** Une adresse qui a répondu en SNMP, telle que la première liste de la vue l'affiche. */
@@ -225,7 +231,16 @@ export default class NetSwitchDriver extends Homey.Driver {
       // `found` et `others` réunis : le balayage partagé trie sur « est-ce un onduleur »,
       // ce qui n'a aucun rapport avec la question posée ici. Un NAS qui relaie un onduleur
       // est aussi une machine à interfaces, et un switch atterrit forcément dans `others`.
+      //
+      // 🔴 Puis on écarte ce qui ne peut pas être un switch. `ifNumber` est lu pendant le
+      // balayage, dans le même paquet que `sysDescr` : c'est ce qui sépare le plus
+      // sûrement un switch du reste. Trouvé à l'usage — l'imprimante Epson du réseau,
+      // avec son unique interface, était proposée comme switch parce que la seule
+      // heuristique qui l'aurait refusée n'intervenait qu'à l'étape suivante.
+      //
+      // `null` est conservé : un agent qui ne publie pas `ifNumber` n'a pas dit non.
       const devices = [...state.found, ...state.others]
+        .filter((finding) => finding.interfaces === null || finding.interfaces >= PORTS_FOR_A_SWITCH)
         .map((finding): SnmpFinding => ({
           host: finding.host,
           name: finding.name,

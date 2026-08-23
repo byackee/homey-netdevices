@@ -1,10 +1,12 @@
 import { strict as assert } from 'node:assert';
+import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 
 import {
   PAIRING_RESULT_KEYS, buildPortCandidate, disambiguate, duplicateIds, portDeviceId, slug,
   switchKeyOf, type PortCandidate, type PortCandidateInput,
 } from '../../lib/netswitch/pairing.mjs';
+import { PORTS_FOR_A_SWITCH } from '../../lib/netswitch/reader.mjs';
 import type { PortIdentity } from '../../lib/netswitch/port.mjs';
 
 function identity(ifIndex: number, name: string | null, description: string | null = null, alias: string | null = null): PortIdentity {
@@ -137,4 +139,50 @@ test('slug réduit ce qu\'un agent rend à quelque chose d\'utilisable', () => {
   assert.equal(slug('  FOC1234X5YZ  '), 'foc1234x5yz');
   assert.equal(slug('---'), '');
   assert.equal(slug(null), '');
+});
+
+// ---------------------------------------------------------------------------
+// Ce qui n'a qu'une interface n'est pas un switch.
+// ---------------------------------------------------------------------------
+
+test('🔴 une imprimante ne doit pas être proposée comme switch', () => {
+  // Mesuré sur l'Epson XP-6100 du réseau de test : elle répond en SNMP, publie
+  // `ifNumber = 1`, et apparaissait dans la première liste du pairing switch parce que
+  // `looksLikeSwitch` n'intervenait qu'à l'étape suivante — après que l'utilisateur
+  // l'ait déjà choisie.
+  const listed = (interfaces: number | null) =>
+    interfaces === null || interfaces >= PORTS_FOR_A_SWITCH;
+
+  assert.equal(listed(1), false, 'une imprimante a une interface');
+  assert.equal(listed(2), false, 'un NAS bi-port non plus');
+  assert.equal(listed(PORTS_FOR_A_SWITCH), true);
+  assert.equal(listed(48), true, 'un switch de baie');
+});
+
+test('un agent muet sur ifNumber reste listé : il n\'a pas dit non', () => {
+  // `null` n'est pas zéro. Un firmware ancien qui ne publie pas `ifNumber` serait
+  // exclu à tort, et c'est justement le genre d'appareil qu'on cherche à adopter.
+  const listed = (interfaces: number | null) =>
+    interfaces === null || interfaces >= PORTS_FOR_A_SWITCH;
+  assert.equal(listed(null), true);
+});
+
+// ---------------------------------------------------------------------------
+// La classe de l'appareil, et pourquoi elle reste `other`.
+// ---------------------------------------------------------------------------
+
+test('🔴 un port reste en class « other », jamais « socket »', () => {
+  // La classe décide de l'inclusion dans les Flow cards de zone : un appareil `socket`
+  // portant `onoff` est balayé par « éteins toutes les prises de cette pièce ». Pour un
+  // port PoE, ce serait un piège — ce port alimente peut-être le point d'accès, la
+  // caméra, ou le Homey lui-même, et l'utilisateur qui éteint son bureau ne demande pas
+  // à couper sa supervision.
+  //
+  // `other` l'exclut de ces balayages. C'est délibéré, pas un oubli : ce test existe
+  // pour que personne ne « corrige » la classe en croyant bien faire.
+  const manifest = JSON.parse(
+    readFileSync(`${process.cwd()}/drivers/netswitch/driver.compose.json`, 'utf8'),
+  ) as { class?: string };
+  assert.equal(manifest.class, 'other',
+    'passer un port en socket l\'exposerait aux Flow cards de zone « tout éteindre »');
 });
