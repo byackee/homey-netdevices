@@ -26,6 +26,7 @@ import {
   HR_PROCESSOR_LOAD,
   HR_STORAGE_COLUMN,
   HR_STORAGE_TABLE,
+  HR_STORAGE_TYPE as HR_STORAGE_TYPES,
   FILESYSTEM_TYPES,
   hostColumn,
   isPseudoMount,
@@ -262,23 +263,52 @@ export function toSensorRow(row: TableRow): SensorRow {
 // ---------------------------------------------------------------------------
 
 /**
- * « Cet hôte parle-t-il HOST-RESOURCES-MIB ? », en une seule requête.
+ * « Est-ce une machine ? », et non « parle-t-il HOST-RESOURCES-MIB ? ».
  *
- * On interroge deux scalaires **obligatoires** de la MIB plutôt que les tables : une
- * table vide ne prouve rien — ni qu'elle est absente, ni qu'elle est là mais sans ligne —
- * alors qu'un `hrSystemUptime` dans ses bornes ne peut pas venir d'un agent qui
- * n'implémente pas cette MIB. C'est le même raisonnement que la sonde RFC 1628, qui
- * interroge deux énumérations plutôt que l'identité.
+ * 🔴 La distinction a été payée sur du vrai matériel. La sonde demandait d'abord un
+ * `hrSystemUptime` ou une taille mémoire, en se disant qu'un agent qui répond implémente
+ * la MIB. C'est vrai — et sans intérêt : **une imprimante l'implémente aussi**. L'Epson
+ * du réseau de test répond `hrSystemUptime`, annonce une `hrStorageTable`, et se
+ * présentait donc comme un NAS dans le pairing.
  *
- * `0` est une réponse valable pour l'uptime : un hôte qui vient de démarrer existe.
+ * Ce qui distingue une machine à surveiller d'un périphérique qui parle la même MIB,
+ * c'est d'avoir un **processeur** ou un **disque**. L'Epson n'a ni l'un ni l'autre : pas
+ * une ligne dans `hrProcessorTable`, et pour tout stockage un « Storage RAM » de 256 Kio.
+ *
+ * Le prix de cette rigueur est un walk de deux colonnes au lieu d'un `get` de deux
+ * scalaires. Il est payé une fois, au pairing, jamais dans la boucle de relevé.
  */
 export async function probeHost(client: NasSnmpSource): Promise<boolean> {
-  const values = await client.get([HOST_OID.systemUptime, HOST_OID.memorySize]);
-  const uptime = asNumber(values.get(HOST_OID.systemUptime));
-  const memory = asNumber(values.get(HOST_OID.memorySize));
-  const uptimeOk = uptime !== null && uptime >= 0;
-  const memoryOk = memory !== null && memory > 0;
-  return uptimeOk || memoryOk;
+  // Un cœur suffit : un agent qui publie une charge processeur décrit une machine.
+  const loads = columnRows(await client.walk(HR_PROCESSOR_LOAD), HR_PROCESSOR_LOAD);
+  if (loads.some((row) => asNumber(row.value) !== null)) return true;
+
+  // Sinon, un vrai disque. La RAM et la mémoire virtuelle ne comptent pas — c'est
+  // précisément ce que l'imprimante annonçait. Une taille nulle ne compte pas non plus :
+  // un lecteur de carte vide n'est pas un disque.
+  return hasRealDisk(tableRows(await client.walk(HR_STORAGE_TABLE), HR_STORAGE_TABLE));
+}
+
+/** Les types de `hrStorageTable` qui décrivent un support de masse, et eux seuls. */
+const REAL_DISK: readonly string[] = [
+  HR_STORAGE_TYPES.fixedDisk,
+  HR_STORAGE_TYPES.removableDisk,
+  HR_STORAGE_TYPES.networkDisk,
+];
+
+/**
+ * Cet inventaire de stockage contient-il un disque, et pas seulement de la mémoire ?
+ *
+ * Exporté pour être testable seul : c'est la ligne exacte qui sépare un NAS d'une
+ * imprimante, et elle mérite un test qui la vise sans passer par le réseau.
+ */
+export function hasRealDisk(rows: readonly TableRow[]): boolean {
+  return rows.some((row) => {
+    const kind = asText(row.cells.get(STORAGE_COL.type) ?? null);
+    if (kind === null || !REAL_DISK.includes(kind)) return false;
+    const size = asNumber(row.cells.get(STORAGE_COL.size) ?? null);
+    return size !== null && size > 0;
+  });
 }
 
 /** Ce que la machine dit d'elle-même. */

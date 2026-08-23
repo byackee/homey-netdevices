@@ -246,17 +246,47 @@ test('averageLoad ignore les cœurs hors bornes sans perdre les autres', () => {
 // La sonde
 // ---------------------------------------------------------------------------
 
-test('probeHost reconnaît un hôte sur ses scalaires obligatoires', async () => {
+test('probeHost reconnaît une machine à son processeur ou à ses disques', async () => {
   assert.equal(await probeHost(fakeHost(SYNOLOGY)), true);
 });
 
-test('probeHost accepte un uptime de zéro : une machine qui vient de démarrer existe', async () => {
-  assert.equal(await probeHost(fakeHost({ [HOST_OID.systemUptime]: 0 })), true);
+test('🔴 une imprimante n\'est pas un NAS, même si elle parle la même MIB', async () => {
+  // Mesuré sur une vraie Epson XP-6100 du réseau de test, et c'est ce relevé qui a
+  // corrigé la sonde : elle répond `hrSystemUptime` (297913670), annonce bien une
+  // `hrStorageTable` — et son unique ligne est « Storage RAM », 256 Kio. Aucune ligne
+  // dans `hrProcessorTable`. La sonde d'origine demandait un uptime OU une mémoire :
+  // l'imprimante passait, et apparaissait dans le pairing du driver NAS.
+  const epson = fakeHost({
+    '1.3.6.1.2.1.1.1.0': 'EPSON Built-in 11b/g/n Print Server',
+    [HOST_OID.systemUptime]: 297_913_670,
+    [HOST_OID.memorySize]: 262_144,
+    // hrStorageTable : une seule ligne, de la RAM.
+    '1.3.6.1.2.1.25.2.3.1.1.1': 1,
+    '1.3.6.1.2.1.25.2.3.1.2.1': `${'1.3.6.1.2.1.25.2.1'}.2`,
+    '1.3.6.1.2.1.25.2.3.1.3.1': 'Storage RAM',
+    '1.3.6.1.2.1.25.2.3.1.5.1': 262_144,
+  });
+  assert.equal(await probeHost(epson), false, 'une imprimante ne doit pas être adoptable comme NAS');
 });
 
-test('probeHost décline un agent SNMP qui ne publie pas la MIB', async () => {
-  // Une imprimante, un switch, une carte d'onduleur : ils répondent en SNMP et n'ont pas
-  // `hrSystemUptime`. Décliner est une information ; échouer n'en serait pas une.
+test('un uptime seul ne suffit plus : il ne dit rien de ce qu\'est la machine', async () => {
+  assert.equal(await probeHost(fakeHost({ [HOST_OID.systemUptime]: 0 })), false);
+  assert.equal(await probeHost(fakeHost({ [HOST_OID.systemUptime]: 42_000 })), false);
+});
+
+test('un seul cœur publié suffit à reconnaître une machine', async () => {
+  assert.equal(await probeHost(fakeHost({ '1.3.6.1.2.1.25.3.3.1.2.1': 7 })), true);
+});
+
+test('un disque de taille nulle ne compte pas : un lecteur vide n\'est pas un disque', async () => {
+  const emptySlot = fakeHost({
+    '1.3.6.1.2.1.25.2.3.1.2.1': `${'1.3.6.1.2.1.25.2.1'}.5`,
+    '1.3.6.1.2.1.25.2.3.1.5.1': 0,
+  });
+  assert.equal(await probeHost(emptySlot), false);
+});
+
+test('probeHost décline un agent SNMP qui ne publie rien de la MIB', async () => {
   assert.equal(await probeHost(fakeHost({ '1.3.6.1.2.1.1.1.0': 'HP LaserJet' })), false);
 });
 
