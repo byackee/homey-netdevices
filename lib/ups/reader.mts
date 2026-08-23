@@ -15,7 +15,7 @@
  * de coupure de courant, en pleine nuit (plan §8.5).
  */
 
-import { nutFlagLabels, summariseAlarms } from './alarm-summary.mjs';
+import { alarmParts, nutFlagParts } from './alarm-summary.mjs';
 import { toNumber } from '../snmp/opaque.mjs';
 import { SYNOLOGY_UPS_OID } from './synology-mib.mjs';
 import {
@@ -296,10 +296,13 @@ export class SynologyUpsSource implements UpsSourceReader {
       alarms: live.alarms,
       // NUT dit déjà tout en clair : les jetons non reconnus et le texte libre de
       // `upsInfoAlarm`, que le lecteur relevait sans que rien n'en fasse rien.
-      alarmSummary: summariseAlarms({
+      alarmSummary: alarmParts({
         // Les jetons que les quatre booléens ne savent pas dire — bypass, calibration,
-        // arrêt forcé — plus le texte libre de `upsInfoAlarm` quand NUT en met un.
-        texts: [...nutFlagLabels(live.nut.flags, live.nut.unknown), live.alarmText],
+        // arrêt forcé — traduisibles ; les jetons inconnus passent en clair.
+        parts: nutFlagParts(live.nut.flags, live.nut.unknown),
+        // Le texte libre de `upsInfoAlarm`, quand NUT en met un. Repris mot pour mot :
+        // c'est le firmware qui parle, pas l'app.
+        texts: [live.alarmText],
       }),
       batteryCharge: live.batteryCharge,
       runtimeMinutes: live.runtimeMinutes,

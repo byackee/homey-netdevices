@@ -22,7 +22,7 @@
  * correspondantes.
  */
 
-import { summariseAlarms } from './alarm-summary.mjs';
+import { alarmParts } from './alarm-summary.mjs';
 import {
   APC_BATTERY_STATUS,
   APC_OUTPUT_STATUS,
@@ -323,7 +323,7 @@ export class ApcUpsReader implements UpsSourceReader {
       // PowerNet distingue vingt-huit états de sortie là où la RFC en compte sept :
       // « bypass matériel en défaut » et « mode économie » se ressemblent beaucoup une
       // fois repliés sur le vocabulaire commun. Le libellé d'origine les sépare.
-      alarmSummary: summariseAlarms({
+      alarmSummary: alarmParts({
         texts: [apcOutputStatusLabel(outputStatus), apcBatteryStatusLabel(batteryStatus)],
       }),
       batteryCharge: charge,

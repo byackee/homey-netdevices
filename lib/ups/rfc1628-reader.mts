@@ -18,7 +18,7 @@
  *   (secondes) et APC (centièmes de seconde).
  */
 
-import { summariseAlarms } from './alarm-summary.mjs';
+import { alarmParts } from './alarm-summary.mjs';
 import {
   RFC1628_ALARM_COLUMN,
   RFC1628_BATTERY_STATUS,
@@ -262,7 +262,7 @@ export class Rfc1628UpsReader implements UpsSourceReader {
       alarms: this.decodeAlarms(scan, outputSource, batteryStatus),
       // `scan` portait déjà les noms d'alarmes, les OID constructeur inconnus et la
       // troncature ; tout cela finissait à la poubelle derrière quatre booléens.
-      alarmSummary: summariseAlarms({
+      alarmSummary: alarmParts({
         named: scan.present,
         foreign: scan.foreign.length,
         truncated: scan.truncated,

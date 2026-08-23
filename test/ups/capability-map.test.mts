@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
+import { alarmParts } from '../../lib/ups/alarm-summary.mjs';
 
 import {
   UPS_STATUS_VALUES,
@@ -344,33 +345,41 @@ test('une mesure perdue un cycle est signalée orpheline, pas retirée', () => {
 });
 
 /**
- * Le texte d'alarme doit être **réécrit à chaque cycle**, une fois déclaré.
+ * `ups_alarm_text` est **délibérément absente** de la table des valeurs.
  *
- * 🔴 `capabilityValues` ne le traitait pas. La capability n'apparaît qu'à la première
- * alarme et n'est jamais retirée — `removeCapability` détruirait l'historique Insights —
- * si bien qu'elle restait ensuite figée sur l'incident du jour de sa création, ou vide
- * quand l'alarme s'était déjà dissipée. Rapporté depuis une vraie installation :
- * « an additional capability, with no value: Alarm ».
+ * 🔴 Elle y a longtemps manqué par oubli, ce qui la laissait figée sur l'incident du jour
+ * de sa création — rapporté depuis une vraie installation : « an additional capability,
+ * with no value: Alarm ». Elle en est maintenant absente pour une raison : son texte
+ * dépend de la langue de l'utilisateur, que cette couche ignore. C'est le device qui
+ * l'écrit, à chaque cycle, via `renderAlarmSummary`.
  *
- * Un texte d'alarme périmé est pire qu'aucun : il décrit un incident passé avec
- * l'autorité du présent.
+ * Ce test fige la frontière. Si quelqu'un « répare » l'oubli en la remettant ici, il
+ * réintroduira du texte non traduit dans une app publiée en trois langues.
  */
-test('🔴 le texte d’alarme suit l’état, au lieu de rester figé', () => {
-  const declared = ['ups_status', 'ups_alarm_text'];
+test('🔴 le texte d’alarme n’est pas écrit par cette couche : elle ignore la langue', () => {
+  const declared = ['ups_status', 'ups_alarm_text', 'measure_battery'];
+  const summary = alarmParts({ named: ['fanFailure'] });
 
-  const during = capabilityValues(
-    { ...fullSnapshot(), alarmSummary: 'ventilateur en panne' },
-    declared,
-  );
+  const values = capabilityValues({ ...fullSnapshot(), alarmSummary: summary }, declared);
+
   assert.equal(
-    during.find((v) => v.id === 'ups_alarm_text')?.value,
-    'ventilateur en panne',
+    values.find((v) => v.id === 'ups_alarm_text'),
+    undefined,
+    'aucune valeur pour ups_alarm_text : le device s’en charge',
   );
+  // Les autres capabilities déclarées, elles, sont bien servies.
+  assert.ok(values.find((v) => v.id === 'ups_status'));
+  assert.ok(values.find((v) => v.id === 'measure_battery'));
+});
 
-  // L'incident passé, la valeur doit repartir — `null` ici, que le device rend en
-  // « aucune alarme » dans la langue de l'utilisateur. Ce qui compte est qu'elle **change**.
-  const after = capabilityValues({ ...fullSnapshot(), alarmSummary: null }, declared);
-  const cleared = after.find((v) => v.id === 'ups_alarm_text');
-  assert.ok(cleared, 'la capability déclarée doit toujours recevoir une valeur');
-  assert.equal(cleared.value, null);
+test('🔴 la capability n’est déclarée que s’il y a quelque chose à dire', () => {
+  // Un champ vide en permanence sur un onduleur sain se lit comme « cassé ».
+  const sain = planCapabilities({ ...fullSnapshot(), alarmSummary: null });
+  assert.ok(!sain.capabilities.includes('ups_alarm_text'));
+
+  const enDefaut = planCapabilities({
+    ...fullSnapshot(),
+    alarmSummary: alarmParts({ named: ['fanFailure'] }),
+  });
+  assert.ok(enDefaut.capabilities.includes('ups_alarm_text'));
 });

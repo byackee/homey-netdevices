@@ -182,7 +182,10 @@ export function planCapabilities(snapshot: UpsSnapshot): CapabilityPlan {
   // texte dit **quoi**, et c'est la seule chose qui distingue un ventilateur en panne
   // d'un chargeur qui a lâché. Déclarée seulement quand il y a quelque chose à dire :
   // un champ vide en permanence sur un onduleur sain n'apprend rien à personne.
-  if (snapshot.alarmSummary !== null) declare('ups_alarm_text', snapshot.alarmSummary);
+  // La valeur est `null` : c'est le **device** qui écrit ce texte, parce qu'il est le
+  // seul à connaître la langue de l'utilisateur. Ce qui se décide ici est seulement s'il
+  // y a quelque chose à dire — la capability n'est déclarée que si oui.
+  if (snapshot.alarmSummary !== null) declare('ups_alarm_text', null);
 
   for (const rule of MEASURES) {
     const value = rule.read(snapshot);
@@ -238,19 +241,16 @@ export function capabilityValues(
       out.push({ id, value: snapshot.status });
       continue;
     }
-    // 🔴 Cette capability manquait ici, et le manque ne se voyait pas : une fois déclarée
-    // — ce qui n'arrive qu'à la première alarme — elle n'était **plus jamais réécrite**.
-    // Elle restait donc figée sur l'alarme du jour où elle est apparue, ou vide quand
-    // l'alarme s'était déjà dissipée au moment de la synchronisation. Signalé depuis une
-    // vraie installation : « an additional capability, with no value: Alarm ».
+    // 🔴 `ups_alarm_text` est délibérément **absente** de cette table : son texte dépend
+    // de la langue, que cette couche ignore. Le device l'écrit lui-même, à chaque cycle.
     //
-    // Un texte d'alarme périmé est pire qu'aucun : il décrit un incident passé avec
-    // l'autorité du présent. Il est donc réécrit à chaque cycle, `null` compris — le
-    // device traduit cette absence en « rien à signaler », car lui seul connaît la langue.
-    if (id === 'ups_alarm_text') {
-      out.push({ id, value: snapshot.alarmSummary });
-      continue;
-    }
+    // Elle a longtemps manqué ici par oubli, et le manque ne se voyait pas : une fois
+    // déclarée — ce qui n'arrive qu'à la première alarme — elle n'était plus jamais
+    // réécrite, restant figée sur l'incident du jour de sa création. Un texte d'alarme
+    // périmé est pire qu'aucun : il décrit un incident passé avec l'autorité du présent.
+    // Le device doit donc l'écrire à **chaque** cycle, y compris quand il n'y a plus rien
+    // à signaler. Voir `UpsDevice.writeValues`.
+    if (id === 'ups_alarm_text') continue;
     const measure = MEASURES.find((rule) => rule.id === id);
     if (measure) {
       out.push({ id, value: measure.read(snapshot) });

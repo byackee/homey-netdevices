@@ -21,7 +21,8 @@
 import Homey from 'homey';
 
 import { SnmpClient, SnmpUnreachableError, type SnmpVersion } from '../../lib/snmp/client.mjs';
-import { capabilityValues, planCapabilities, type CapabilityValue } from '../../lib/ups/capability-map.mjs';
+import { capabilityValues, planCapabilities } from '../../lib/ups/capability-map.mjs';
+import { renderAlarmSummary } from '../../lib/ups/alarm-summary.mjs';
 import { syncCapabilities } from '../../lib/ups/capability-sync.mjs';
 import {
   UNKNOWN_DETAIL,
@@ -354,31 +355,40 @@ export default class UpsDevice extends Homey.Device {
   private async writeValues(): Promise<void> {
     await this.syncCapabilities();
     for (const { id, value } of capabilityValues(this.current, this.getCapabilities())) {
-      await this.setCapabilityValue(id, this.displayable(id, value)).catch((e: Error) =>
+      await this.setCapabilityValue(id, value).catch((e: Error) =>
         this.error(`Impossible d'écrire ${id} : ${e.message}`));
     }
+    await this.writeAlarmText();
   }
 
   /**
-   * Le texte d'alarme est la seule capability dont l'absence se **dit** au lieu de rester
-   * vide.
+   * Le texte d'alarme, rendu ici et nulle part ailleurs.
    *
-   * Elle n'apparaît qu'à la première alarme, et n'est jamais retirée — `removeCapability`
-   * détruirait l'historique Insights. Une fois l'incident passé, elle resterait donc un
-   * champ vide en permanence, ce qui se lit comme « cassé » et non comme « tout va bien » :
-   * c'est exactement ce qu'a rapporté la première installation réelle.
+   * `lib/` sait **ce qui** ne va pas et l'exprime en fragments ; il ne sait pas dans
+   * quelle langue le dire. Le device est le seul à connaître celle de l'utilisateur,
+   * d'où ce rendu au dernier moment. Ces libellés ont longtemps été écrits en français
+   * en dur, dans une app publiée en trois langues.
    *
-   * La traduction vit ici et pas dans `lib/` : le device est le seul à connaître la langue
-   * de l'utilisateur. Les autres capabilities gardent `null` — une mesure inconnue doit
-   * rester visiblement inconnue, et surtout pas se déguiser en valeur.
+   * Écrit à **chaque** cycle, y compris quand il n'y a plus rien à signaler. Cette
+   * capability n'apparaît qu'à la première alarme et n'est jamais retirée —
+   * `removeCapability` détruirait son historique Insights — si bien que ne pas la
+   * réécrire la laissait figée sur l'incident qui l'avait créée. Un texte d'alarme
+   * périmé décrit un incident passé avec l'autorité du présent.
+   *
+   * Et l'absence d'alarme se **dit** au lieu de rester vide : un champ vide en permanence
+   * se lit comme « cassé », pas comme « tout va bien ». C'est ce qu'a rapporté la
+   * première installation réelle.
    */
-  private displayable(id: string, value: CapabilityValue['value']): CapabilityValue['value'] {
-    if (id !== 'ups_alarm_text' || value !== null) return value;
-    return this.homey.__({
-      en: 'No alarm',
-      fr: 'Aucune alarme',
-      nl: 'Geen alarm',
-    });
+  private async writeAlarmText(): Promise<void> {
+    if (!this.getCapabilities().includes('ups_alarm_text')) return;
+
+    const summary = this.current.alarmSummary;
+    const text = summary === null
+      ? this.homey.__({ en: 'No alarm', fr: 'Aucune alarme', nl: 'Geen alarm' })
+      : renderAlarmSummary(summary, (part) => this.homey.__(part));
+
+    await this.setCapabilityValue('ups_alarm_text', text).catch((e: Error) =>
+      this.error(`Impossible d'écrire ups_alarm_text : ${e.message}`));
   }
 
   // -------------------------------------------------------------------------

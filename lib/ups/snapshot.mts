@@ -18,6 +18,7 @@
  *    en watts, les températures en °C.
  */
 
+import type { AlarmSummary } from './alarm-summary.mjs';
 import type { UpsAlarms, UpsStatus } from './nut-status.mjs';
 
 /** D'où vient la lecture. Sert au diagnostic et à l'affichage, jamais à la logique. */
@@ -40,13 +41,19 @@ export interface UpsLive {
   status: UpsStatus;
   alarms: UpsAlarms;
   /**
-   * Ce qui ne va pas, nommé.
+   * Ce qui ne va pas, nommé — mais **pas encore dit**.
    *
    * Les quatre booléens d'`alarms` déclenchent les Flows ; celui-ci dit **quoi**. Sans
    * lui, l'app décode les vingt-quatre alarmes de la RFC puis les jette. `null` quand il
    * n'y a rien à signaler — la capability n'est alors pas déclarée.
+   *
+   * 🔴 Une structure et non une phrase : les lecteurs savent ce qui ne va pas, ils ne
+   * savent pas dans quelle langue le dire. Seul le device connaît la langue de
+   * l'utilisateur, et c'est donc lui qui rend le texte, par `renderAlarmSummary`. Cette
+   * case portait une chaîne, et cette chaîne était en français en dur — dans une app
+   * publiée en trois langues.
    */
-  alarmSummary: string | null;
+  alarmSummary: AlarmSummary | null;
   /** Charge de la batterie, en %. */
   batteryCharge: number | null;
   /** Autonomie restante, **en minutes**, quelle que soit l'unité de la source. */
