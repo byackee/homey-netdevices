@@ -62,5 +62,24 @@
     "repair_button": "Enregistrer l’adresse",
     "repair_ok": "Adresse mise à jour.",
     "repair_mismatch": "Cette adresse répond, mais c’est un autre onduleur ({{found}} au lieu de {{expected}}). Rien n’a été changé."
+  },
+  "pair_nas": {
+    "title": "Trouver votre NAS",
+    "intro": "Homey va balayer votre réseau à la recherche des machines qui publient HOST-RESOURCES-MIB en SNMP — un Synology, un QNAP, un Linux avec snmpd, un hôte ESXi.",
+    "found_one": "1 hôte trouvé.",
+    "found_many": "{{count}} hôtes trouvés.",
+    "one_volume": "1 volume",
+    "many_volumes": "{{count}} volumes",
+    "measures": "{{count}} mesures",
+    "not_readable": "cette adresse a répondu, mais rien n’y était lisible",
+    "others_title": "Le SNMP marche ici, mais aucun hôte n’a répondu",
+    "others_lead": "Ces adresses ont répondu en SNMP mais ne publient pas HOST-RESOURCES-MIB — ou la publient sans une seule mesure lisible. Le SNMP lui-même fonctionne donc sur votre réseau ; c’est cette machine-là qui ne sert pas la MIB des hôtes.",
+    "empty_title": "Rien n’a répondu en SNMP — voici ce qu’il faut activer",
+    "empty_lead": "Une liste vide veut presque toujours dire que le SNMP est encore éteint, pas qu’il n’y a pas de NAS. Chaque chemin pris en charge demande d’activer quelque chose d’abord.",
+    "empty_synology": "Synology : Panneau de configuration → Terminal & SNMP → cochez « Activer le service SNMP » et SNMPv1/v2c, et laissez la communauté sur « public ».",
+    "empty_qnap": "QNAP : Panneau de configuration → Services réseau et fichiers → SNMP → activez le service SNMP, version 1/2.",
+    "empty_linux": "Linux : installez et démarrez snmpd, puis vérifiez qu’il écoute sur le réseau local — la configuration livrée par les paquets n’écoute que sur 127.0.0.1, donc elle répond à la machine elle-même et à personne d’autre.",
+    "repair_hint": "À utiliser quand l’hôte a changé d’adresse IP. Réservez une adresse fixe dans votre routeur pour que cela ne se reproduise pas.",
+    "repair_mismatch": "Cette adresse répond, mais c’est un autre hôte ({{found}} au lieu de {{expected}}). Rien n’a été changé."
   }
 }

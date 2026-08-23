@@ -62,5 +62,24 @@
     "repair_button": "Save address",
     "repair_ok": "Address updated.",
     "repair_mismatch": "That address answers, but it is a different UPS ({{found}} instead of {{expected}}). Nothing was changed."
+  },
+  "pair_nas": {
+    "title": "Find your NAS",
+    "intro": "Homey will sweep your network for machines that publish HOST-RESOURCES-MIB over SNMP — a Synology, a QNAP, a Linux box running snmpd, an ESXi host.",
+    "found_one": "1 host found.",
+    "found_many": "{{count}} hosts found.",
+    "one_volume": "1 volume",
+    "many_volumes": "{{count}} volumes",
+    "measures": "{{count}} measurements",
+    "not_readable": "that address answered, but nothing on it could be read",
+    "others_title": "SNMP works here, but no host answered",
+    "others_lead": "These addresses answered SNMP but do not publish HOST-RESOURCES-MIB — or publish it without a single readable measurement. So SNMP itself is fine on your network; it is this particular machine that is not serving the host MIB.",
+    "empty_title": "Nothing answered over SNMP — here is what to switch on",
+    "empty_lead": "An empty list nearly always means SNMP is still switched off, not that there is no NAS. Every supported path needs you to enable something first.",
+    "empty_synology": "Synology: Control Panel → Terminal & SNMP → tick “Enable SNMP service” and SNMPv1/v2c, and leave the community as \"public\".",
+    "empty_qnap": "QNAP: Control Panel → Network & File Services → SNMP → enable the SNMP service, version 1/2.",
+    "empty_linux": "Linux: install and start snmpd, then make sure it listens on the LAN — the packaged configuration binds to 127.0.0.1 only, so it answers the machine itself and nobody else.",
+    "repair_hint": "Use this when the host moved to a different IP address. Reserve a fixed address in your router to stop it happening again.",
+    "repair_mismatch": "That address answers, but it is a different host ({{found}} instead of {{expected}}). Nothing was changed."
   }
 }

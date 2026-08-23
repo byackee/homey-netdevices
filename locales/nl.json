@@ -62,5 +62,24 @@
     "repair_button": "Adres opslaan",
     "repair_ok": "Adres bijgewerkt.",
     "repair_mismatch": "Dat adres antwoordt, maar het is een andere UPS ({{found}} in plaats van {{expected}}). Er is niets gewijzigd."
+  },
+  "pair_nas": {
+    "title": "Vind je NAS",
+    "intro": "Homey doorzoekt je netwerk naar machines die HOST-RESOURCES-MIB via SNMP publiceren — een Synology, een QNAP, een Linux-machine met snmpd, een ESXi-host.",
+    "found_one": "1 host gevonden.",
+    "found_many": "{{count}} hosts gevonden.",
+    "one_volume": "1 volume",
+    "many_volumes": "{{count}} volumes",
+    "measures": "{{count}} metingen",
+    "not_readable": "dat adres antwoordde, maar er viel niets van te lezen",
+    "others_title": "SNMP werkt hier, maar geen enkele host antwoordde",
+    "others_lead": "Deze adressen antwoordden op SNMP maar publiceren HOST-RESOURCES-MIB niet — of publiceren die zonder ook maar één leesbare meting. SNMP zelf werkt dus prima op je netwerk; het is deze machine die de host-MIB niet aanbiedt.",
+    "empty_title": "Niets antwoordde via SNMP — dit moet je inschakelen",
+    "empty_lead": "Een lege lijst betekent bijna altijd dat SNMP nog uitstaat, niet dat er geen NAS is. Elk ondersteund pad vereist dat je eerst iets inschakelt.",
+    "empty_synology": "Synology: Configuratiescherm → Terminal & SNMP → vink “SNMP-service inschakelen” en SNMPv1/v2c aan, en laat de community op \"public\" staan.",
+    "empty_qnap": "QNAP: Configuratiescherm → Netwerk- en bestandsservices → SNMP → schakel de SNMP-service in, versie 1/2.",
+    "empty_linux": "Linux: installeer en start snmpd, en controleer dan of hij op het LAN luistert — de meegeleverde configuratie luistert alleen op 127.0.0.1 en antwoordt dus alleen de machine zelf.",
+    "repair_hint": "Gebruik dit wanneer de host een ander IP-adres heeft gekregen. Reserveer een vast adres in je router zodat het niet opnieuw gebeurt.",
+    "repair_mismatch": "Dat adres antwoordt, maar het is een andere host ({{found}} in plaats van {{expected}}). Er is niets gewijzigd."
   }
 }
