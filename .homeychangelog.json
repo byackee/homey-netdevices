@@ -21,5 +21,10 @@
     "en": "Adds mains input and output voltage for a UPS read through a Synology — they were there all along, in a part of the MIB this app had not read. Confirmed on a real UPS. The alarm text now keeps up with the UPS instead of staying frozen on the alarm that created it, and reads \"No alarm\" instead of sitting blank.",
     "fr": "Ajoute la tension secteur et la tension de sortie d'un onduleur lu à travers un Synology — elles étaient disponibles depuis le début, dans une partie de la MIB que l'app ne lisait pas. Confirmé sur un vrai onduleur. Le texte d'alarme suit désormais l'état au lieu de rester figé sur l'alarme qui l'a créé, et affiche « aucune alarme » plutôt que de rester vide.",
     "nl": "Voegt netspanning en uitgangsspanning toe voor een UPS die via een Synology wordt uitgelezen — ze waren er altijd al, in een deel van de MIB dat deze app niet las. Bevestigd op een echte UPS. De alarmtekst volgt nu de UPS in plaats van bevroren te blijven op het alarm dat hem aanmaakte, en toont \"Geen alarm\" in plaats van leeg te blijven."
+  },
+  "1.0.6": {
+    "en": "The alarm text now speaks your language. What a UPS reports as wrong — on bypass, fan failed, charger failed — was written in French only, whatever language you use Homey in. Anything the UPS itself words is still shown exactly as it sent it.",
+    "fr": "Le texte d'alarme parle désormais votre langue. Ce qu'un onduleur signale — sur bypass, ventilateur en panne, chargeur en panne — n'existait qu'en français, quelle que soit la langue de votre Homey. Ce que l'onduleur formule lui-même reste affiché mot pour mot.",
+    "nl": "De alarmtekst spreekt nu uw taal. Wat een UPS meldt — op bypass, ventilator defect, lader defect — bestond alleen in het Frans, ongeacht de taal van uw Homey. Wat de UPS zelf verwoordt wordt nog steeds letterlijk getoond."
   }
 }
