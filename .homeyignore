@@ -4,3 +4,4 @@ test/
 .src-images/
 .omc/
 tsconfig.test.json
+tools/
