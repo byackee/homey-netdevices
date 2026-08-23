@@ -9,11 +9,6 @@
     "fr": "Première version soumise. Ajoute un réglage de port SNMP, pour les agents qui n'écoutent pas sur 161 — un snmpd sans privilèges, un conteneur, un NAS configuré autrement. Redessine l'icône « batterie à remplacer », illisible sur la tuile de l'appareil.",
     "nl": "Eerste ingediende versie. Voegt een SNMP-poortinstelling toe, voor agents die niet op 161 luisteren — een snmpd zonder rechten, een container, een NAS met een afwijkende opzet. Hertekent het pictogram « batterij vervangen », dat op de apparaattegel onleesbaar was."
   },
-  "1.0.2": {
-    "en": "Fixes two faults found by testing against a real SNMP agent. A reading could hang forever on a host that does not publish the temperature MIB — most NAS do not. Switch throughput was always empty, because the 64-bit byte counters were not being decoded, so the throughput values never appeared at all.",
-    "fr": "Corrige deux défauts trouvés en testant contre un vrai agent SNMP. Un relevé pouvait se bloquer indéfiniment sur un hôte qui ne publie pas la MIB de température — la plupart des NAS ne la publient pas. Le débit d'un port de switch restait toujours vide, faute de décoder les compteurs d'octets 64 bits : les valeurs de débit n'apparaissaient donc jamais.",
-    "nl": "Verhelpt twee fouten die aan het licht kwamen bij het testen tegen een echte SNMP-agent. Een uitlezing kon eindeloos blijven hangen op een host die de temperatuur-MIB niet publiceert — de meeste NAS-en doen dat niet. De doorvoer van een switchpoort bleef altijd leeg doordat de 64-bits bytetellers niet werden gedecodeerd, waardoor de doorvoerwaarden nooit verschenen."
-  },
   "1.0.3": {
     "en": "Fixes two faults found by testing against a real SNMP agent. A reading could hang forever on a host that does not publish the temperature MIB, which most NAS do not. Switch port throughput was always empty, because the 64-bit byte counters were never decoded."
   }
