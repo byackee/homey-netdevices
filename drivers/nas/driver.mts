@@ -29,6 +29,7 @@ import { probeHost, readNasSnapshot } from '../../lib/nas/host-reader.mjs';
 import { NasVolumeDetector, type NasChangeSet, type VolumeCrossing } from '../../lib/nas/poll-engine.mjs';
 import {
   communityOf,
+  portOf,
   dedupeByHost,
   hostOf,
   offerHost,
@@ -255,6 +256,7 @@ export default class NasDriver extends Homey.Driver {
       total: number;
     }> => {
       const community = communityOf(data);
+      const port = portOf(data);
       this.scanCommunity = community;
       this.note('scan_start', { communauté: community === 'public' ? 'public' : '(personnalisée)' });
 
@@ -312,12 +314,13 @@ export default class NasDriver extends Homey.Driver {
     session.setHandler('probe', async (data: unknown): Promise<ProbeReply> => {
       const host = hostOf(data);
       const community = communityOf(data);
+      const port = portOf(data);
       this.note(`probe ${host || '(vide)'}`);
 
       if (host === '') return { ...emptyFinding(''), outcome: 'no-host' };
       if (this.pairedHosts().has(host)) return { ...emptyFinding(host), outcome: 'already-paired' };
 
-      const result = await this.examine(host, community, null, null);
+      const result = await this.examine(host, community, null, null, port);
       this.note(`probe ${host}: ${result.outcome}`, result.finding.device?.name);
       return { ...result.finding, outcome: result.outcome };
     });
@@ -359,11 +362,12 @@ export default class NasDriver extends Homey.Driver {
     session.setHandler('setAddress', async (data: unknown): Promise<RepairReply> => {
       const host = hostOf(data);
       const community = communityOf(data);
+      const port = portOf(data);
       this.note(`setAddress ${host || '(vide)'}`);
 
       if (host === '') return { ok: false, message: 'no address given' };
 
-      const result = await this.examine(host, community, null, null);
+      const result = await this.examine(host, community, null, null, port);
       if (result.outcome !== 'host' || result.version === null) {
         this.note(`setAddress ${host}: ${result.outcome}`);
         return { ok: false, message: repairMessage(result.outcome, host) };
@@ -485,13 +489,14 @@ export default class NasDriver extends Homey.Driver {
     community: string,
     mac: string | null,
     vendor: string | null,
+    port = 161,
   ): Promise<{ outcome: ProbeReply['outcome']; version: SnmpVersion | null; finding: Finding }> {
     this.examined.add(host);
 
-    const version = await negotiateVersion(host, community, PROBE_NEGOTIATE_MS);
+    const version = await negotiateVersion(host, community, PROBE_NEGOTIATE_MS, port);
     if (version === null) return { outcome: 'silent', version: null, finding: emptyFinding(host) };
 
-    const client = new SnmpClient({ host, community, version, timeout: PROBE_READ_MS, retries: 0 });
+    const client = new SnmpClient({ host, community, version, port, timeout: PROBE_READ_MS, retries: 0 });
 
     // Deux temps, et l'ordre compte : une sonde d'une requête écarte l'immense majorité
     // des adresses avant de payer le cycle complet, qui coûte deux parcours de table.
@@ -532,6 +537,7 @@ export default class NasDriver extends Homey.Driver {
       host,
       version,
       community,
+      port,
       mac,
       vendor,
       name: snapshot.name,

@@ -60,7 +60,7 @@ export interface NasPairingDevice {
   name: string;
   data: { id: string };
   store: { mac: string | null };
-  settings: { host: string; community: string; version: SnmpVersion };
+  settings: { host: string; community: string; port: number; version: SnmpVersion };
   capabilities: string[];
   capabilitiesOptions: Record<string, CapabilityOptions>;
 }
@@ -80,6 +80,8 @@ export interface NasCandidateInput {
   host: string;
   version: SnmpVersion;
   community: string;
+  /** Le port UDP de l\'agent, tel que la sonde l\'a effectivement interrogé. */
+  port: number;
   mac: string | null;
   vendor: string | null;
   /** `sysName`. */
@@ -114,7 +116,7 @@ export function buildNasCandidate(input: NasCandidateInput): NasPairingCandidate
       name: title,
       data: { id: nasDeviceId(input.mac, input.name, input.host, input.takenIds) },
       store: { mac: input.mac },
-      settings: { host: input.host, community: input.community, version: input.version },
+      settings: { host: input.host, community: input.community, port: input.port, version: input.version },
       capabilities: [...input.capabilities],
       capabilitiesOptions: Object.fromEntries(input.options),
     },
@@ -261,6 +263,19 @@ export function hostOf(data: unknown): string {
 }
 
 /** La communauté saisie ; « public » quand elle est vide, jamais une chaîne vide. */
+/**
+ * Le port UDP demandé, 161 par défaut.
+ *
+ * Un agent peut écouter ailleurs : un `snmpd` sans privilèges ne peut pas prendre un
+ * port sous 1024, pas plus qu'un conteneur sans capacité réseau. Hors bornes ou
+ * illisible, on retombe sur 161 plutôt que d'échouer.
+ */
+export function portOf(data: unknown): number {
+  const body = (data ?? {}) as { port?: unknown };
+  const port = Number(body.port);
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : 161;
+}
+
 export function communityOf(data: unknown): string {
   const body = (data ?? {}) as { community?: unknown };
   return String(body.community ?? 'public').trim() || 'public';

@@ -1,12 +1,20 @@
 [
   {
     "type": "group",
-    "label": { "en": "Connection", "fr": "Connexion", "nl": "Verbinding" },
+    "label": {
+      "en": "Connection",
+      "fr": "Connexion",
+      "nl": "Verbinding"
+    },
     "children": [
       {
         "id": "host",
         "type": "text",
-        "label": { "en": "Switch IP address", "fr": "Adresse IP du switch", "nl": "IP-adres van de switch" },
+        "label": {
+          "en": "Switch IP address",
+          "fr": "Adresse IP du switch",
+          "nl": "IP-adres van de switch"
+        },
         "hint": {
           "en": "Reserve a fixed address for the switch in your router. Every port you added from this switch points at this address, so a moving address silences all of them at once.",
           "fr": "Réservez une adresse fixe pour le switch dans votre routeur. Tous les ports ajoutés depuis ce switch pointent sur cette adresse : une adresse qui bouge les rend tous muets d’un coup.",
@@ -17,7 +25,11 @@
       {
         "id": "community",
         "type": "password",
-        "label": { "en": "SNMP community", "fr": "Communauté SNMP", "nl": "SNMP-community" },
+        "label": {
+          "en": "SNMP community",
+          "fr": "Communauté SNMP",
+          "nl": "SNMP-community"
+        },
         "hint": {
           "en": "Almost always \"public\" for reading. It is a weak shared secret, so it is masked here. If you switch port control on, note that most agents need a separate write community — \"public\" is read-only on nearly all of them, and a write will be refused.",
           "fr": "Presque toujours « public » en lecture. C’est un secret partagé faible, il est donc masqué ici. Si vous activez la commande des ports, sachez que la plupart des agents exigent une communauté d’écriture distincte — « public » est en lecture seule sur presque tous, et l’écriture sera refusée.",
@@ -26,9 +38,30 @@
         "value": "public"
       },
       {
+        "id": "port",
+        "type": "number",
+        "value": 161,
+        "min": 1,
+        "max": 65535,
+        "label": {
+          "en": "SNMP port",
+          "fr": "Port SNMP",
+          "nl": "SNMP-poort"
+        },
+        "hint": {
+          "en": "161 unless the agent was told otherwise. Change it only if you know your device listens elsewhere.",
+          "fr": "161, sauf si l'agent a été configuré autrement. À ne changer que si vous savez que votre appareil écoute ailleurs.",
+          "nl": "161, tenzij de agent anders is ingesteld. Wijzig dit alleen als u weet dat uw apparaat elders luistert."
+        }
+      },
+      {
         "id": "version",
         "type": "dropdown",
-        "label": { "en": "SNMP version", "fr": "Version SNMP", "nl": "SNMP-versie" },
+        "label": {
+          "en": "SNMP version",
+          "fr": "Version SNMP",
+          "nl": "SNMP-versie"
+        },
         "hint": {
           "en": "Keep v2c. SNMPv1 has no 64-bit counter type at all, so the traffic figures simply do not exist there — the app leaves them out rather than showing zero.",
           "fr": "Restez en v2c. SNMPv1 n’a pas de type compteur 64 bits : les valeurs de trafic n’y existent tout simplement pas — l’app ne les déclare pas plutôt que d’afficher zéro.",
@@ -36,20 +69,42 @@
         },
         "value": "v2c",
         "values": [
-          { "id": "v2c", "label": { "en": "v2c", "fr": "v2c", "nl": "v2c" } },
-          { "id": "v1", "label": { "en": "v1", "fr": "v1", "nl": "v1" } }
+          {
+            "id": "v2c",
+            "label": {
+              "en": "v2c",
+              "fr": "v2c",
+              "nl": "v2c"
+            }
+          },
+          {
+            "id": "v1",
+            "label": {
+              "en": "v1",
+              "fr": "v1",
+              "nl": "v1"
+            }
+          }
         ]
       }
     ]
   },
   {
     "type": "group",
-    "label": { "en": "Port control", "fr": "Commande du port", "nl": "Poortbesturing" },
+    "label": {
+      "en": "Port control",
+      "fr": "Commande du port",
+      "nl": "Poortbesturing"
+    },
     "children": [
       {
         "id": "allow_control",
         "type": "checkbox",
-        "label": { "en": "Allow switching this port", "fr": "Autoriser la commande de ce port", "nl": "Schakelen van deze poort toestaan" },
+        "label": {
+          "en": "Allow switching this port",
+          "fr": "Autoriser la commande de ce port",
+          "nl": "Schakelen van deze poort toestaan"
+        },
         "hint": {
           "en": "OFF BY DEFAULT, AND READ THIS FIRST. Switching a port off cuts the network — and, on a PoE port, the power — to whatever is plugged into it. If that happens to be the port feeding your Homey, your router, or the uplink to this switch, you cut off the very connection this app uses to reach the switch: there will be no way to switch it back on from here, and you will need physical access with a cable. While this stays off, the on/off control is not even added to the device and no write is ever sent.",
           "fr": "DÉSACTIVÉ PAR DÉFAUT, ET LISEZ CECI D’ABORD. Couper un port coupe le réseau — et, sur un port PoE, l’alimentation — de ce qui est branché dessus. Si c’est le port qui alimente votre Homey, votre routeur, ou le lien montant vers ce switch, vous coupez la connexion même par laquelle l’app joint le switch : il n’y aura aucun moyen de le rallumer d’ici, et il faudra un accès physique avec un câble. Tant que ceci reste décoché, la commande marche/arrêt n’est même pas ajoutée à l’appareil et aucune écriture n’est jamais émise.",
@@ -61,12 +116,20 @@
   },
   {
     "type": "group",
-    "label": { "en": "Monitoring", "fr": "Surveillance", "nl": "Bewaking" },
+    "label": {
+      "en": "Monitoring",
+      "fr": "Surveillance",
+      "nl": "Bewaking"
+    },
     "children": [
       {
         "id": "live_interval",
         "type": "number",
-        "label": { "en": "Read link state every (seconds)", "fr": "Relever l’état du lien toutes les (secondes)", "nl": "Lees de linkstatus elke (seconden)" },
+        "label": {
+          "en": "Read link state every (seconds)",
+          "fr": "Relever l’état du lien toutes les (secondes)",
+          "nl": "Lees de linkstatus elke (seconden)"
+        },
         "hint": {
           "en": "Link state, errors, traffic and PoE. Remember that every port you added from this switch polls it on its own — twenty-four ports at ten seconds is one request every 0.4 seconds against the same agent, and some switches throttle.",
           "fr": "État du lien, erreurs, trafic et PoE. Chaque port ajouté depuis ce switch l’interroge pour son propre compte : vingt-quatre ports à dix secondes, c’est une requête toutes les 0,4 s contre le même agent, et certains switchs brident.",
@@ -75,12 +138,18 @@
         "value": 10,
         "min": 5,
         "max": 3600,
-        "units": { "en": "s" }
+        "units": {
+          "en": "s"
+        }
       },
       {
         "id": "detail_interval",
         "type": "number",
-        "label": { "en": "Re-read the port list every (seconds)", "fr": "Relire la liste des ports toutes les (secondes)", "nl": "Lees de poortlijst opnieuw elke (seconden)" },
+        "label": {
+          "en": "Re-read the port list every (seconds)",
+          "fr": "Relire la liste des ports toutes les (secondes)",
+          "nl": "Lees de poortlijst opnieuw elke (seconden)"
+        },
         "hint": {
           "en": "Negotiated speed, and the check that this device is still pointed at the right port. A switch that reboots can renumber its interfaces, and this is what catches it — do not set it very high.",
           "fr": "Débit négocié, et vérification que cet appareil vise toujours le bon port. Un switch qui redémarre peut renuméroter ses interfaces, et c’est ce relevé qui le rattrape — ne le montez pas très haut.",
@@ -89,7 +158,9 @@
         "value": 300,
         "min": 60,
         "max": 86400,
-        "units": { "en": "s" }
+        "units": {
+          "en": "s"
+        }
       }
     ]
   }

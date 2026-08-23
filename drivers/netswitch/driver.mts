@@ -261,10 +261,13 @@ export default class NetSwitchDriver extends Homey.Driver {
     session.setHandler('ports', async (data: unknown): Promise<PortsReply> => {
       const host = hostOf(data);
       const community = communityOf(data) === 'public' ? this.scanCommunity : communityOf(data);
+      // `snmpPort` et non `port` : dans `openSwitch`, `port` désigne déjà un port du
+      // switch. Deux notions sans rapport, et les confondre serait un piège permanent.
+      const snmpPort = portOf(data);
       this.note(`ports ${host || '(vide)'}`);
       if (host === '') return emptyPorts('no-host', '');
 
-      const reply = await this.openSwitch(host, community);
+      const reply = await this.openSwitch(host, community, snmpPort);
       this.note(`ports ${host}: ${reply.outcome}, ${reply.ports.length} port(s)`);
       return reply;
     });
@@ -283,11 +286,11 @@ export default class NetSwitchDriver extends Homey.Driver {
    * n'existe pas. C'est la même décision que pour l'onduleur, où un snapshot partiel
    * privait l'utilisateur de mesures que l'appareil savait pourtant rendre.
    */
-  private async openSwitch(host: string, community: string): Promise<PortsReply> {
-    const version = await negotiateVersion(host, community, OPEN_TIMEOUT_MS);
+  private async openSwitch(host: string, community: string, snmpPort = 161): Promise<PortsReply> {
+    const version = await negotiateVersion(host, community, OPEN_TIMEOUT_MS, snmpPort);
     if (version === null) return emptyPorts('silent', host);
 
-    const client = new SnmpClient({ host, community, version, timeout: OPEN_TIMEOUT_MS, retries: 0 });
+    const client = new SnmpClient({ host, community, version, port: snmpPort, timeout: OPEN_TIMEOUT_MS, retries: 0 });
 
     const [identity, inventory] = await Promise.all([
       readSwitchIdentity(client),
@@ -315,6 +318,7 @@ export default class NetSwitchDriver extends Homey.Driver {
         switchName: identity.name,
         host,
         community,
+        port: snmpPort,
         version,
         poe,
         capabilities: plan.capabilities,
@@ -420,6 +424,19 @@ function hostOf(data: unknown): string {
 }
 
 /** La communauté saisie ; « public » quand elle est vide, jamais une chaîne vide. */
+/**
+ * Le port UDP demandé, 161 par défaut.
+ *
+ * Un agent peut écouter ailleurs : un `snmpd` sans privilèges ne peut pas prendre un
+ * port sous 1024, pas plus qu'un conteneur sans capacité réseau. Hors bornes ou
+ * illisible, on retombe sur 161 plutôt que d'échouer.
+ */
+function portOf(data: unknown): number {
+  const body = (data ?? {}) as { port?: unknown };
+  const port = Number(body.port);
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : 161;
+}
+
 function communityOf(data: unknown): string {
   const body = (data ?? {}) as { community?: unknown };
   return String(body.community ?? 'public').trim() || 'public';

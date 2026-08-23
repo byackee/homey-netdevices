@@ -20,6 +20,7 @@ function input(overrides: Partial<PortCandidateInput> = {}): PortCandidateInput 
     switchName: 'sw-garage',
     host: '192.168.1.2',
     community: 'public',
+    port: 161,
     version: 'v2c',
     poe: { group: 1, port: 5 },
     capabilities: ['netswitch_link', 'netswitch_speed'],
@@ -41,7 +42,7 @@ test('🔴 un résultat de pairing ne porte que les clés admises', () => {
 
 test('la charge utile porte tout ce que le device relira, et rien de plus', () => {
   const { device } = buildPortCandidate(input());
-  assert.deepEqual(device.settings, { host: '192.168.1.2', community: 'public', version: 'v2c' });
+  assert.deepEqual(device.settings, { host: '192.168.1.2', community: 'public', port: 161, version: 'v2c' });
   assert.deepEqual(device.store, {
     switchKey: 'serial:foc1234x5yz',
     ifIndex: 5,
@@ -185,4 +186,11 @@ test('🔴 un port reste en class « other », jamais « socket »', () => {
   ) as { class?: string };
   assert.equal(manifest.class, 'other',
     'passer un port en socket l\'exposerait aux Flow cards de zone « tout éteindre »');
+});
+
+test('le port SNMP suit le port de switch jusqu\'à ses réglages', () => {
+  // Deux notions de « port » sans rapport : celui du switch, et le port UDP de l'agent.
+  // Le candidat porte le second dans ses réglages, le premier dans son identité.
+  const { device } = buildPortCandidate(input({ port: 1161 }));
+  assert.equal(device.settings.port, 1161);
 });

@@ -161,6 +161,7 @@
   </div>
   <div class="nsw-start-fields">
     <input type="text" id="nsw-start-community" value="public" placeholder="public">
+    <input type="text" id="nsw-start-port" inputmode="numeric" autocomplete="off" value="161" title="SNMP port" style="max-width:5rem">
   </div>
 </details>
 
@@ -203,6 +204,7 @@
   var addEl = document.getElementById('nsw-start-add');
   var hostEl = document.getElementById('nsw-start-host');
   var communityEl = document.getElementById('nsw-start-community');
+  var portEl = document.getElementById('nsw-start-port');
   var openEl = document.getElementById('nsw-start-open');
 
   var adopting = false;
@@ -269,6 +271,19 @@
   }
 
   /** La communauté saisie, qui est aussi celle avec laquelle on balaie. */
+  /*
+   * Le port UDP demande, 161 par defaut.
+   *
+   * Un agent peut ecouter ailleurs : un snmpd sans privileges ne peut pas prendre un
+   * port sous 1024, pas plus qu'un conteneur sans capacite reseau. Une saisie illisible
+   * retombe sur 161 plutot que d'echouer.
+   */
+  function port() {
+    if (!portEl) return 161;
+    var value = parseInt(String(portEl.value || '').trim(), 10);
+    return (value >= 1 && value <= 65535) ? value : 161;
+  }
+
   function community() {
     return communityEl.value.trim() || 'public';
   }
@@ -324,7 +339,7 @@
       .replace('{{host}}', host));
     report('ports: opening ' + host);
 
-    return Promise.resolve(Homey.emit('ports', { host: host, community: community() }))
+    return Promise.resolve(Homey.emit('ports', { host: host, community: community(), port: port() }))
       .then(function (reply) {
         setSearching(false);
         if (!reply) {

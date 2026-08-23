@@ -144,6 +144,7 @@
   <div class="nas-start-fields">
     <input type="text" id="nas-start-host" inputmode="decimal" autocomplete="off" placeholder="192.168.1.30">
     <input type="text" id="nas-start-community" autocomplete="off" value="public" style="max-width:9rem">
+    <input type="text" id="nas-start-port" inputmode="numeric" autocomplete="off" value="161" title="SNMP port" style="max-width:5rem">
     <button type="button" id="nas-start-add" class="nas-start-button">Test this address</button>
   </div>
 </details>
@@ -212,6 +213,7 @@
   var listEl = document.getElementById('nas-start-list');
   var hostEl = document.getElementById('nas-start-host');
   var communityEl = document.getElementById('nas-start-community');
+  var portEl = document.getElementById('nas-start-port');
   var addEl = document.getElementById('nas-start-add');
 
   var adopting = false;
@@ -322,6 +324,19 @@
   }
 
   /** La communauté saisie, qui est aussi celle avec laquelle on balaie. */
+  /*
+   * Le port UDP demande, 161 par defaut.
+   *
+   * Un agent peut ecouter ailleurs : un snmpd sans privileges ne peut pas prendre un
+   * port sous 1024, pas plus qu'un conteneur sans capacite reseau. Une saisie illisible
+   * retombe sur 161 plutot que d'echouer.
+   */
+  function port() {
+    if (!portEl) return 161;
+    var value = parseInt(String(portEl.value || '').trim(), 10);
+    return (value >= 1 && value <= 65535) ? value : 161;
+  }
+
   function community() {
     return communityEl.value.trim() || 'public';
   }
@@ -537,7 +552,7 @@
     setStatus(t('pair.probing', 'Contacting…'));
     report('probing ' + host);
 
-    return Promise.resolve(Homey.emit('probe', { host: host, community: community() }))
+    return Promise.resolve(Homey.emit('probe', { host: host, community: community(), port: port() }))
       .then(function (probe) {
         if (!probe) {
           setError('no answer from ' + host);

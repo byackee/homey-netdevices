@@ -20,6 +20,7 @@ function input(overrides: Partial<NasCandidateInput> = {}): NasCandidateInput {
     host: '192.168.1.30',
     version: 'v2c',
     community: 'public',
+    port: 161,
     mac: '00:11:32:AA:BB:CC',
     vendor: 'Synology',
     name: 'DiskStation',
@@ -66,7 +67,7 @@ test('les réglages du candidat sont ceux avec lesquels l\'hôte a réellement r
   // Le défaut n°1 de la revue : le balayage écrivait `community: 'public'` en dur, si
   // bien qu'un appareil adopté sur une communauté personnalisée naissait muet.
   const { device } = buildNasCandidate(input({ community: 'privé', version: 'v1' }));
-  assert.deepEqual(device.settings, { host: '192.168.1.30', community: 'privé', version: 'v1' });
+  assert.deepEqual(device.settings, { host: '192.168.1.30', community: 'privé', port: 161, version: 'v1' });
 });
 
 test('la MAC est mémorisée dans le store, pour qu\'une réinstallation la retrouve', () => {
@@ -196,4 +197,11 @@ test('hostOf et communityOf nettoient ce que la vue envoie', () => {
   assert.equal(communityOf({ community: ' privé ' }), 'privé');
   assert.equal(communityOf({ community: '   ' }), 'public', 'jamais une chaîne vide');
   assert.equal(communityOf(null), 'public');
+});
+
+test('le port sondé suit l\'appareil jusqu\'à ses réglages', () => {
+  // Un hôte joignable au pairing puis interrogé sur 161 serait vu une fois et muet
+  // ensuite. Faire suivre le port importe autant que de le proposer.
+  const { device } = buildNasCandidate(input({ port: 1161 }));
+  assert.equal(device.settings.port, 1161);
 });

@@ -69,7 +69,7 @@ export interface PortPairingDevice {
   name: string;
   data: { id: string };
   store: PortStore;
-  settings: { host: string; community: string; version: SnmpVersion };
+  settings: { host: string; community: string; port: number; version: SnmpVersion };
   /**
    * Les capabilities décidées sur ce que le port a **réellement** su répondre.
    *
@@ -105,6 +105,8 @@ export interface PortCandidateInput {
   switchName: string | null;
   host: string;
   community: string;
+  /** Le port UDP de l\'agent, tel que la sonde l\'a effectivement interrogé. */
+  port: number;
   version: SnmpVersion;
   poe: PoePortRef | null;
   capabilities: string[];
@@ -172,7 +174,7 @@ export function buildPortCandidate(input: PortCandidateInput): PortCandidate {
         poeGroup: input.poe?.group ?? null,
         poePort: input.poe?.port ?? null,
       },
-      settings: { host: input.host, community: input.community, version: input.version },
+      settings: { host: input.host, community: input.community, port: input.port, version: input.version },
       capabilities: [...input.capabilities],
     },
   };

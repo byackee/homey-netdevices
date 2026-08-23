@@ -1,12 +1,20 @@
 [
   {
     "type": "group",
-    "label": { "en": "Connection", "fr": "Connexion", "nl": "Verbinding" },
+    "label": {
+      "en": "Connection",
+      "fr": "Connexion",
+      "nl": "Verbinding"
+    },
     "children": [
       {
         "id": "host",
         "type": "text",
-        "label": { "en": "IP address", "fr": "Adresse IP", "nl": "IP-adres" },
+        "label": {
+          "en": "IP address",
+          "fr": "Adresse IP",
+          "nl": "IP-adres"
+        },
         "hint": {
           "en": "Reserve a fixed address for the host in your router. A moving address is the usual reason a NAS stops answering.",
           "fr": "Réservez une adresse fixe pour l’hôte dans votre routeur. Une adresse qui bouge est la raison habituelle d’un NAS qui cesse de répondre.",
@@ -17,7 +25,11 @@
       {
         "id": "community",
         "type": "password",
-        "label": { "en": "SNMP community", "fr": "Communauté SNMP", "nl": "SNMP-community" },
+        "label": {
+          "en": "SNMP community",
+          "fr": "Communauté SNMP",
+          "nl": "SNMP-community"
+        },
         "hint": {
           "en": "Almost always \"public\". It is a weak shared secret, so it is masked here — but it stays editable, because getting it wrong is the most common reason a host answers nothing at all.",
           "fr": "Presque toujours « public ». C’est un secret partagé faible : il est donc masqué ici, mais il reste modifiable, car s’être trompé est la première cause d’un hôte qui ne répond rien.",
@@ -26,9 +38,30 @@
         "value": "public"
       },
       {
+        "id": "port",
+        "type": "number",
+        "value": 161,
+        "min": 1,
+        "max": 65535,
+        "label": {
+          "en": "SNMP port",
+          "fr": "Port SNMP",
+          "nl": "SNMP-poort"
+        },
+        "hint": {
+          "en": "161 unless the agent was told otherwise. Change it only if you know your device listens elsewhere.",
+          "fr": "161, sauf si l'agent a été configuré autrement. À ne changer que si vous savez que votre appareil écoute ailleurs.",
+          "nl": "161, tenzij de agent anders is ingesteld. Wijzig dit alleen als u weet dat uw apparaat elders luistert."
+        }
+      },
+      {
         "id": "version",
         "type": "dropdown",
-        "label": { "en": "SNMP version", "fr": "Version SNMP", "nl": "SNMP-versie" },
+        "label": {
+          "en": "SNMP version",
+          "fr": "Version SNMP",
+          "nl": "SNMP-versie"
+        },
         "hint": {
           "en": "v2c reports missing values one by one and walks tables far more cheaply; v1 fails the whole read when a single value is absent. Only fall back to v1 if v2c gets no answer.",
           "fr": "v2c signale les valeurs absentes une par une et parcourt les tables bien plus économiquement ; v1 fait échouer tout le relevé dès qu’une seule valeur manque. Ne passez à v1 que si v2c ne répond pas.",
@@ -36,20 +69,42 @@
         },
         "value": "v2c",
         "values": [
-          { "id": "v2c", "label": { "en": "v2c", "fr": "v2c", "nl": "v2c" } },
-          { "id": "v1", "label": { "en": "v1", "fr": "v1", "nl": "v1" } }
+          {
+            "id": "v2c",
+            "label": {
+              "en": "v2c",
+              "fr": "v2c",
+              "nl": "v2c"
+            }
+          },
+          {
+            "id": "v1",
+            "label": {
+              "en": "v1",
+              "fr": "v1",
+              "nl": "v1"
+            }
+          }
         ]
       }
     ]
   },
   {
     "type": "group",
-    "label": { "en": "Monitoring", "fr": "Surveillance", "nl": "Bewaking" },
+    "label": {
+      "en": "Monitoring",
+      "fr": "Surveillance",
+      "nl": "Bewaking"
+    },
     "children": [
       {
         "id": "live_interval",
         "type": "number",
-        "label": { "en": "Read load and memory every (seconds)", "fr": "Relever charge et mémoire toutes les (secondes)", "nl": "Lees belasting en geheugen elke (seconden)" },
+        "label": {
+          "en": "Read load and memory every (seconds)",
+          "fr": "Relever charge et mémoire toutes les (secondes)",
+          "nl": "Lees belasting en geheugen elke (seconden)"
+        },
         "hint": {
           "en": "CPU load, memory and uptime. The host reports CPU load as an average over the last minute, so reading it more often than that returns the same figure — and costs CPU on the very machine being measured.",
           "fr": "Charge CPU, mémoire et temps de fonctionnement. L’hôte publie une charge CPU moyennée sur la dernière minute : relever plus souvent rend la même valeur, et coûte du CPU sur la machine même qu’on mesure.",
@@ -58,12 +113,18 @@
         "value": 60,
         "min": 15,
         "max": 3600,
-        "units": { "en": "s" }
+        "units": {
+          "en": "s"
+        }
       },
       {
         "id": "detail_interval",
         "type": "number",
-        "label": { "en": "Read volumes and temperature every (seconds)", "fr": "Relever volumes et température toutes les (secondes)", "nl": "Lees volumes en temperatuur elke (seconden)" },
+        "label": {
+          "en": "Read volumes and temperature every (seconds)",
+          "fr": "Relever volumes et température toutes les (secondes)",
+          "nl": "Lees volumes en temperatuur elke (seconden)"
+        },
         "hint": {
           "en": "Volume sizes, fill levels and temperature. This is the expensive read — it walks two whole SNMP tables — and what it reads barely changes from one hour to the next, so it is deliberately far slower than the group above.",
           "fr": "Taille et remplissage des volumes, température. C’est le relevé coûteux — il parcourt deux tables SNMP entières — et ce qu’il lit ne bouge presque pas d’une heure à l’autre : ce groupe est donc volontairement bien plus lent que le précédent.",
@@ -72,18 +133,28 @@
         "value": 900,
         "min": 300,
         "max": 86400,
-        "units": { "en": "s" }
+        "units": {
+          "en": "s"
+        }
       }
     ]
   },
   {
     "type": "group",
-    "label": { "en": "What the figures mean", "fr": "Ce que les chiffres veulent dire", "nl": "Wat de cijfers betekenen" },
+    "label": {
+      "en": "What the figures mean",
+      "fr": "Ce que les chiffres veulent dire",
+      "nl": "Wat de cijfers betekenen"
+    },
     "children": [
       {
         "id": "memory_note",
         "type": "label",
-        "label": { "en": "Memory used", "fr": "Mémoire utilisée", "nl": "Geheugen gebruikt" },
+        "label": {
+          "en": "Memory used",
+          "fr": "Mémoire utilisée",
+          "nl": "Geheugen gebruikt"
+        },
         "hint": {
           "en": "On Linux — which is what a Synology, a QNAP and most hosts run — the figure the agent publishes counts cache and buffers as used. A healthy NAS sits at 80–95 % and that is normal: unused memory is wasted memory. It is reported as the host reports it rather than quietly adjusted.",
           "fr": "Sous Linux — ce que font tourner un Synology, un QNAP et la plupart des hôtes — le chiffre publié par l’agent compte le cache et les tampons comme occupés. Un NAS en bonne santé s’y tient à 80–95 %, et c’est normal : de la mémoire inutilisée est de la mémoire gaspillée. Il est rapporté tel que l’hôte le publie, pas corrigé en douce.",
@@ -94,7 +165,11 @@
       {
         "id": "uptime_note",
         "type": "label",
-        "label": { "en": "Uptime", "fr": "Temps de fonctionnement", "nl": "Bedrijfstijd" },
+        "label": {
+          "en": "Uptime",
+          "fr": "Temps de fonctionnement",
+          "nl": "Bedrijfstijd"
+        },
         "hint": {
           "en": "The host counts it in hundredths of a second in a 32-bit counter, which wraps back to zero after about 497 days. A machine that has been up longer than that will look as though it just rebooted — including to the \"the host has rebooted\" Flow card.",
           "fr": "L’hôte le compte en centièmes de seconde dans un compteur 32 bits, qui repasse à zéro au bout d’environ 497 jours. Une machine allumée depuis plus longtemps aura l’air de venir de redémarrer — y compris pour la carte de Flow « l’hôte a redémarré ».",
