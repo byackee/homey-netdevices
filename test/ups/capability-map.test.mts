@@ -30,6 +30,7 @@ function fullSnapshot(source: UpsSource = 'rfc1628'): UpsSnapshot {
     serial: 'G1234X56789',
     status: 'normal',
     alarms: { onBattery: false, batteryLow: false, overload: false, replaceBattery: false },
+    alarmSummary: null,
     batteryCharge: 87,
     runtimeMinutes: 33,
     load: 42,

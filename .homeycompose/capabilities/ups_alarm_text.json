@@ -1,0 +1,13 @@
+{
+  "type": "string",
+  "title": { "en": "Alarm", "fr": "Alarme", "nl": "Alarm" },
+  "desc": {
+    "en": "What the UPS reports as wrong, named. The alarm flags say something is wrong; this says what.",
+    "fr": "Ce que l'onduleur signale, nommé. Les alarmes disent que quelque chose ne va pas ; ceci dit quoi.",
+    "nl": "Wat de UPS als fout meldt, met naam. De alarmen zeggen dat er iets mis is; dit zegt wat."
+  },
+  "getable": true,
+  "setable": false,
+  "uiComponent": "sensor",
+  "insights": false
+}

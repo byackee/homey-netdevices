@@ -20,6 +20,7 @@ function live(patch: Partial<Omit<UpsLive, 'alarms'>> & { alarms?: Partial<UpsLi
   const { alarms, ...rest } = patch;
   return {
     status: 'normal',
+    alarmSummary: null,
     batteryCharge: 87.5,
     runtimeMinutes: 25,
     load: 23.5,
@@ -366,6 +367,7 @@ test('🔴 le gel s\'arme quand status et onBattery divergent (OB BYPASS)', () =
   tracker.succeeded({
     status: 'bypass',
     alarms: { onBattery: true, batteryLow: false, overload: false, replaceBattery: false },
+    alarmSummary: null,
     batteryCharge: 55, runtimeMinutes: 12, load: 30,
   });
   let outcome = tracker.failed();
@@ -382,6 +384,7 @@ test('🔴 reset() oublie aussi l\'état, sinon le nouvel appareil hérite de la
   tracker.succeeded({
     status: 'battery',
     alarms: { onBattery: true, batteryLow: false, overload: false, replaceBattery: false },
+    alarmSummary: null,
     batteryCharge: 40, runtimeMinutes: 8, load: 25,
   });
   tracker.reset();

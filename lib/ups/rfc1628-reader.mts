@@ -18,6 +18,7 @@
  *   (secondes) et APC (centièmes de seconde).
  */
 
+import { summariseAlarms } from './alarm-summary.mjs';
 import {
   RFC1628_ALARM_COLUMN,
   RFC1628_BATTERY_STATUS,
@@ -259,6 +260,13 @@ export class Rfc1628UpsReader implements UpsSourceReader {
     return {
       status: outputSourceToStatus(outputSource),
       alarms: this.decodeAlarms(scan, outputSource, batteryStatus),
+      // `scan` portait déjà les noms d'alarmes, les OID constructeur inconnus et la
+      // troncature ; tout cela finissait à la poubelle derrière quatre booléens.
+      alarmSummary: summariseAlarms({
+        named: scan.present,
+        foreign: scan.foreign.length,
+        truncated: scan.truncated,
+      }),
       batteryCharge: asMeasure(values.get(RFC1628_UPS_OID.estimatedChargeRemaining), 0, 100),
       // 🔴 Déjà en minutes : la RFC est la seule source à ne demander aucune conversion.
       runtimeMinutes: asMeasure(values.get(RFC1628_UPS_OID.estimatedMinutesRemaining), 0, Number.MAX_SAFE_INTEGER),

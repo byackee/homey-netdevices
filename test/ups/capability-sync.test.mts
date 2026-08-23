@@ -40,6 +40,7 @@ const FULL: UpsSnapshot = {
   model: 'Back-UPS ES 700G', manufacturer: 'APC', serial: 'SIM1',
   status: 'normal',
   alarms: { onBattery: false, batteryLow: false, overload: false, replaceBattery: false },
+    alarmSummary: null,
   batteryCharge: 100, runtimeMinutes: 60, load: 18,
   inputVoltage: null, outputVoltage: null, outputPower: null,
   batteryVoltage: 13.4, batteryTemperature: 24,

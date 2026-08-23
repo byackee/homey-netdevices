@@ -104,7 +104,7 @@ test('les trois lecteurs rendent la même forme, quel que soit le dialecte', asy
   for (const [reader, values] of cases) {
     const snapshot = await readUpsSnapshot(reader, fakeSource(values));
     assert.deepEqual(Object.keys(snapshot).sort(), [
-      'alarms', 'batteryCharge', 'batteryChargeLow', 'batteryTemperature', 'batteryVoltage',
+      'alarmSummary', 'alarms', 'batteryCharge', 'batteryChargeLow', 'batteryTemperature', 'batteryVoltage',
       'inputVoltage', 'load', 'manufacturer', 'model', 'outputPower', 'outputVoltage',
       'runtimeLowMinutes', 'runtimeMinutes', 'serial', 'source', 'status',
     ], `forme divergente pour ${reader.source}`);

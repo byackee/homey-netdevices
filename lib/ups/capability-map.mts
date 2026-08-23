@@ -178,6 +178,12 @@ export function planCapabilities(snapshot: UpsSnapshot): CapabilityPlan {
   // C'est la seule capability dont la présence ne dépend pas de ce que l'appareil a répondu.
   declare('ups_status', snapshot.status);
 
+  // Nommer ce qui ne va pas. Les quatre alarmes booléennes déclenchent les Flows ; ce
+  // texte dit **quoi**, et c'est la seule chose qui distingue un ventilateur en panne
+  // d'un chargeur qui a lâché. Déclarée seulement quand il y a quelque chose à dire :
+  // un champ vide en permanence sur un onduleur sain n'apprend rien à personne.
+  if (snapshot.alarmSummary !== null) declare('ups_alarm_text', snapshot.alarmSummary);
+
   for (const rule of MEASURES) {
     const value = rule.read(snapshot);
     if (value === null) {

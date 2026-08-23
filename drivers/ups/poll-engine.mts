@@ -82,6 +82,7 @@ export interface ContactOutcome {
 export const LIVE_UNKNOWN: UpsLive = {
   status: 'unknown',
   alarms: { onBattery: false, batteryLow: false, overload: false, replaceBattery: false },
+  alarmSummary: null,
   batteryCharge: null,
   runtimeMinutes: null,
   load: null,

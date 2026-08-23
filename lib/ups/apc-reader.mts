@@ -22,6 +22,7 @@
  * correspondantes.
  */
 
+import { summariseAlarms } from './alarm-summary.mjs';
 import {
   APC_BATTERY_STATUS,
   APC_OUTPUT_STATUS,
@@ -221,6 +222,46 @@ export function apcAlarms(outputStatus: number | null, batteryStatus: number | n
  * Les erreurs de transport ne sont pas avalées : seul le device sait combien d'échecs
  * consécutifs valent « indisponible ».
  */
+/**
+ * Le libellé PowerNet d'un état de sortie, quand il dit plus que le vocabulaire commun.
+ *
+ * APC distingue vingt-huit états là où la RFC en compte sept. Une fois repliés sur
+ * `UpsStatus`, « bypass matériel en défaut » et « mode économie » deviennent tous deux
+ * `bypass` — ce qui est juste pour piloter un Flow, et très pauvre pour comprendre.
+ * Les états sains rendent `null` : il n'y a rien à signaler quand tout va bien.
+ */
+function apcOutputStatusLabel(status: number | null): string | null {
+  switch (status) {
+    case APC_OUTPUT_STATUS.onBattery: return 'sur batterie';
+    case APC_OUTPUT_STATUS.softwareBypass: return 'bypass logiciel, charge non protégée';
+    case APC_OUTPUT_STATUS.switchedBypass: return 'bypass commuté, charge non protégée';
+    case APC_OUTPUT_STATUS.hardwareFailureBypass: return 'bypass sur défaut matériel';
+    case APC_OUTPUT_STATUS.emergencyStaticBypass: return 'bypass statique d\'urgence';
+    case APC_OUTPUT_STATUS.staticBypassStandby: return 'bypass statique en attente';
+    case APC_OUTPUT_STATUS.off: return 'sortie coupée';
+    case APC_OUTPUT_STATUS.rebooting: return 'redémarrage en cours';
+    case APC_OUTPUT_STATUS.sleepingUntilPowerReturn: return 'en veille jusqu\'au retour du secteur';
+    case APC_OUTPUT_STATUS.timedSleeping: return 'en veille programmée';
+    case APC_OUTPUT_STATUS.onBatteryTest: return 'test de batterie en cours';
+    case APC_OUTPUT_STATUS.selfTest: return 'autotest en cours';
+    case APC_OUTPUT_STATUS.onSmartBoost: return 'correction de tension basse';
+    case APC_OUTPUT_STATUS.onSmartTrim: return 'correction de tension haute';
+    case APC_OUTPUT_STATUS.chargerOnly: return 'chargeur seul, pas de sortie';
+    case APC_OUTPUT_STATUS.inverterStandby: return 'onduleur en attente';
+    default: return null;
+  }
+}
+
+/** Idem pour la batterie : seuls les états qui appellent une action sont nommés. */
+function apcBatteryStatusLabel(status: number | null): string | null {
+  switch (status) {
+    case APC_BATTERY_STATUS.batteryLow: return 'batterie faible';
+    case APC_BATTERY_STATUS.batteryInFaultCondition: return 'batterie en défaut, à remplacer';
+    case APC_BATTERY_STATUS.noBatteryPresent: return 'aucune batterie détectée';
+    default: return null;
+  }
+}
+
 export class ApcUpsReader implements UpsSourceReader {
   readonly source = 'apc' as const;
 
@@ -279,6 +320,12 @@ export class ApcUpsReader implements UpsSourceReader {
     return {
       status: outputStatusToUpsStatus(outputStatus),
       alarms: apcAlarms(outputStatus, batteryStatus),
+      // PowerNet distingue vingt-huit états de sortie là où la RFC en compte sept :
+      // « bypass matériel en défaut » et « mode économie » se ressemblent beaucoup une
+      // fois repliés sur le vocabulaire commun. Le libellé d'origine les sépare.
+      alarmSummary: summariseAlarms({
+        texts: [apcOutputStatusLabel(outputStatus), apcBatteryStatusLabel(batteryStatus)],
+      }),
       batteryCharge: charge,
       runtimeMinutes: apcRuntimeMinutes(values.get(APC_UPS_OID.advBatteryRunTimeRemaining)),
       load,

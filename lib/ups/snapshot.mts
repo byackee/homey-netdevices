@@ -39,6 +39,14 @@ export interface UpsIdentity {
 export interface UpsLive {
   status: UpsStatus;
   alarms: UpsAlarms;
+  /**
+   * Ce qui ne va pas, nommé.
+   *
+   * Les quatre booléens d'`alarms` déclenchent les Flows ; celui-ci dit **quoi**. Sans
+   * lui, l'app décode les vingt-quatre alarmes de la RFC puis les jette. `null` quand il
+   * n'y a rien à signaler — la capability n'est alors pas déclarée.
+   */
+  alarmSummary: string | null;
   /** Charge de la batterie, en %. */
   batteryCharge: number | null;
   /** Autonomie restante, **en minutes**, quelle que soit l'unité de la source. */

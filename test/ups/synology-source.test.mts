@@ -44,7 +44,7 @@ test('l\'adaptateur expose la part commune de la lecture Synology', async () => 
 
 test('l\'adaptateur ne laisse fuir ni les jetons NUT ni les mesures hors contrat', async () => {
   const live = await synologyUpsSource.readLive(fakeSource(ONLINE));
-  assert.deepEqual(Object.keys(live).sort(), ['alarms', 'batteryCharge', 'load', 'runtimeMinutes', 'status']);
+  assert.deepEqual(Object.keys(live).sort(), ['alarmSummary', 'alarms', 'batteryCharge', 'load', 'runtimeMinutes', 'status']);
 });
 
 test('🔴 ce que Synology ne relaie pas reste null', async () => {
