@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.dataweavelabs.netdevices",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "compatibility": ">=12.0.1",
   "sdk": 3,
   "platforms": [
@@ -1380,6 +1380,23 @@
               "value": "public"
             },
             {
+              "id": "port",
+              "type": "number",
+              "value": 161,
+              "min": 1,
+              "max": 65535,
+              "label": {
+                "en": "SNMP port",
+                "fr": "Port SNMP",
+                "nl": "SNMP-poort"
+              },
+              "hint": {
+                "en": "161 unless the agent was told otherwise. Change it only if you know your device listens elsewhere.",
+                "fr": "161, sauf si l'agent a été configuré autrement. À ne changer que si vous savez que votre appareil écoute ailleurs.",
+                "nl": "161, tenzij de agent anders is ingesteld. Wijzig dit alleen als u weet dat uw apparaat elders luistert."
+              }
+            },
+            {
               "id": "version",
               "type": "dropdown",
               "label": {
@@ -1571,6 +1588,23 @@
                 "nl": "Vrijwel altijd \"public\" om te lezen. Het is een zwak gedeeld geheim en wordt daarom gemaskeerd. Als je poortbesturing inschakelt: de meeste agents vereisen een aparte schrijf-community — \"public\" is bij bijna alle alleen-lezen en een schrijfactie wordt geweigerd."
               },
               "value": "public"
+            },
+            {
+              "id": "port",
+              "type": "number",
+              "value": 161,
+              "min": 1,
+              "max": 65535,
+              "label": {
+                "en": "SNMP port",
+                "fr": "Port SNMP",
+                "nl": "SNMP-poort"
+              },
+              "hint": {
+                "en": "161 unless the agent was told otherwise. Change it only if you know your device listens elsewhere.",
+                "fr": "161, sauf si l'agent a été configuré autrement. À ne changer que si vous savez que votre appareil écoute ailleurs.",
+                "nl": "161, tenzij de agent anders is ingesteld. Wijzig dit alleen als u weet dat uw apparaat elders luistert."
+              }
             },
             {
               "id": "version",
