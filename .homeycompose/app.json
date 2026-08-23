@@ -1,6 +1,6 @@
 {
   "id": "com.dataweavelabs.netdevices",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "compatibility": ">=12.0.1",
   "sdk": 3,
   "platforms": [
@@ -13,9 +13,9 @@
     "nl": "SNMP - Network Devices"
   },
   "description": {
-    "en": "Read your UPS over the network — including one plugged into a Synology NAS",
-    "fr": "Lisez votre onduleur sur le réseau — y compris celui branché sur un NAS Synology",
-    "nl": "Lees je UPS via het netwerk — ook eentje die op een Synology-NAS is aangesloten"
+    "en": "UPS, NAS and network switches over SNMP — including a UPS plugged into your NAS",
+    "fr": "Onduleur, NAS et switchs réseau en SNMP — y compris un onduleur branché sur votre NAS",
+    "nl": "UPS, NAS en netwerkswitches via SNMP — ook een UPS die aan je NAS hangt"
   },
   "category": [
     "energy"

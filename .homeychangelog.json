@@ -1,0 +1,7 @@
+{
+  "1.0.0": {
+    "en": "First release. Reads a UPS, a NAS and network switch ports over SNMP, with nothing to install on them. A UPS plugged into a Synology is read through the NAS itself — the case the existing apps never covered. Flow cards fire the moment mains power is lost, so you can shut things down while the battery still holds.",
+    "fr": "Première version. Lit un onduleur, un NAS et les ports d'un switch en SNMP, sans rien à installer dessus. Un onduleur branché sur un Synology est lu à travers le NAS lui-même — le cas que les apps existantes n'ont jamais couvert. Les cartes de Flow partent dès la perte du secteur, pour éteindre ce qu'il faut pendant que la batterie tient encore.",
+    "nl": "Eerste versie. Leest een UPS, een NAS en switchpoorten via SNMP, zonder er iets op te installeren. Een UPS aan een Synology wordt via de NAS zelf uitgelezen — het geval dat bestaande apps nooit dekten. Flow-kaarten gaan af zodra de netspanning wegvalt, zodat je kunt afsluiten terwijl de accu het nog houdt."
+  }
+}

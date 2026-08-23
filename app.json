@@ -1,7 +1,7 @@
 {
   "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "com.dataweavelabs.netdevices",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "compatibility": ">=12.0.1",
   "sdk": 3,
   "platforms": [
@@ -14,9 +14,9 @@
     "nl": "SNMP - Network Devices"
   },
   "description": {
-    "en": "Read your UPS over the network — including one plugged into a Synology NAS",
-    "fr": "Lisez votre onduleur sur le réseau — y compris celui branché sur un NAS Synology",
-    "nl": "Lees je UPS via het netwerk — ook eentje die op een Synology-NAS is aangesloten"
+    "en": "UPS, NAS and network switches over SNMP — including a UPS plugged into your NAS",
+    "fr": "Onduleur, NAS et switchs réseau en SNMP — y compris un onduleur branché sur votre NAS",
+    "nl": "UPS, NAS en netwerkswitches via SNMP — ook een UPS die aan je NAS hangt"
   },
   "category": [
     "energy"
@@ -1864,7 +1864,8 @@
         "en": "Mains power restored",
         "fr": "Secteur revenu",
         "nl": "Netstroom hersteld"
-      }
+      },
+      "icon": "/assets/capabilities/alarm_ups_onbattery.svg"
     },
     "alarm_ups_overload": {
       "type": "boolean",
@@ -1887,7 +1888,8 @@
         "en": "Output load back to normal",
         "fr": "Charge de sortie revenue à la normale",
         "nl": "Uitgangsbelasting weer normaal"
-      }
+      },
+      "icon": "/assets/capabilities/alarm_ups_overload.svg"
     },
     "alarm_ups_replace_battery": {
       "type": "boolean",
@@ -1910,7 +1912,8 @@
         "en": "Battery healthy again",
         "fr": "Batterie de nouveau saine",
         "nl": "Accu weer gezond"
-      }
+      },
+      "icon": "/assets/capabilities/alarm_ups_replace_battery.svg"
     },
     "nas_cpu_load": {
       "type": "number",
@@ -1928,7 +1931,8 @@
       },
       "min": 0,
       "max": 100,
-      "decimals": 1
+      "decimals": 1,
+      "icon": "/assets/capabilities/nas_cpu_load.svg"
     },
     "nas_memory_used": {
       "type": "number",
@@ -1946,7 +1950,8 @@
       },
       "min": 0,
       "max": 100,
-      "decimals": 1
+      "decimals": 1,
+      "icon": "/assets/capabilities/nas_memory_used.svg"
     },
     "nas_storage_used": {
       "type": "number",
@@ -1964,7 +1969,8 @@
       },
       "min": 0,
       "max": 100,
-      "decimals": 1
+      "decimals": 1,
+      "icon": "/assets/capabilities/nas_storage_used.svg"
     },
     "nas_uptime": {
       "type": "number",
@@ -1983,7 +1989,8 @@
         "nl": "d"
       },
       "min": 0,
-      "decimals": 1
+      "decimals": 1,
+      "icon": "/assets/capabilities/nas_uptime.svg"
     },
     "netswitch_errors_in": {
       "type": "number",
@@ -1997,7 +2004,8 @@
       "setable": false,
       "insights": true,
       "min": 0,
-      "decimals": 0
+      "decimals": 0,
+      "icon": "/assets/capabilities/netswitch_errors_in.svg"
     },
     "netswitch_errors_out": {
       "type": "number",
@@ -2011,7 +2019,8 @@
       "setable": false,
       "insights": true,
       "min": 0,
-      "decimals": 0
+      "decimals": 0,
+      "icon": "/assets/capabilities/netswitch_errors_out.svg"
     },
     "netswitch_link": {
       "type": "enum",
@@ -2081,7 +2090,8 @@
             "nl": "Onbekend"
           }
         }
-      ]
+      ],
+      "icon": "/assets/capabilities/netswitch_link.svg"
     },
     "netswitch_poe": {
       "type": "enum",
@@ -2151,7 +2161,8 @@
             "nl": "Onbekend"
           }
         }
-      ]
+      ],
+      "icon": "/assets/capabilities/netswitch_poe.svg"
     },
     "netswitch_poe_power": {
       "type": "number",
@@ -2168,7 +2179,8 @@
         "en": "W"
       },
       "min": 0,
-      "decimals": 1
+      "decimals": 1,
+      "icon": "/assets/capabilities/netswitch_poe_power.svg"
     },
     "netswitch_rx": {
       "type": "number",
@@ -2185,7 +2197,8 @@
         "en": "Mbit/s"
       },
       "min": 0,
-      "decimals": 2
+      "decimals": 2,
+      "icon": "/assets/capabilities/netswitch_rx.svg"
     },
     "netswitch_speed": {
       "type": "number",
@@ -2202,7 +2215,8 @@
         "en": "Mbit/s"
       },
       "min": 0,
-      "decimals": 0
+      "decimals": 0,
+      "icon": "/assets/capabilities/netswitch_speed.svg"
     },
     "netswitch_tx": {
       "type": "number",
@@ -2219,7 +2233,8 @@
         "en": "Mbit/s"
       },
       "min": 0,
-      "decimals": 2
+      "decimals": 2,
+      "icon": "/assets/capabilities/netswitch_tx.svg"
     },
     "ups_alarm_text": {
       "type": "string",
@@ -2236,7 +2251,8 @@
       "getable": true,
       "setable": false,
       "uiComponent": "sensor",
-      "insights": false
+      "insights": false,
+      "icon": "/assets/capabilities/ups_alarm_text.svg"
     },
     "ups_load": {
       "type": "number",
@@ -2254,7 +2270,8 @@
       },
       "min": 0,
       "max": 100,
-      "decimals": 1
+      "decimals": 1,
+      "icon": "/assets/capabilities/ups_load.svg"
     },
     "ups_runtime": {
       "type": "number",
@@ -2273,7 +2290,8 @@
         "nl": "min"
       },
       "min": 0,
-      "decimals": 0
+      "decimals": 0,
+      "icon": "/assets/capabilities/ups_runtime.svg"
     },
     "ups_status": {
       "type": "enum",
@@ -2343,7 +2361,8 @@
             "nl": "Onbekend"
           }
         }
-      ]
+      ],
+      "icon": "/assets/capabilities/ups_status.svg"
     }
   },
   "discovery": {
