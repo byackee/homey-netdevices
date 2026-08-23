@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "about": "What this app reads",
+    "about_hint": "It asks your UPS over SNMP how it is doing — either a UPS with its own network card, or a USB UPS relayed by a Synology NAS.",
+    "prereq": "Before it can find anything",
+    "prereq_synology": "Synology: enable SNMP in DSM (Control Panel → Terminal & SNMP, SNMPv1/v2c), and set the UPS up under Hardware & Power → UPS.",
+    "prereq_card": "UPS network card: SNMP is off by default on recent APC NMC firmware. Turn SNMPv1 on and leave the community as \"public\", otherwise a network sweep cannot see it.",
+    "prereq_nut": "A plain Linux box running NUT exposes nothing over SNMP, and is not supported.",
+    "trace": "Diagnostics",
+    "trace_hint": "What the app has been doing, most recent last. Attach this to a bug report — an app installed from the CLI has no log anywhere else.",
+    "trace_button": "Refresh",
+    "trace_loading": "Reading…",
+    "trace_empty": "Nothing recorded yet.",
+    "trace_off": "No trace buffer is attached, so nothing is being recorded."
+  }
+}

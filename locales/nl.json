@@ -1,0 +1,16 @@
+{
+  "settings": {
+    "about": "Wat deze app uitleest",
+    "about_hint": "Ze vraagt je UPS via SNMP hoe het ermee staat — een UPS met een eigen netwerkkaart, of een USB-UPS die door een Synology-NAS wordt doorgegeven.",
+    "prereq": "Voordat ze iets kan vinden",
+    "prereq_synology": "Synology: zet SNMP aan in DSM (Configuratiescherm → Terminal & SNMP, SNMPv1/v2c) en stel de UPS in bij Hardware & Energie → UPS.",
+    "prereq_card": "UPS-netwerkkaart: bij recente APC NMC-firmware staat SNMP standaard uit. Zet SNMPv1 aan en laat de community op \"public\" staan, anders ziet een netwerkscan hem niet.",
+    "prereq_nut": "Een gewone Linux-machine met NUT stelt niets beschikbaar via SNMP en wordt niet ondersteund.",
+    "trace": "Diagnose",
+    "trace_hint": "Wat de app heeft gedaan, oudste eerst. Voeg dit toe aan een bugmelding — een app die via de CLI is geïnstalleerd heeft nergens anders een logboek.",
+    "trace_button": "Vernieuwen",
+    "trace_loading": "Bezig met lezen…",
+    "trace_empty": "Nog niets vastgelegd.",
+    "trace_off": "Er is geen tracebuffer aangekoppeld, dus er wordt niets vastgelegd."
+  }
+}

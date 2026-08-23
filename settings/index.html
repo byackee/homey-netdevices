@@ -1,0 +1,101 @@
+<script type="text/javascript" src="/homey.js" data-origin="settings"></script>
+
+<style>
+  body { line-height: 1.5; }
+  h2 { margin: 1.5rem 0 .5rem; font-size: 1.05rem; }
+  h2:first-child { margin-top: 0; }
+  p.hint { color: var(--homey-text-color-light); margin: 0 0 1rem; }
+  ul.prereq { margin: 0 0 1rem; padding-left: 1.1rem; }
+  ul.prereq li { margin-bottom: .4rem; }
+  button {
+    padding: .55rem 1rem; border-radius: 6px; border: 0; cursor: pointer;
+    background: var(--homey-color-blue, #0E7C7B); color: #fff; font: inherit;
+  }
+  button:disabled { opacity: .55; cursor: default; }
+  .bad { color: var(--homey-color-red, #da3633); }
+  pre {
+    white-space: pre-wrap; word-break: break-word; margin: .75rem 0 0;
+    font-size: .85rem; line-height: 1.45;
+    color: var(--homey-text-color-light);
+  }
+</style>
+
+<h2 data-i18n="settings.about"></h2>
+<p class="hint" data-i18n="settings.about_hint"></p>
+
+<h2 data-i18n="settings.prereq"></h2>
+<ul class="prereq">
+  <li data-i18n="settings.prereq_synology"></li>
+  <li data-i18n="settings.prereq_card"></li>
+  <li data-i18n="settings.prereq_nut"></li>
+</ul>
+
+<h2 data-i18n="settings.trace"></h2>
+<p class="hint" data-i18n="settings.trace_hint"></p>
+<button type="button" id="trace-refresh" data-i18n="settings.trace_button"></button>
+<div id="trace-result"></div>
+
+<script type="text/javascript">
+  /*
+   * Everything lives inside onHomeyReady because `Homey` is not a global on a
+   * settings page: it is handed to this function. Code outside it that touches
+   * Homey throws a ReferenceError, and that error is invisible here — a
+   * CLI-installed app has no readable log, which is the very problem this page
+   * exists to solve.
+   *
+   * The mirror image of this rule applies to pairing views, which never get an
+   * onHomeyReady call and must never load /homey.js. Copying either file over
+   * the other is what turned a pairing view blank on an earlier app.
+   */
+  function onHomeyReady(Homey) {
+    // Ready first, then anything that touches Homey. Calling out before this
+    // point silently kills the rest of the script.
+    Homey.ready();
+
+    function esc(value) {
+      return String(value == null ? '' : value).replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+      })[c]);
+    }
+
+    function call(method, path, body) {
+      return new Promise((resolve, reject) => {
+        Homey.api(method, path, body || null, (err, result) => {
+          if (err) reject(err instanceof Error ? err : new Error(String(err)));
+          else resolve(result);
+        });
+      });
+    }
+
+    async function loadTrace() {
+      const button = document.getElementById('trace-refresh');
+      const target = document.getElementById('trace-result');
+
+      button.disabled = true;
+      target.innerHTML = '<p class="hint">' + esc(Homey.__('settings.trace_loading')) + '</p>';
+
+      try {
+        const data = await call('GET', '/trace');
+
+        // "Nothing recorded" and "nothing is recording" both arrive as an empty
+        // list, and they call for opposite next steps, so the endpoint reports
+        // them apart and so does this page.
+        if (!data.wired) {
+          target.innerHTML = '<p class="hint">' + esc(Homey.__('settings.trace_off')) + '</p>';
+        } else if (!data.lines.length) {
+          target.innerHTML = '<p class="hint">' + esc(Homey.__('settings.trace_empty')) + '</p>';
+        } else {
+          target.innerHTML = '<pre>' + esc(data.lines.join('\n')) + '</pre>';
+        }
+      } catch (error) {
+        target.innerHTML = '<p class="bad">' + esc(error.message) + '</p>';
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    document.getElementById('trace-refresh').addEventListener('click', loadTrace);
+
+    loadTrace();
+  }
+</script>

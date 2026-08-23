@@ -1,0 +1,89 @@
+{
+  "id": "com.dataweavelabs.netdevices",
+  "version": "0.1.0",
+  "compatibility": ">=12.0.1",
+  "sdk": 3,
+  "platforms": [
+    "local"
+  ],
+  "brandColor": "#0E7C7B",
+  "name": {
+    "en": "SNMP - Network Devices",
+    "fr": "SNMP - Network Devices",
+    "nl": "SNMP - Network Devices"
+  },
+  "description": {
+    "en": "Read your UPS over the network — including one plugged into a Synology NAS",
+    "fr": "Lisez votre onduleur sur le réseau — y compris celui branché sur un NAS Synology",
+    "nl": "Lees je UPS via het netwerk — ook eentje die op een Synology-NAS is aangesloten"
+  },
+  "category": [
+    "energy"
+  ],
+  "tags": {
+    "en": [
+      "ups",
+      "battery backup",
+      "power outage",
+      "apc",
+      "eaton",
+      "riello",
+      "cyberpower",
+      "socomec",
+      "vertiv",
+      "synology",
+      "qnap",
+      "nas",
+      "snmp"
+    ],
+    "fr": [
+      "onduleur",
+      "ups",
+      "coupure de courant",
+      "apc",
+      "eaton",
+      "riello",
+      "cyberpower",
+      "socomec",
+      "vertiv",
+      "synology",
+      "qnap",
+      "nas",
+      "snmp"
+    ],
+    "nl": [
+      "ups",
+      "noodstroom",
+      "stroomuitval",
+      "apc",
+      "eaton",
+      "riello",
+      "cyberpower",
+      "socomec",
+      "vertiv",
+      "synology",
+      "qnap",
+      "nas",
+      "snmp"
+    ]
+  },
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "DataWeave Labs"
+  },
+  "source": "https://github.com/byackee/homey-netdevices",
+  "bugs": {
+    "url": "https://github.com/byackee/homey-netdevices/issues"
+  },
+  "api": {
+    "getTrace": {
+      "method": "GET",
+      "path": "/trace",
+      "role": "owner"
+    }
+  }
+}
