@@ -11,5 +11,10 @@
   },
   "1.0.3": {
     "en": "Fixes two faults found by testing against a real SNMP agent. A reading could hang forever on a host that does not publish the temperature MIB, which most NAS do not. Switch port throughput was always empty, because the 64-bit byte counters were never decoded."
+  },
+  "1.0.4": {
+    "en": "Makes the SNMP port setting work on NAS and switch-port devices. It was shown but ignored: a device paired on a port other than 161 stayed unavailable for good, and PoE commands went to the wrong port.",
+    "fr": "Rend le réglage de port SNMP effectif sur les appareils NAS et port de switch. Il était affiché mais ignoré : un appareil appairé sur un autre port que 161 restait indisponible, et les commandes PoE partaient sur le mauvais port.",
+    "nl": "Maakt de SNMP-poortinstelling werkend voor NAS- en switchpoortapparaten. Hij werd getoond maar genegeerd: een apparaat gekoppeld op een andere poort dan 161 bleef onbeschikbaar, en PoE-opdrachten gingen naar de verkeerde poort."
   }
 }
