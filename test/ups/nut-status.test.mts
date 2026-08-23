@@ -82,3 +82,45 @@ test('les quatorze jetons documentés sont tous reconnus', () => {
   assert.deepEqual(Object.keys(NUT_FLAGS).sort(), [...expected].sort());
   assert.deepEqual(parseNutStatus(expected.join(' ')).unknown, []);
 });
+
+// ---------------------------------------------------------------------------
+// Les deux axes de NUT : d'où vient le courant, et ce que fait la batterie.
+//
+// `OL`/`OB` répondent au premier, `CHRG`/`DISCHRG` au second, et ils se combinent.
+// Les confondre faisait passer `OL DISCHRG` — l'une des trois combinaisons réellement
+// observées en production sur Synology — pour une coupure de courant, ce qui aurait
+// coupé les appareils de l'utilisateur alors que le secteur n'avait jamais bronché.
+// ---------------------------------------------------------------------------
+
+test('🔴 « OL DISCHRG » n\'est pas une coupure : le secteur est présent', () => {
+  const status = parseNutStatus('OL DISCHRG');
+  assert.equal(toUpsStatus(status), 'normal');
+  assert.equal(toUpsAlarms(status).onBattery, false,
+    'un onduleur qui se décharge secteur présent ne doit pas éteindre les appareils');
+});
+
+test('🔴 une calibration programmée ne déclenche pas de coupure', () => {
+  // `CAL` accompagne une décharge volontaire, secteur présent. C'est le pendant NUT
+  // de `APC_TEST_STATUSES`, où la même leçon avait déjà été tirée côté PowerNet.
+  const status = parseNutStatus('OL DISCHRG CAL');
+  assert.equal(toUpsAlarms(status).onBattery, false);
+});
+
+test('« DISCHRG » seul reste une décharge : sans OL, rien ne dit que le secteur est là', () => {
+  const status = parseNutStatus('DISCHRG');
+  assert.equal(toUpsStatus(status), 'battery');
+  assert.equal(toUpsAlarms(status).onBattery, true);
+});
+
+test('« OB » reste autoritatif même accompagné d\'un OL contradictoire', () => {
+  // Un agent qui publie les deux est incohérent ; on retient le pire des deux.
+  const status = parseNutStatus('OL OB');
+  assert.equal(toUpsStatus(status), 'battery');
+  assert.equal(toUpsAlarms(status).onBattery, true);
+});
+
+test('la coupure réelle continue de lever l\'alarme, à tous les stades', () => {
+  for (const raw of ['OB', 'OB DISCHRG', 'OB DISCHRG LB']) {
+    assert.equal(toUpsAlarms(parseNutStatus(raw)).onBattery, true, raw);
+  }
+});

@@ -352,3 +352,41 @@ test('un sélecteur absent ne laisse rien passer, plutôt que tout', () => {
   assert.equal(matchesStatusFilter(undefined, 'battery'), false);
   assert.equal(matchesStatusFilter(null, 'battery'), false);
 });
+
+// ---------------------------------------------------------------------------
+// Le gel du §3.8 doit s'armer sur la même notion de « sur batterie » que le
+// déclencheur, faute de quoi il ne s'arme pas là où il devrait — et l'app annonce
+// « le courant est revenu » au moment précis où elle perd le contact.
+// ---------------------------------------------------------------------------
+
+test('🔴 le gel s\'arme quand status et onBattery divergent (OB BYPASS)', () => {
+  const tracker = new ContactTracker();
+  // `OB BYPASS` : l'onduleur est sur batterie ET en bypass. `status` retient `bypass`,
+  // parce que c'est le risque le plus parlant, mais l'alarme dit bien la coupure.
+  tracker.succeeded({
+    status: 'bypass',
+    alarms: { onBattery: true, batteryLow: false, overload: false, replaceBattery: false },
+    batteryCharge: 55, runtimeMinutes: 12, load: 30,
+  });
+  let outcome = tracker.failed();
+  outcome = tracker.failed();
+  outcome = tracker.failed();
+  assert.equal(outcome.reason, 'lost-during-outage',
+    'le contact perdu pendant une coupure ne doit pas passer pour une simple injoignabilité');
+  assert.equal(outcome.live, null, 'on ne republie rien : on ne sait pas ce qui se passe');
+  assert.equal(outcome.contactLostDuringOutage, true);
+});
+
+test('🔴 reset() oublie aussi l\'état, sinon le nouvel appareil hérite de la coupure de l\'ancien', () => {
+  const tracker = new ContactTracker();
+  tracker.succeeded({
+    status: 'battery',
+    alarms: { onBattery: true, batteryLow: false, overload: false, replaceBattery: false },
+    batteryCharge: 40, runtimeMinutes: 8, load: 25,
+  });
+  tracker.reset();
+  assert.equal(tracker.lastStatus, null, 'après un changement d\'adresse, on ne sait plus rien');
+  const outcome = [tracker.failed(), tracker.failed(), tracker.failed()].at(-1)!;
+  assert.equal(outcome.reason, 'unreachable',
+    'un appareil qu\'on n\'a jamais lu est injoignable, pas gelé sur une coupure');
+});

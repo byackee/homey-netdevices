@@ -100,16 +100,39 @@ export function hasFlag(status: NutStatus, flag: NutFlag): boolean {
 export function toUpsStatus(status: NutStatus): UpsStatus {
   if (hasFlag(status, 'OFF')) return 'off';
   if (hasFlag(status, 'BYPASS')) return 'bypass';
-  if (hasFlag(status, 'OB') || hasFlag(status, 'DISCHRG')) return 'battery';
+  if (hasFlag(status, 'OB')) return 'battery';
+  // `DISCHRG` ne dit rien de la source du courant : il décrit la batterie. Un onduleur
+  // en test hebdomadaire, en calibration, ou qui se décharge légèrement en régulant,
+  // publie `OL DISCHRG` — secteur présent. Ce n'est une décharge sur panne que si
+  // aucun `OL` ne l'accompagne. Voir {@link onMains}.
+  if (hasFlag(status, 'DISCHRG') && !onMains(status)) return 'battery';
   if (hasFlag(status, 'BOOST')) return 'booster';
   if (hasFlag(status, 'TRIM')) return 'reducer';
-  if (hasFlag(status, 'OL')) return 'normal';
+  if (onMains(status)) return 'normal';
   return 'unknown';
+}
+
+/**
+ * Le secteur est-il présent ?
+ *
+ * `OL`/`OB` répondent à « d'où vient le courant » ; `CHRG`/`DISCHRG` à « que fait la
+ * batterie ». Les deux axes se combinent, et les confondre est ce qui faisait passer
+ * `OL DISCHRG` — l'une des trois combinaisons réellement observées en production sur
+ * Synology, cf. l'en-tête de ce fichier — pour une coupure de courant.
+ */
+function onMains(status: NutStatus): boolean {
+  return hasFlag(status, 'OL') && !hasFlag(status, 'OB');
 }
 
 /** Les quatre alarmes que les jetons NUT permettent de dériver (plan §3.2). */
 export interface UpsAlarms {
-  /** `OB` ou `DISCHRG` — l'événement qui déclenche les Flows de coupure. */
+  /**
+   * L'onduleur alimente-t-il la charge sur sa batterie **faute de secteur** ?
+   *
+   * C'est la seule entrée du déclencheur `ups_went_on_battery`, celui sur lequel
+   * l'utilisateur branche l'extinction de ses appareils. Il doit donc dire « panne »,
+   * pas « la batterie se décharge » — les deux ne sont pas la même chose.
+   */
   onBattery: boolean;
   /** `LB` — NUT le lève selon les seuils `batteryChargeLow` / `batteryRuntimeLow`. */
   batteryLow: boolean;
@@ -126,7 +149,11 @@ export interface UpsAlarms {
  */
 export function toUpsAlarms(status: NutStatus): UpsAlarms {
   return {
-    onBattery: hasFlag(status, 'OB') || hasFlag(status, 'DISCHRG'),
+    // Le secteur est autoritatif. `DISCHRG` seul suffit — un agent qui ne publie pas
+    // `OB` existe — mais `DISCHRG` **avec** `OL` est un onduleur en test, en calibration
+    // ou en régulation, pas une panne de courant. Symétrique de `APC_TEST_STATUSES`
+    // côté PowerNet, où la même leçon avait déjà été tirée.
+    onBattery: hasFlag(status, 'OB') || (hasFlag(status, 'DISCHRG') && !onMains(status)),
     batteryLow: hasFlag(status, 'LB'),
     overload: hasFlag(status, 'OVER'),
     replaceBattery: hasFlag(status, 'RB'),

@@ -22,6 +22,7 @@ import Homey from 'homey';
 
 import { SnmpClient, SnmpUnreachableError, type SnmpVersion } from '../../lib/snmp/client.mjs';
 import { capabilityValues } from '../../lib/ups/capability-map.mjs';
+import { syncCapabilities } from '../../lib/ups/capability-sync.mjs';
 import {
   UNKNOWN_DETAIL,
   type UpsDetail,
@@ -88,6 +89,9 @@ export default class UpsDevice extends Homey.Device {
    * rafraîchissent chacun qu'une moitié. Garder l'union ici évite d'écraser les tensions
    * du groupe lent à chaque relevé rapide.
    */
+  /** N'annoncer les capabilities orphelines qu'une fois, pas à chaque relevé. */
+  private orphansLogged = false;
+
   private current: UpsSnapshot = {
     source: 'synology',
     model: null,
@@ -304,7 +308,31 @@ export default class UpsDevice extends Homey.Device {
    * `removeCapability` détruit l'historique Insights de façon irréversible, et une mesure
    * absente d'un cycle n'est pas une mesure disparue.
    */
+  /**
+   * Branche l'alignement des capabilities sur `this`.
+   *
+   * La logique vit dans `lib/ups/capability-sync.mts`, pas ici : le paquet `homey` est
+   * la CLI et non le SDK runtime, donc rien de ce qui reste dans ce fichier n'est
+   * vérifiable ailleurs que sur un vrai Homey. Même raison que pour `poll-engine`.
+   */
+  private async syncCapabilities(): Promise<void> {
+    const result = await syncCapabilities(this.current, {
+      listCapabilities: () => this.getCapabilities(),
+      addCapability: (id) => this.addCapability(id),
+      setCapabilityOptions: (id, options) => this.setCapabilityOptions(id, options),
+      setEnergy: (energy) => this.setEnergy(energy),
+      log: (message) => this.log(message),
+      error: (message) => this.error(message),
+    });
+
+    if (result.orphaned.length > 0 && !this.orphansLogged) {
+      this.log(`Capabilities sans source, conservées pour l'historique : ${result.orphaned.join(', ')}`);
+      this.orphansLogged = true;
+    }
+  }
+
   private async writeValues(): Promise<void> {
+    await this.syncCapabilities();
     for (const { id, value } of capabilityValues(this.current, this.getCapabilities())) {
       await this.setCapabilityValue(id, value).catch((e: Error) =>
         this.error(`Impossible d'écrire ${id} : ${e.message}`));

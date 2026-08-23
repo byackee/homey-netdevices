@@ -162,6 +162,19 @@ export const LIVE_UNKNOWN: UpsLive = {
 export class ContactTracker {
   private failures = 0;
   private lastKnownStatus: UpsStatus | null = null;
+  /**
+   * Le dernier relevé disait-il « sur batterie » ?
+   *
+   * Distinct de {@link lastKnownStatus}, et c'est tout l'objet du correctif : `status`
+   * et `alarms.onBattery` sont deux notions différentes qui divergent pour de bon.
+   * `OB BYPASS` rend `status: 'bypass'` avec `onBattery: true` ; un agent RFC 1628 en
+   * `booster(6)` avec une ligne `onBattery` dans `upsAlarmTable` fait de même.
+   *
+   * Le gel du §3.8 doit s'armer sur la **même** notion que celle qui a déclenché
+   * `ups_went_on_battery`, sans quoi il ne s'arme pas là où il devrait — et l'app
+   * annonce « le courant est revenu » au moment précis où elle perd le contact.
+   */
+  private lastKnownOnBattery = false;
   private available = true;
   /** Empêche le déclencheur de coupure de repartir à chaque tick suivant le seuil. */
   private outageAnnounced = false;
@@ -171,6 +184,7 @@ export class ContactTracker {
     this.failures = 0;
     this.outageAnnounced = false;
     this.lastKnownStatus = live.status;
+    this.lastKnownOnBattery = live.alarms.onBattery;
 
     const availability: Availability = 'available';
     this.available = true;
@@ -201,7 +215,9 @@ export class ContactTracker {
       };
     }
 
-    const duringOutage = this.lastKnownStatus === 'battery';
+    // Sur la même notion que le déclencheur, jamais sur `status` : voir
+    // {@link lastKnownOnBattery}.
+    const duringOutage = this.lastKnownOnBattery;
     const announce = duringOutage && !this.outageAnnounced;
     if (announce) this.outageAnnounced = true;
     this.available = false;
@@ -223,10 +239,17 @@ export class ContactTracker {
   /**
    * Remet le compteur à zéro sans rien affirmer, après un changement d'adresse ou de
    * communauté : les échecs d'avant portaient sur un autre appareil.
+   *
+   * « Sans rien affirmer » vaut aussi pour l'état : garder `lastKnownOnBattery` gèlerait
+   * le **nouvel** appareil sur une coupure observée chez l'ancien, et le premier échec
+   * de contact le figerait sur « batterie » au lieu de le dire injoignable.
    */
   reset(): void {
     this.failures = 0;
     this.outageAnnounced = false;
+    this.lastKnownStatus = null;
+    this.lastKnownOnBattery = false;
+    this.available = true;
   }
 }
 

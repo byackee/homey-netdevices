@@ -192,6 +192,15 @@ export default class UpsDriver extends Homey.Driver {
    * même que la barre ait bougé.
    */
   private discovered: Finding[] = [];
+  /**
+   * La communauté du balayage en cours.
+   *
+   * `fromScan()` écrivait `'public'` en dur, si bien qu'un utilisateur ayant changé sa
+   * communauté SNMP — précisément celui à qui ce détail importe — voyait son onduleur
+   * adopté avec la mauvaise, sans un mot : soit son réglage n'avait servi à rien, soit
+   * l'appareil devenait injoignable dès le premier relevé.
+   */
+  private scanCommunity = 'public';
 
   /** Les adresses annoncées par la découverte qui ne répondent pas en SNMP. */
   private silent: string[] = [];
@@ -237,6 +246,9 @@ export default class UpsDriver extends Homey.Driver {
       total: number;
     }> => {
       const community = communityOf(data);
+      // Retenue pour toute la durée du balayage : `fromScan()` en a besoin pour que
+      // l'appareil adopté soit interrogé avec la communauté réellement saisie.
+      this.scanCommunity = community;
       this.note('scan_start', { communauté: community === 'public' ? 'public' : '(personnalisée)' });
 
       const app = this.homey.app as NetDevicesApp;
@@ -266,7 +278,7 @@ export default class UpsDriver extends Homey.Driver {
 
       // La découverte d'abord : elle connaît la marque par l'OUI, donc elle nomme mieux
       // le même appareil que le balayage trouvera une seconde plus tard.
-      const found = dedupeByHost([...this.discovered, ...state.found.map((f) => this.fromScan(f))])
+      const found = dedupeByHost([...this.discovered, ...state.found.map((f) => this.fromScan(f, this.scanCommunity))])
         .filter((finding) => !taken.has(finding.host))
         .filter((finding) => finding.device === undefined || !ids.has(finding.device.data.id));
 
@@ -281,7 +293,7 @@ export default class UpsDriver extends Homey.Driver {
         subnet: state.subnet,
         error: scanError(state.error, state.subnet),
         found,
-        others: state.others.map((f) => this.fromScan(f)),
+        others: state.others.map((f) => this.fromScan(f, this.scanCommunity)),
         reachable: [...this.silent],
       };
     });
@@ -495,7 +507,7 @@ export default class UpsDriver extends Homey.Driver {
   }
 
   /** Une ligne à partir d'une trouvaille du balayage. */
-  private fromScan(found: ScanFinding): Finding {
+  private fromScan(found: ScanFinding, community: string): Finding {
     const finding: Finding = {
       host: found.host,
       name: found.name,
@@ -518,7 +530,7 @@ export default class UpsDriver extends Homey.Driver {
         host: found.host,
         source: found.source,
         version: 'v2c',
-        community: 'public',
+        community,
         mac: null,
         vendor: null,
         model: found.model,
