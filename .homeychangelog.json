@@ -16,5 +16,10 @@
     "en": "Makes the SNMP port setting work on NAS and switch-port devices. It was shown but ignored: a device paired on a port other than 161 stayed unavailable for good, and PoE commands went to the wrong port.",
     "fr": "Rend le réglage de port SNMP effectif sur les appareils NAS et port de switch. Il était affiché mais ignoré : un appareil appairé sur un autre port que 161 restait indisponible, et les commandes PoE partaient sur le mauvais port.",
     "nl": "Maakt de SNMP-poortinstelling werkend voor NAS- en switchpoortapparaten. Hij werd getoond maar genegeerd: een apparaat gekoppeld op een andere poort dan 161 bleef onbeschikbaar, en PoE-opdrachten gingen naar de verkeerde poort."
+  },
+  "1.0.5": {
+    "en": "Adds mains input and output voltage for a UPS read through a Synology — they were there all along, in a part of the MIB this app had not read. Confirmed on a real UPS. The alarm text now keeps up with the UPS instead of staying frozen on the alarm that created it, and reads \"No alarm\" instead of sitting blank.",
+    "fr": "Ajoute la tension secteur et la tension de sortie d'un onduleur lu à travers un Synology — elles étaient disponibles depuis le début, dans une partie de la MIB que l'app ne lisait pas. Confirmé sur un vrai onduleur. Le texte d'alarme suit désormais l'état au lieu de rester figé sur l'alarme qui l'a créé, et affiche « aucune alarme » plutôt que de rester vide.",
+    "nl": "Voegt netspanning en uitgangsspanning toe voor een UPS die via een Synology wordt uitgelezen — ze waren er altijd al, in een deel van de MIB dat deze app niet las. Bevestigd op een echte UPS. De alarmtekst volgt nu de UPS in plaats van bevroren te blijven op het alarm dat hem aanmaakte, en toont \"Geen alarm\" in plaats van leeg te blijven."
   }
 }
