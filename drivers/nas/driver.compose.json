@@ -1,0 +1,33 @@
+{
+  "name": {
+    "en": "NAS or host",
+    "fr": "NAS ou hôte",
+    "nl": "NAS of host"
+  },
+  "class": "sensor",
+  "capabilities": [
+    "nas_uptime"
+  ],
+  "platforms": [
+    "local"
+  ],
+  "connectivity": [
+    "lan"
+  ],
+  "discovery": "ups",
+  "images": {
+    "small": "/drivers/nas/assets/images/small.png",
+    "large": "/drivers/nas/assets/images/large.png",
+    "xlarge": "/drivers/nas/assets/images/xlarge.png"
+  },
+  "pair": [
+    {
+      "id": "start"
+    }
+  ],
+  "repair": [
+    {
+      "id": "repair"
+    }
+  ]
+}

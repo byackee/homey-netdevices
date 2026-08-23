@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <g fill="none" stroke="#000000" stroke-width="34" stroke-linejoin="round" stroke-linecap="round">
+    <!--
+      A two-bay tower rather than a disc platter or a cloud: the icon has to read as
+      a box sitting on a shelf, because that is what the user is looking for in the
+      device list. A platter would read as "hard disk" and a cloud as "internet",
+      and neither is what this driver adds.
+    -->
+    <rect x="300" y="150" width="424" height="724" rx="48"/>
+
+    <!-- The two drive bays. Two, not four: it is what almost every home NAS has,
+         and four slots collapse into a striped smudge at 75 pixels. -->
+    <rect x="352" y="212" width="148" height="524" rx="16"/>
+    <rect x="524" y="212" width="148" height="524" rx="16"/>
+
+    <!-- The grab notch at the top of each caddy — the detail that says "removable
+         drive" rather than "grille". -->
+    <path d="M382 268H470"/>
+    <path d="M554 268H642"/>
+  </g>
+
+  <!--
+    The activity light is filled while the body is stroked. Drawn as an outline it
+    collapses into an unreadable ring once the icon is scaled down to 75 pixels;
+    solid, it stays a light. The two idle lights next to it stay stroked, so the
+    contrast between "one is doing something" and "the others are not" survives.
+  -->
+  <circle cx="388" cy="806" r="20" fill="#000000"/>
+  <g fill="none" stroke="#000000" stroke-width="24">
+    <circle cx="464" cy="806" r="20"/>
+    <circle cx="540" cy="806" r="20"/>
+  </g>
+</svg>

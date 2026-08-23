@@ -106,6 +106,121 @@
   "flow": {
     "triggers": [
       {
+        "id": "nas_volume_above",
+        "title": {
+          "en": "A volume fills above",
+          "fr": "Un volume dépasse",
+          "nl": "Een volume loopt vol boven"
+        },
+        "titleFormatted": {
+          "en": "A volume fills above [[percent]] %",
+          "fr": "Un volume dépasse [[percent]] %",
+          "nl": "Een volume loopt vol boven [[percent]] %"
+        },
+        "hint": {
+          "en": "Fires once, at the moment a volume crosses the threshold upwards — not on every reading while it stays above. One card covers every volume: which one crossed comes back as a token, because Homey generates no Flow card of its own for a per-volume sub-capability.",
+          "fr": "Se déclenche une fois, au moment où un volume franchit le seuil vers le haut — pas à chaque relevé passé au-dessus. Une seule carte couvre tous les volumes : lequel a franchi revient en token, parce que Homey ne génère aucune carte de Flow pour une sous-capability de volume.",
+          "nl": "Wordt één keer geactiveerd, op het moment dat een volume de drempel overschrijdt — niet bij elke meting daarboven. Eén kaart dekt alle volumes: welk volume het betreft komt terug als token, want Homey genereert zelf geen Flow-kaart voor een subcapability per volume."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nas"
+          },
+          {
+            "name": "percent",
+            "type": "number",
+            "title": {
+              "en": "Percent",
+              "fr": "Pourcentage",
+              "nl": "Percentage"
+            },
+            "min": 1,
+            "max": 100,
+            "step": 1,
+            "value": 90,
+            "placeholder": {
+              "en": "90",
+              "fr": "90",
+              "nl": "90"
+            }
+          }
+        ],
+        "tokens": [
+          {
+            "name": "volume",
+            "type": "string",
+            "title": {
+              "en": "Volume",
+              "fr": "Volume",
+              "nl": "Volume"
+            },
+            "example": {
+              "en": "/volume1"
+            }
+          },
+          {
+            "name": "used",
+            "type": "string",
+            "title": {
+              "en": "Used",
+              "fr": "Occupation",
+              "nl": "Gebruikt"
+            },
+            "example": {
+              "en": "92.4 %"
+            }
+          }
+        ]
+      },
+      {
+        "id": "nas_rebooted",
+        "title": {
+          "en": "The host reboots",
+          "fr": "L’hôte redémarre",
+          "nl": "De host start opnieuw op"
+        },
+        "hint": {
+          "en": "Fires when the host's uptime goes backwards, which means it restarted between two readings. One caveat, said plainly: the host counts uptime in a 32-bit counter that wraps after about 497 days, and a wrap is indistinguishable from a reboot.",
+          "fr": "Se déclenche quand le temps de fonctionnement de l’hôte recule, c’est-à-dire qu’il a redémarré entre deux relevés. Une réserve, dite franchement : l’hôte compte dans un compteur 32 bits qui repasse à zéro au bout d’environ 497 jours, et ce débordement est indiscernable d’un redémarrage.",
+          "nl": "Wordt geactiveerd wanneer de bedrijfstijd van de host terugloopt, wat betekent dat hij tussen twee metingen is herstart. Eén kanttekening, ronduit gezegd: de host telt in een 32-bits teller die na ongeveer 497 dagen terugloopt, en dat is niet te onderscheiden van een herstart."
+        },
+        "tokens": [
+          {
+            "name": "cpu",
+            "type": "string",
+            "title": {
+              "en": "CPU load",
+              "fr": "Charge CPU",
+              "nl": "CPU-belasting"
+            },
+            "example": {
+              "en": "12.5 %"
+            }
+          },
+          {
+            "name": "memory",
+            "type": "string",
+            "title": {
+              "en": "Memory used",
+              "fr": "Mémoire utilisée",
+              "nl": "Geheugen gebruikt"
+            },
+            "example": {
+              "en": "84.1 %"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nas"
+          }
+        ]
+      },
+      {
         "id": "netswitch_port_up",
         "title": {
           "en": "The link comes up",
@@ -762,6 +877,120 @@
     ],
     "conditions": [
       {
+        "id": "nas_volume_over",
+        "title": {
+          "en": "A volume is above",
+          "fr": "Un volume est au-dessus de",
+          "nl": "Een volume is boven"
+        },
+        "titleFormatted": {
+          "en": "A volume !{{is|is not}} above [[percent]] %",
+          "fr": "Un volume !{{est|n’est pas}} au-dessus de [[percent]] %",
+          "nl": "Een volume !{{is|is niet}} boven [[percent]] %"
+        },
+        "hint": {
+          "en": "True when the fullest volume is above the threshold. Answers false when no volume could be read: a measurement that was not taken is not free space, and this card is there to guard a backup.",
+          "fr": "Vrai quand le volume le plus rempli dépasse le seuil. Rend faux quand aucun volume n’a pu être lu : une mesure non prise n’est pas de la place libre, et cette carte sert à protéger une sauvegarde.",
+          "nl": "Waar wanneer het volste volume boven de drempel zit. Antwoordt onwaar als geen enkel volume kon worden gelezen: een niet-genomen meting is geen vrije ruimte, en deze kaart beschermt een back-up."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nas"
+          },
+          {
+            "name": "percent",
+            "type": "number",
+            "title": {
+              "en": "Percent",
+              "fr": "Pourcentage",
+              "nl": "Percentage"
+            },
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "value": 90
+          }
+        ]
+      },
+      {
+        "id": "nas_cpu_over",
+        "title": {
+          "en": "CPU load is above",
+          "fr": "La charge CPU est au-dessus de",
+          "nl": "De CPU-belasting is boven"
+        },
+        "titleFormatted": {
+          "en": "CPU load !{{is|is not}} above [[percent]] %",
+          "fr": "La charge CPU !{{est|n’est pas}} au-dessus de [[percent]] %",
+          "nl": "De CPU-belasting !{{is|is niet}} boven [[percent]] %"
+        },
+        "hint": {
+          "en": "The average over every core the host reports, not the first one. Answers false when the load could not be read.",
+          "fr": "La moyenne sur tous les cœurs que l’hôte publie, pas celle du premier. Rend faux quand la charge n’a pas pu être lue.",
+          "nl": "Het gemiddelde over alle cores die de host publiceert, niet dat van de eerste. Antwoordt onwaar als de belasting niet kon worden gelezen."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nas"
+          },
+          {
+            "name": "percent",
+            "type": "number",
+            "title": {
+              "en": "Percent",
+              "fr": "Pourcentage",
+              "nl": "Percentage"
+            },
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "value": 80
+          }
+        ]
+      },
+      {
+        "id": "nas_memory_over",
+        "title": {
+          "en": "Memory used is above",
+          "fr": "La mémoire utilisée est au-dessus de",
+          "nl": "Het gebruikte geheugen is boven"
+        },
+        "titleFormatted": {
+          "en": "Memory used !{{is|is not}} above [[percent]] %",
+          "fr": "La mémoire utilisée !{{est|n’est pas}} au-dessus de [[percent]] %",
+          "nl": "Het gebruikte geheugen !{{is|is niet}} boven [[percent]] %"
+        },
+        "hint": {
+          "en": "Careful with a low threshold: on Linux the figure counts cache and buffers as used, so a perfectly healthy NAS sits at 80–95 %. Answers false when memory could not be read.",
+          "fr": "Attention aux seuils bas : sous Linux, le chiffre compte le cache et les tampons comme occupés, si bien qu’un NAS en parfaite santé s’y tient à 80–95 %. Rend faux quand la mémoire n’a pas pu être lue.",
+          "nl": "Pas op met een lage drempel: op Linux telt het cijfer cache en buffers als gebruikt, dus een kerngezonde NAS zit op 80–95 %. Antwoordt onwaar als het geheugen niet kon worden gelezen."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nas"
+          },
+          {
+            "name": "percent",
+            "type": "number",
+            "title": {
+              "en": "Percent",
+              "fr": "Pourcentage",
+              "nl": "Percentage"
+            },
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "value": 95
+          }
+        ]
+      },
+      {
         "id": "netswitch_link_is_up",
         "title": {
           "en": "The link !{{is|is not}} up",
@@ -925,6 +1154,26 @@
     ],
     "actions": [
       {
+        "id": "nas_refresh",
+        "title": {
+          "en": "Read the host now",
+          "fr": "Relever l’hôte maintenant",
+          "nl": "Lees de host nu uit"
+        },
+        "hint": {
+          "en": "Takes the fast reading — load, memory, uptime — outside the normal schedule. Read-only, like everything this app does to a host: nothing here can switch anything off.",
+          "fr": "Effectue le relevé rapide — charge, mémoire, temps de fonctionnement — hors planning. En lecture seule, comme tout ce que cette app fait à un hôte : rien ici ne peut éteindre quoi que ce soit.",
+          "nl": "Voert de snelle uitlezing uit — belasting, geheugen, bedrijfstijd — buiten het normale schema. Alleen-lezen, zoals alles wat deze app met een host doet: niets hier kan iets uitschakelen."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=nas"
+          }
+        ]
+      },
+      {
         "id": "netswitch_refresh",
         "title": {
           "en": "Read this port now",
@@ -1056,6 +1305,205 @@
     ]
   },
   "drivers": [
+    {
+      "name": {
+        "en": "NAS or host",
+        "fr": "NAS ou hôte",
+        "nl": "NAS of host"
+      },
+      "class": "sensor",
+      "capabilities": [
+        "nas_uptime"
+      ],
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "discovery": "ups",
+      "images": {
+        "small": "/drivers/nas/assets/images/small.png",
+        "large": "/drivers/nas/assets/images/large.png",
+        "xlarge": "/drivers/nas/assets/images/xlarge.png"
+      },
+      "pair": [
+        {
+          "id": "start"
+        }
+      ],
+      "repair": [
+        {
+          "id": "repair"
+        }
+      ],
+      "id": "nas",
+      "settings": [
+        {
+          "type": "group",
+          "label": {
+            "en": "Connection",
+            "fr": "Connexion",
+            "nl": "Verbinding"
+          },
+          "children": [
+            {
+              "id": "host",
+              "type": "text",
+              "label": {
+                "en": "IP address",
+                "fr": "Adresse IP",
+                "nl": "IP-adres"
+              },
+              "hint": {
+                "en": "Reserve a fixed address for the host in your router. A moving address is the usual reason a NAS stops answering.",
+                "fr": "Réservez une adresse fixe pour l’hôte dans votre routeur. Une adresse qui bouge est la raison habituelle d’un NAS qui cesse de répondre.",
+                "nl": "Reserveer een vast adres voor de host in je router. Een wisselend adres is de gebruikelijke reden dat een NAS niet meer antwoordt."
+              },
+              "value": ""
+            },
+            {
+              "id": "community",
+              "type": "password",
+              "label": {
+                "en": "SNMP community",
+                "fr": "Communauté SNMP",
+                "nl": "SNMP-community"
+              },
+              "hint": {
+                "en": "Almost always \"public\". It is a weak shared secret, so it is masked here — but it stays editable, because getting it wrong is the most common reason a host answers nothing at all.",
+                "fr": "Presque toujours « public ». C’est un secret partagé faible : il est donc masqué ici, mais il reste modifiable, car s’être trompé est la première cause d’un hôte qui ne répond rien.",
+                "nl": "Vrijwel altijd \"public\". Het is een zwak gedeeld geheim en wordt daarom gemaskeerd — maar blijft bewerkbaar, want een verkeerde waarde is de meest voorkomende reden dat een host niets antwoordt."
+              },
+              "value": "public"
+            },
+            {
+              "id": "version",
+              "type": "dropdown",
+              "label": {
+                "en": "SNMP version",
+                "fr": "Version SNMP",
+                "nl": "SNMP-versie"
+              },
+              "hint": {
+                "en": "v2c reports missing values one by one and walks tables far more cheaply; v1 fails the whole read when a single value is absent. Only fall back to v1 if v2c gets no answer.",
+                "fr": "v2c signale les valeurs absentes une par une et parcourt les tables bien plus économiquement ; v1 fait échouer tout le relevé dès qu’une seule valeur manque. Ne passez à v1 que si v2c ne répond pas.",
+                "nl": "v2c meldt ontbrekende waarden afzonderlijk en doorloopt tabellen veel goedkoper; v1 laat de hele uitlezing mislukken zodra één waarde ontbreekt. Val alleen terug op v1 als v2c niet antwoordt."
+              },
+              "value": "v2c",
+              "values": [
+                {
+                  "id": "v2c",
+                  "label": {
+                    "en": "v2c",
+                    "fr": "v2c",
+                    "nl": "v2c"
+                  }
+                },
+                {
+                  "id": "v1",
+                  "label": {
+                    "en": "v1",
+                    "fr": "v1",
+                    "nl": "v1"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "Monitoring",
+            "fr": "Surveillance",
+            "nl": "Bewaking"
+          },
+          "children": [
+            {
+              "id": "live_interval",
+              "type": "number",
+              "label": {
+                "en": "Read load and memory every (seconds)",
+                "fr": "Relever charge et mémoire toutes les (secondes)",
+                "nl": "Lees belasting en geheugen elke (seconden)"
+              },
+              "hint": {
+                "en": "CPU load, memory and uptime. The host reports CPU load as an average over the last minute, so reading it more often than that returns the same figure — and costs CPU on the very machine being measured.",
+                "fr": "Charge CPU, mémoire et temps de fonctionnement. L’hôte publie une charge CPU moyennée sur la dernière minute : relever plus souvent rend la même valeur, et coûte du CPU sur la machine même qu’on mesure.",
+                "nl": "CPU-belasting, geheugen en bedrijfstijd. De host publiceert de CPU-belasting als gemiddelde over de laatste minuut: vaker uitlezen geeft dezelfde waarde — en kost CPU op precies de machine die wordt gemeten."
+              },
+              "value": 60,
+              "min": 15,
+              "max": 3600,
+              "units": {
+                "en": "s"
+              }
+            },
+            {
+              "id": "detail_interval",
+              "type": "number",
+              "label": {
+                "en": "Read volumes and temperature every (seconds)",
+                "fr": "Relever volumes et température toutes les (secondes)",
+                "nl": "Lees volumes en temperatuur elke (seconden)"
+              },
+              "hint": {
+                "en": "Volume sizes, fill levels and temperature. This is the expensive read — it walks two whole SNMP tables — and what it reads barely changes from one hour to the next, so it is deliberately far slower than the group above.",
+                "fr": "Taille et remplissage des volumes, température. C’est le relevé coûteux — il parcourt deux tables SNMP entières — et ce qu’il lit ne bouge presque pas d’une heure à l’autre : ce groupe est donc volontairement bien plus lent que le précédent.",
+                "nl": "Volumegroottes, vulniveaus en temperatuur. Dit is de dure uitlezing — twee volledige SNMP-tabellen — en wat ze leest verandert nauwelijks van uur tot uur, dus deze groep is bewust veel trager."
+              },
+              "value": 900,
+              "min": 300,
+              "max": 86400,
+              "units": {
+                "en": "s"
+              }
+            }
+          ]
+        },
+        {
+          "type": "group",
+          "label": {
+            "en": "What the figures mean",
+            "fr": "Ce que les chiffres veulent dire",
+            "nl": "Wat de cijfers betekenen"
+          },
+          "children": [
+            {
+              "id": "memory_note",
+              "type": "label",
+              "label": {
+                "en": "Memory used",
+                "fr": "Mémoire utilisée",
+                "nl": "Geheugen gebruikt"
+              },
+              "hint": {
+                "en": "On Linux — which is what a Synology, a QNAP and most hosts run — the figure the agent publishes counts cache and buffers as used. A healthy NAS sits at 80–95 % and that is normal: unused memory is wasted memory. It is reported as the host reports it rather than quietly adjusted.",
+                "fr": "Sous Linux — ce que font tourner un Synology, un QNAP et la plupart des hôtes — le chiffre publié par l’agent compte le cache et les tampons comme occupés. Un NAS en bonne santé s’y tient à 80–95 %, et c’est normal : de la mémoire inutilisée est de la mémoire gaspillée. Il est rapporté tel que l’hôte le publie, pas corrigé en douce.",
+                "nl": "Op Linux — waar een Synology, een QNAP en de meeste hosts op draaien — telt het cijfer van de agent cache en buffers als gebruikt. Een gezonde NAS zit op 80–95 %, en dat is normaal: ongebruikt geheugen is verspild geheugen. Het wordt gerapporteerd zoals de host het publiceert, niet stilletjes bijgesteld."
+              },
+              "value": ""
+            },
+            {
+              "id": "uptime_note",
+              "type": "label",
+              "label": {
+                "en": "Uptime",
+                "fr": "Temps de fonctionnement",
+                "nl": "Bedrijfstijd"
+              },
+              "hint": {
+                "en": "The host counts it in hundredths of a second in a 32-bit counter, which wraps back to zero after about 497 days. A machine that has been up longer than that will look as though it just rebooted — including to the \"the host has rebooted\" Flow card.",
+                "fr": "L’hôte le compte en centièmes de seconde dans un compteur 32 bits, qui repasse à zéro au bout d’environ 497 jours. Une machine allumée depuis plus longtemps aura l’air de venir de redémarrer — y compris pour la carte de Flow « l’hôte a redémarré ».",
+                "nl": "De host telt hem in honderdsten van een seconde in een 32-bits teller, die na ongeveer 497 dagen terugloopt naar nul. Een machine die langer aanstaat lijkt net herstart te zijn — ook voor de Flow-kaart \"de host is herstart\"."
+              },
+              "value": ""
+            }
+          ]
+        }
+      ]
+    },
     {
       "name": {
         "en": "Switch port",
@@ -1463,6 +1911,79 @@
         "fr": "Batterie de nouveau saine",
         "nl": "Accu weer gezond"
       }
+    },
+    "nas_cpu_load": {
+      "type": "number",
+      "title": {
+        "en": "CPU load",
+        "fr": "Charge CPU",
+        "nl": "CPU-belasting"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "units": {
+        "en": "%"
+      },
+      "min": 0,
+      "max": 100,
+      "decimals": 1
+    },
+    "nas_memory_used": {
+      "type": "number",
+      "title": {
+        "en": "Memory used",
+        "fr": "Mémoire utilisée",
+        "nl": "Geheugen gebruikt"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "units": {
+        "en": "%"
+      },
+      "min": 0,
+      "max": 100,
+      "decimals": 1
+    },
+    "nas_storage_used": {
+      "type": "number",
+      "title": {
+        "en": "Storage used",
+        "fr": "Stockage utilisé",
+        "nl": "Opslag gebruikt"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "units": {
+        "en": "%"
+      },
+      "min": 0,
+      "max": 100,
+      "decimals": 1
+    },
+    "nas_uptime": {
+      "type": "number",
+      "title": {
+        "en": "Uptime",
+        "fr": "Temps de fonctionnement",
+        "nl": "Bedrijfstijd"
+      },
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true,
+      "units": {
+        "en": "d",
+        "fr": "j",
+        "nl": "d"
+      },
+      "min": 0,
+      "decimals": 1
     },
     "netswitch_errors_in": {
       "type": "number",

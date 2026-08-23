@@ -1,0 +1,107 @@
+[
+  {
+    "type": "group",
+    "label": { "en": "Connection", "fr": "Connexion", "nl": "Verbinding" },
+    "children": [
+      {
+        "id": "host",
+        "type": "text",
+        "label": { "en": "IP address", "fr": "Adresse IP", "nl": "IP-adres" },
+        "hint": {
+          "en": "Reserve a fixed address for the host in your router. A moving address is the usual reason a NAS stops answering.",
+          "fr": "Réservez une adresse fixe pour l’hôte dans votre routeur. Une adresse qui bouge est la raison habituelle d’un NAS qui cesse de répondre.",
+          "nl": "Reserveer een vast adres voor de host in je router. Een wisselend adres is de gebruikelijke reden dat een NAS niet meer antwoordt."
+        },
+        "value": ""
+      },
+      {
+        "id": "community",
+        "type": "password",
+        "label": { "en": "SNMP community", "fr": "Communauté SNMP", "nl": "SNMP-community" },
+        "hint": {
+          "en": "Almost always \"public\". It is a weak shared secret, so it is masked here — but it stays editable, because getting it wrong is the most common reason a host answers nothing at all.",
+          "fr": "Presque toujours « public ». C’est un secret partagé faible : il est donc masqué ici, mais il reste modifiable, car s’être trompé est la première cause d’un hôte qui ne répond rien.",
+          "nl": "Vrijwel altijd \"public\". Het is een zwak gedeeld geheim en wordt daarom gemaskeerd — maar blijft bewerkbaar, want een verkeerde waarde is de meest voorkomende reden dat een host niets antwoordt."
+        },
+        "value": "public"
+      },
+      {
+        "id": "version",
+        "type": "dropdown",
+        "label": { "en": "SNMP version", "fr": "Version SNMP", "nl": "SNMP-versie" },
+        "hint": {
+          "en": "v2c reports missing values one by one and walks tables far more cheaply; v1 fails the whole read when a single value is absent. Only fall back to v1 if v2c gets no answer.",
+          "fr": "v2c signale les valeurs absentes une par une et parcourt les tables bien plus économiquement ; v1 fait échouer tout le relevé dès qu’une seule valeur manque. Ne passez à v1 que si v2c ne répond pas.",
+          "nl": "v2c meldt ontbrekende waarden afzonderlijk en doorloopt tabellen veel goedkoper; v1 laat de hele uitlezing mislukken zodra één waarde ontbreekt. Val alleen terug op v1 als v2c niet antwoordt."
+        },
+        "value": "v2c",
+        "values": [
+          { "id": "v2c", "label": { "en": "v2c", "fr": "v2c", "nl": "v2c" } },
+          { "id": "v1", "label": { "en": "v1", "fr": "v1", "nl": "v1" } }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "group",
+    "label": { "en": "Monitoring", "fr": "Surveillance", "nl": "Bewaking" },
+    "children": [
+      {
+        "id": "live_interval",
+        "type": "number",
+        "label": { "en": "Read load and memory every (seconds)", "fr": "Relever charge et mémoire toutes les (secondes)", "nl": "Lees belasting en geheugen elke (seconden)" },
+        "hint": {
+          "en": "CPU load, memory and uptime. The host reports CPU load as an average over the last minute, so reading it more often than that returns the same figure — and costs CPU on the very machine being measured.",
+          "fr": "Charge CPU, mémoire et temps de fonctionnement. L’hôte publie une charge CPU moyennée sur la dernière minute : relever plus souvent rend la même valeur, et coûte du CPU sur la machine même qu’on mesure.",
+          "nl": "CPU-belasting, geheugen en bedrijfstijd. De host publiceert de CPU-belasting als gemiddelde over de laatste minuut: vaker uitlezen geeft dezelfde waarde — en kost CPU op precies de machine die wordt gemeten."
+        },
+        "value": 60,
+        "min": 15,
+        "max": 3600,
+        "units": { "en": "s" }
+      },
+      {
+        "id": "detail_interval",
+        "type": "number",
+        "label": { "en": "Read volumes and temperature every (seconds)", "fr": "Relever volumes et température toutes les (secondes)", "nl": "Lees volumes en temperatuur elke (seconden)" },
+        "hint": {
+          "en": "Volume sizes, fill levels and temperature. This is the expensive read — it walks two whole SNMP tables — and what it reads barely changes from one hour to the next, so it is deliberately far slower than the group above.",
+          "fr": "Taille et remplissage des volumes, température. C’est le relevé coûteux — il parcourt deux tables SNMP entières — et ce qu’il lit ne bouge presque pas d’une heure à l’autre : ce groupe est donc volontairement bien plus lent que le précédent.",
+          "nl": "Volumegroottes, vulniveaus en temperatuur. Dit is de dure uitlezing — twee volledige SNMP-tabellen — en wat ze leest verandert nauwelijks van uur tot uur, dus deze groep is bewust veel trager."
+        },
+        "value": 900,
+        "min": 300,
+        "max": 86400,
+        "units": { "en": "s" }
+      }
+    ]
+  },
+  {
+    "type": "group",
+    "label": { "en": "What the figures mean", "fr": "Ce que les chiffres veulent dire", "nl": "Wat de cijfers betekenen" },
+    "children": [
+      {
+        "id": "memory_note",
+        "type": "label",
+        "label": { "en": "Memory used", "fr": "Mémoire utilisée", "nl": "Geheugen gebruikt" },
+        "hint": {
+          "en": "On Linux — which is what a Synology, a QNAP and most hosts run — the figure the agent publishes counts cache and buffers as used. A healthy NAS sits at 80–95 % and that is normal: unused memory is wasted memory. It is reported as the host reports it rather than quietly adjusted.",
+          "fr": "Sous Linux — ce que font tourner un Synology, un QNAP et la plupart des hôtes — le chiffre publié par l’agent compte le cache et les tampons comme occupés. Un NAS en bonne santé s’y tient à 80–95 %, et c’est normal : de la mémoire inutilisée est de la mémoire gaspillée. Il est rapporté tel que l’hôte le publie, pas corrigé en douce.",
+          "nl": "Op Linux — waar een Synology, een QNAP en de meeste hosts op draaien — telt het cijfer van de agent cache en buffers als gebruikt. Een gezonde NAS zit op 80–95 %, en dat is normaal: ongebruikt geheugen is verspild geheugen. Het wordt gerapporteerd zoals de host het publiceert, niet stilletjes bijgesteld."
+        },
+        "value": ""
+      },
+      {
+        "id": "uptime_note",
+        "type": "label",
+        "label": { "en": "Uptime", "fr": "Temps de fonctionnement", "nl": "Bedrijfstijd" },
+        "hint": {
+          "en": "The host counts it in hundredths of a second in a 32-bit counter, which wraps back to zero after about 497 days. A machine that has been up longer than that will look as though it just rebooted — including to the \"the host has rebooted\" Flow card.",
+          "fr": "L’hôte le compte en centièmes de seconde dans un compteur 32 bits, qui repasse à zéro au bout d’environ 497 jours. Une machine allumée depuis plus longtemps aura l’air de venir de redémarrer — y compris pour la carte de Flow « l’hôte a redémarré ».",
+          "nl": "De host telt hem in honderdsten van een seconde in een 32-bits teller, die na ongeveer 497 dagen terugloopt naar nul. Een machine die langer aanstaat lijkt net herstart te zijn — ook voor de Flow-kaart \"de host is herstart\"."
+        },
+        "value": ""
+      }
+    ]
+  }
+]

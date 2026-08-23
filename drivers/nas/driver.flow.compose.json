@@ -1,0 +1,159 @@
+{
+  "triggers": [
+    {
+      "id": "nas_volume_above",
+      "title": {
+        "en": "A volume fills above",
+        "fr": "Un volume dépasse",
+        "nl": "Een volume loopt vol boven"
+      },
+      "titleFormatted": {
+        "en": "A volume fills above [[percent]] %",
+        "fr": "Un volume dépasse [[percent]] %",
+        "nl": "Een volume loopt vol boven [[percent]] %"
+      },
+      "hint": {
+        "en": "Fires once, at the moment a volume crosses the threshold upwards — not on every reading while it stays above. One card covers every volume: which one crossed comes back as a token, because Homey generates no Flow card of its own for a per-volume sub-capability.",
+        "fr": "Se déclenche une fois, au moment où un volume franchit le seuil vers le haut — pas à chaque relevé passé au-dessus. Une seule carte couvre tous les volumes : lequel a franchi revient en token, parce que Homey ne génère aucune carte de Flow pour une sous-capability de volume.",
+        "nl": "Wordt één keer geactiveerd, op het moment dat een volume de drempel overschrijdt — niet bij elke meting daarboven. Eén kaart dekt alle volumes: welk volume het betreft komt terug als token, want Homey genereert zelf geen Flow-kaart voor een subcapability per volume."
+      },
+      "args": [
+        {
+          "name": "percent",
+          "type": "number",
+          "title": { "en": "Percent", "fr": "Pourcentage", "nl": "Percentage" },
+          "min": 1,
+          "max": 100,
+          "step": 1,
+          "value": 90,
+          "placeholder": { "en": "90", "fr": "90", "nl": "90" }
+        }
+      ],
+      "tokens": [
+        { "name": "volume", "type": "string", "title": { "en": "Volume", "fr": "Volume", "nl": "Volume" }, "example": { "en": "/volume1" } },
+        { "name": "used", "type": "string", "title": { "en": "Used", "fr": "Occupation", "nl": "Gebruikt" }, "example": { "en": "92.4 %" } }
+      ]
+    },
+    {
+      "id": "nas_rebooted",
+      "title": {
+        "en": "The host reboots",
+        "fr": "L’hôte redémarre",
+        "nl": "De host start opnieuw op"
+      },
+      "hint": {
+        "en": "Fires when the host's uptime goes backwards, which means it restarted between two readings. One caveat, said plainly: the host counts uptime in a 32-bit counter that wraps after about 497 days, and a wrap is indistinguishable from a reboot.",
+        "fr": "Se déclenche quand le temps de fonctionnement de l’hôte recule, c’est-à-dire qu’il a redémarré entre deux relevés. Une réserve, dite franchement : l’hôte compte dans un compteur 32 bits qui repasse à zéro au bout d’environ 497 jours, et ce débordement est indiscernable d’un redémarrage.",
+        "nl": "Wordt geactiveerd wanneer de bedrijfstijd van de host terugloopt, wat betekent dat hij tussen twee metingen is herstart. Eén kanttekening, ronduit gezegd: de host telt in een 32-bits teller die na ongeveer 497 dagen terugloopt, en dat is niet te onderscheiden van een herstart."
+      },
+      "tokens": [
+        { "name": "cpu", "type": "string", "title": { "en": "CPU load", "fr": "Charge CPU", "nl": "CPU-belasting" }, "example": { "en": "12.5 %" } },
+        { "name": "memory", "type": "string", "title": { "en": "Memory used", "fr": "Mémoire utilisée", "nl": "Geheugen gebruikt" }, "example": { "en": "84.1 %" } }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "id": "nas_volume_over",
+      "title": {
+        "en": "A volume is above",
+        "fr": "Un volume est au-dessus de",
+        "nl": "Een volume is boven"
+      },
+      "titleFormatted": {
+        "en": "A volume !{{is|is not}} above [[percent]] %",
+        "fr": "Un volume !{{est|n’est pas}} au-dessus de [[percent]] %",
+        "nl": "Een volume !{{is|is niet}} boven [[percent]] %"
+      },
+      "hint": {
+        "en": "True when the fullest volume is above the threshold. Answers false when no volume could be read: a measurement that was not taken is not free space, and this card is there to guard a backup.",
+        "fr": "Vrai quand le volume le plus rempli dépasse le seuil. Rend faux quand aucun volume n’a pu être lu : une mesure non prise n’est pas de la place libre, et cette carte sert à protéger une sauvegarde.",
+        "nl": "Waar wanneer het volste volume boven de drempel zit. Antwoordt onwaar als geen enkel volume kon worden gelezen: een niet-genomen meting is geen vrije ruimte, en deze kaart beschermt een back-up."
+      },
+      "args": [
+        {
+          "name": "percent",
+          "type": "number",
+          "title": { "en": "Percent", "fr": "Pourcentage", "nl": "Percentage" },
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "value": 90
+        }
+      ]
+    },
+    {
+      "id": "nas_cpu_over",
+      "title": {
+        "en": "CPU load is above",
+        "fr": "La charge CPU est au-dessus de",
+        "nl": "De CPU-belasting is boven"
+      },
+      "titleFormatted": {
+        "en": "CPU load !{{is|is not}} above [[percent]] %",
+        "fr": "La charge CPU !{{est|n’est pas}} au-dessus de [[percent]] %",
+        "nl": "De CPU-belasting !{{is|is niet}} boven [[percent]] %"
+      },
+      "hint": {
+        "en": "The average over every core the host reports, not the first one. Answers false when the load could not be read.",
+        "fr": "La moyenne sur tous les cœurs que l’hôte publie, pas celle du premier. Rend faux quand la charge n’a pas pu être lue.",
+        "nl": "Het gemiddelde over alle cores die de host publiceert, niet dat van de eerste. Antwoordt onwaar als de belasting niet kon worden gelezen."
+      },
+      "args": [
+        {
+          "name": "percent",
+          "type": "number",
+          "title": { "en": "Percent", "fr": "Pourcentage", "nl": "Percentage" },
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "value": 80
+        }
+      ]
+    },
+    {
+      "id": "nas_memory_over",
+      "title": {
+        "en": "Memory used is above",
+        "fr": "La mémoire utilisée est au-dessus de",
+        "nl": "Het gebruikte geheugen is boven"
+      },
+      "titleFormatted": {
+        "en": "Memory used !{{is|is not}} above [[percent]] %",
+        "fr": "La mémoire utilisée !{{est|n’est pas}} au-dessus de [[percent]] %",
+        "nl": "Het gebruikte geheugen !{{is|is niet}} boven [[percent]] %"
+      },
+      "hint": {
+        "en": "Careful with a low threshold: on Linux the figure counts cache and buffers as used, so a perfectly healthy NAS sits at 80–95 %. Answers false when memory could not be read.",
+        "fr": "Attention aux seuils bas : sous Linux, le chiffre compte le cache et les tampons comme occupés, si bien qu’un NAS en parfaite santé s’y tient à 80–95 %. Rend faux quand la mémoire n’a pas pu être lue.",
+        "nl": "Pas op met een lage drempel: op Linux telt het cijfer cache en buffers als gebruikt, dus een kerngezonde NAS zit op 80–95 %. Antwoordt onwaar als het geheugen niet kon worden gelezen."
+      },
+      "args": [
+        {
+          "name": "percent",
+          "type": "number",
+          "title": { "en": "Percent", "fr": "Pourcentage", "nl": "Percentage" },
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "value": 95
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "nas_refresh",
+      "title": {
+        "en": "Read the host now",
+        "fr": "Relever l’hôte maintenant",
+        "nl": "Lees de host nu uit"
+      },
+      "hint": {
+        "en": "Takes the fast reading — load, memory, uptime — outside the normal schedule. Read-only, like everything this app does to a host: nothing here can switch anything off.",
+        "fr": "Effectue le relevé rapide — charge, mémoire, temps de fonctionnement — hors planning. En lecture seule, comme tout ce que cette app fait à un hôte : rien ici ne peut éteindre quoi que ce soit.",
+        "nl": "Voert de snelle uitlezing uit — belasting, geheugen, bedrijfstijd — buiten het normale schema. Alleen-lezen, zoals alles wat deze app met een host doet: niets hier kan iets uitschakelen."
+      }
+    }
+  ]
+}

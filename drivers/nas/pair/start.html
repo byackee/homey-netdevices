@@ -1,0 +1,629 @@
+<!--
+  L'unique vue de pairing du NAS / hôte.
+
+  🔴 Une vue custom ne peut pas naviguer vers un template système : la navigation
+  échoue en écran blanc, ou l'assistant se ferme sans avoir rien créé. Il n'y a donc
+  ici qu'UNE vue, et c'est elle qui appelle `Homey.createDevice()` puis `Homey.done()`.
+
+  Contrat attendu des handlers `onPair` du driver.
+
+    viewLog(message: string)      -> pousse la ligne dans le tampon de traces
+    scan_start({community})       -> { started: boolean, reason?: string,
+                                       subnet: string|null, total: number }
+                                     rend la main tout de suite ; le balayage appartient
+                                     à l'app et sert TOUS les drivers — un balayage déjà
+                                     en vol est retourné tel quel, il n'en part pas un second
+    scan_status(null)             -> { running, done, total, subnet, error,
+                                       found: Finding[], others: Finding[],
+                                       reachable: string[] }
+                                     `found`  = parle HOST-RESOURCES-MIB et rend au moins
+                                                une mesure
+                                     `others` = parle SNMP, mais pas HOST-RESOURCES-MIB —
+                                                ou n'en rend rien de lisible. Une
+                                                information, pas du bruit : « le SNMP
+                                                marche ici, mais pas sur le NAS »
+                                                n'envoie pas au même endroit que
+                                                « rien n'a répondu du tout ».
+    probe({host, community})      -> Probe
+    adopted({host, id})           -> signale ce que la vue a réellement créé
+
+    Finding = { host, name, description, vendor, version, volumes, device? }
+    Probe   = Finding & { outcome: 'host'|'snmp'|'silent'|'no-host'
+                                  |'already-paired'|'nothing-readable' }
+
+  🔴 `finding.device` est la charge utile de pairing, et elle se passe TELLE QUELLE à
+  `Homey.createDevice()`. Elle est assemblée par `drivers/nas/pairing.mts`, seul endroit
+  du dépôt où un résultat de pairing NAS est fabriqué : ses clés sont vérifiées par le
+  compilateur et par `test/nas/pairing.test.mts`. La vue ne la reconstruit pas, ne
+  l'enrichit pas et n'en retire rien — un second constructeur dériverait du premier sans
+  que rien ne le signale, et une clé en trop vide la liste sans un mot. Elle n'est
+  présente que sur un hôte qui rend au moins une mesure : un `Finding` sans `device`
+  s'affiche, mais ne s'adopte pas.
+
+  🔴 `outcome: 'nothing-readable'` — l'hôte publie bien la MIB mais aucune mesure
+  exploitable — est distinct de `'snmp'`. Les confondre enverrait l'utilisateur activer
+  un SNMP qui marche déjà.
+
+  Un `Finding` n'est PAS un résultat de pairing : c'est son champ `device` qui l'est.
+-->
+
+<style>
+  .nas-start-intro { color: var(--homey-text-color-light); margin-bottom: 1rem; line-height: 1.45; }
+
+  .nas-start-row {
+    display: flex; align-items: center; gap: .75rem;
+    width: 100%; box-sizing: border-box; text-align: left;
+    padding: .75rem .85rem; margin-bottom: .5rem;
+    border: 1px solid var(--homey-line-color); border-radius: 8px;
+    background: var(--homey-background-color); color: var(--homey-text-color);
+    font: inherit; cursor: pointer;
+  }
+  .nas-start-row:hover { border-color: var(--homey-color-blue, #1B6AC9); }
+  .nas-start-row:disabled { opacity: .55; cursor: default; }
+  .nas-start-row .nas-start-name { font-weight: 600; }
+  .nas-start-row .nas-start-meta { color: var(--homey-text-color-light); font-size: .85rem; }
+  .nas-start-row .nas-start-grow { flex: 1; min-width: 0; }
+  .nas-start-row .nas-start-name,
+  .nas-start-row .nas-start-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .nas-start-status { margin: 1rem 0; color: var(--homey-text-color-light); line-height: 1.45; }
+  .nas-start-status.bad { color: var(--homey-color-red, #da3633); }
+
+  /* Le panneau « ce qu'il faut aller activer ». Il remplace le « aucun appareil
+     trouvé » qui n'apprend rien à personne. */
+  .nas-start-help {
+    margin: 1rem 0; padding: .9rem 1rem; line-height: 1.5;
+    border: 1px solid var(--homey-line-color); border-radius: 8px;
+    background: var(--homey-background-color);
+  }
+  .nas-start-help h2 { font-size: 1rem; margin: 0 0 .6rem; }
+  .nas-start-help h2 + p { margin-top: 0; }
+  .nas-start-help p { margin: .6rem 0; color: var(--homey-text-color-light); }
+  .nas-start-help p:last-child { margin-bottom: 0; }
+  .nas-start-help .nas-start-reachable { color: var(--homey-text-color); font-weight: 600; }
+
+  .nas-start-manual { margin-top: 1.5rem; border-top: 1px solid var(--homey-line-color); padding-top: 1rem; }
+  .nas-start-manual summary { cursor: pointer; color: var(--homey-text-color-light); }
+  .nas-start-manual-hint { color: var(--homey-text-color-light); font-size: .9rem; margin: .6rem 0 0; }
+  .nas-start-fields { display: flex; gap: .5rem; margin-top: .75rem; }
+  .nas-start-fields input {
+    flex: 1; min-width: 0; padding: .55rem .65rem; font-size: 1rem;
+    border: 1px solid var(--homey-line-color); border-radius: 6px;
+    background: var(--homey-background-color); color: var(--homey-text-color);
+  }
+
+  .nas-start-button {
+    padding: .55rem 1rem; border-radius: 6px; border: 0; cursor: pointer;
+    background: var(--homey-color-blue, #1B6AC9); color: #fff; font: inherit;
+  }
+  .nas-start-button:disabled { opacity: .55; cursor: default; }
+  #nas-start-search { width: 100%; padding: .7rem 1rem; font-weight: 600; }
+  .nas-start-hidden { display: none; }
+
+  /* Un balayage /24 prend une quinzaine de secondes, et les hôtes sont ensuite
+     interrogés un par un. Un écran figé aussi longtemps se lit comme cassé, donc
+     quelque chose bouge en permanence. */
+  .nas-start-spinner {
+    display: inline-block; width: 15px; height: 15px; margin-right: .5rem;
+    vertical-align: -2px; border-radius: 50%;
+    border: 2px solid var(--homey-line-color);
+    border-top-color: var(--homey-color-blue, #1B6AC9);
+    animation: nas-start-spin .8s linear infinite;
+  }
+  @keyframes nas-start-spin { to { transform: rotate(360deg); } }
+
+  .nas-start-bar { height: 3px; border-radius: 2px; background: var(--homey-line-color); margin: .75rem 0 1rem; overflow: hidden; }
+  .nas-start-bar > span {
+    display: block; height: 100%; width: 40%; border-radius: 2px;
+    background: var(--homey-color-blue, #1B6AC9);
+    animation: nas-start-slide 1.4s ease-in-out infinite;
+  }
+  @keyframes nas-start-slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+  }
+</style>
+
+<!--
+  Les libellés sont écrits en clair ici, en anglais, et le script les REMPLACE par la
+  traduction. Pas de `data-i18n` : une clé manquante laisserait un titre vide et un
+  bouton qui a l'air mort. Ici, le pire cas reste lisible.
+-->
+<h1 id="nas-start-title">Find your NAS</h1>
+<p id="nas-start-intro" class="nas-start-intro">Homey will sweep your network for machines that publish HOST-RESOURCES-MIB over SNMP — a Synology, a QNAP, a Linux box running snmpd, an ESXi host.</p>
+
+<button type="button" id="nas-start-search" class="nas-start-button" disabled>Searching the network…</button>
+<div id="nas-start-progress" class="nas-start-bar nas-start-hidden"><span></span></div>
+<div id="nas-start-status" class="nas-start-status"></div>
+<div id="nas-start-help" class="nas-start-help nas-start-hidden"></div>
+<div id="nas-start-list"></div>
+
+<details id="nas-start-manual" class="nas-start-manual">
+  <summary id="nas-start-manual-summary">Or enter an address yourself</summary>
+  <p id="nas-start-manual-hint" class="nas-start-manual-hint">Use this if the sweep found nothing but you know where the machine is.</p>
+  <div class="nas-start-fields">
+    <input type="text" id="nas-start-host" inputmode="decimal" autocomplete="off" placeholder="192.168.1.30">
+    <input type="text" id="nas-start-community" autocomplete="off" value="public" style="max-width:9rem">
+    <button type="button" id="nas-start-add" class="nas-start-button">Test this address</button>
+  </div>
+</details>
+
+<script type="text/javascript">
+/*
+ * Tout est enfermé dans une IIFE, et tous les identifiants sont préfixés `nas-start-`.
+ *
+ * 🔴 Ce n'est pas de la coquetterie : toutes les vues d'un même driver partagent UN
+ * document ET la portée JavaScript globale. Sans préfixe, `getElementById('list')`
+ * rend celui de la PREMIÈRE vue chargée — sur vtherm, une page recevait bien ses
+ * données et remplissait tranquillement la liste de sa voisine cachée. Sans IIFE,
+ * deux vues qui déclarent `escapeHtml` s'écrasent l'une l'autre, en silence.
+ *
+ * Le préfixe est `nas-start-` et non `ups-start-` : les deux drivers vivent dans la
+ * même app et leurs vues sont écrites sur le même modèle. Deux vues de drivers
+ * différents ne partagent pas de document, mais recopier le préfixe du voisin est
+ * exactement le genre d'inattention qui rend la collision possible le jour où l'une
+ * est déplacée.
+ *
+ * Et il n'y a volontairement AUCUN `<script src="/homey.js">` : Homey injecte déjà
+ * son API dans une vue de pairing. Une seconde copie construit une instance qui n'est
+ * rattachée à aucune session — le script tourne, le bouton se renomme, et chaque
+ * `emit` part dans le vide sans la moindre erreur. (Une page de *settings*, elle, doit
+ * bien l'inclure : ne pas confondre les deux.)
+ */
+(function () {
+  'use strict';
+
+  /** Pousse une ligne dans le tampon de traces du driver. Ne doit jamais jeter. */
+  function report(message) {
+    try { Homey.emit('viewLog', '[pair/start] ' + String(message)); } catch (e) { /* rien à faire */ }
+  }
+
+  // Posés avant tout le reste : c'est ce qui distingue « la vue n'a jamais démarré »
+  // de « la vue a démarré et a explosé à sa troisième ligne ».
+  window.addEventListener('error', function (event) {
+    report('window error: ' + (event && event.message) + ' @' + (event && event.lineno));
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    var reason = event && event.reason;
+    report('unhandled rejection: ' + ((reason && reason.message) || reason));
+  });
+
+  /** Traduit, et retombe sur le texte anglais déjà présent — jamais sur une clé nue. */
+  function t(key, fallback, tags) {
+    try {
+      var value = tags ? Homey.__(key, tags) : Homey.__(key);
+      if (value && value !== key) return value;
+    } catch (e) {
+      report('translate failed for ' + key + ': ' + e.message);
+    }
+    return fallback;
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  var searchEl = document.getElementById('nas-start-search');
+  var progressEl = document.getElementById('nas-start-progress');
+  var statusEl = document.getElementById('nas-start-status');
+  var helpEl = document.getElementById('nas-start-help');
+  var listEl = document.getElementById('nas-start-list');
+  var hostEl = document.getElementById('nas-start-host');
+  var communityEl = document.getElementById('nas-start-community');
+  var addEl = document.getElementById('nas-start-add');
+
+  var adopting = false;
+  var sweeping = false;
+
+  function setStatus(text, bad) {
+    statusEl.textContent = text || '';
+    statusEl.className = bad ? 'nas-start-status bad' : 'nas-start-status';
+  }
+
+  /** Une erreur passe toujours par `pair.error`, jamais brute à l'écran. */
+  function setError(message) {
+    var text = (message && message.message) || message;
+    setStatus(t('pair.error', 'Something went wrong: {{message}}', { message: String(text) })
+      .replace('{{message}}', String(text)), true);
+  }
+
+  function setSearching(on, text) {
+    progressEl.className = on ? 'nas-start-bar' : 'nas-start-bar nas-start-hidden';
+    if (on) {
+      statusEl.className = 'nas-start-status';
+      statusEl.innerHTML = '<span class="nas-start-spinner"></span>' + escapeHtml(text || '');
+    }
+  }
+
+  function hideHelp() {
+    helpEl.className = 'nas-start-help nas-start-hidden';
+    helpEl.innerHTML = '';
+  }
+
+  function paragraph(text, className) {
+    return '<p' + (className ? ' class="' + className + '"' : '') + '>' + escapeHtml(text) + '</p>';
+  }
+
+  /*
+   * 🔴 Ce qui remplace « aucun appareil trouvé ».
+   *
+   * Le SNMP est désactivé d'usine sur un Synology comme sur un QNAP, et il n'est pas
+   * installé par défaut sur un Linux. « No new devices found » décrit donc, presque
+   * toujours, la mauvaise chose : ce n'est pas qu'il n'y a rien, c'est que rien ne
+   * répond encore.
+   *
+   * Trois situations, trois endroits où aller — et surtout pas le même message :
+   *
+   *   others    des appareils parlent SNMP, aucun ne publie HOST-RESOURCES-MIB. Le SNMP
+   *             marche ; c'est le NAS qui ne le sert pas, ou on balaie le mauvais
+   *             sous-réseau.
+   *   reachable une adresse répond au ping et rien en SNMP. Le service y est éteint.
+   *   rien      personne n'a répondu : la marche à suivre complète.
+   */
+  function showHelp(others, reachable) {
+    var parts = [];
+
+    if (others && others.length) {
+      parts.push('<h2>' + escapeHtml(t('pair_nas.others_title', 'SNMP works here, but no host answered')) + '</h2>');
+      parts.push(paragraph(t('pair_nas.others_lead',
+        'These addresses answered SNMP but do not publish HOST-RESOURCES-MIB — or publish it without a single readable measurement. So SNMP itself is fine on your network; it is this particular machine that is not serving the host MIB.')));
+      for (var j = 0; j < others.length; j += 1) {
+        parts.push(paragraph(describe(others[j]), 'nas-start-reachable'));
+      }
+    }
+
+    if (reachable && reachable.length) {
+      parts.push('<h2>' + escapeHtml(t('pair.reachable_title', 'Reachable, but silent over SNMP')) + '</h2>');
+      parts.push(paragraph(t('pair.reachable_lead',
+        'These addresses answered a ping but not an SNMP request. That is the signature of SNMP being switched off on a device that is otherwise perfectly healthy.')));
+      for (var i = 0; i < reachable.length; i += 1) {
+        parts.push(paragraph(
+          t('pair.reachable_item', '{{host}} — reachable, no SNMP answer', { host: reachable[i] })
+            .replace('{{host}}', reachable[i]),
+          'nas-start-reachable'));
+      }
+    }
+
+    parts.push('<h2>' + escapeHtml(t('pair_nas.empty_title', 'Nothing answered over SNMP — here is what to switch on')) + '</h2>');
+    parts.push(paragraph(t('pair_nas.empty_lead',
+      'An empty list nearly always means SNMP is still switched off, not that there is no NAS. Every supported path needs you to enable something first.')));
+    parts.push(paragraph(t('pair_nas.empty_synology',
+      'Synology: Control Panel → Terminal & SNMP → tick "Enable SNMP service" and SNMPv1/v2c, and leave the community as "public".')));
+    parts.push(paragraph(t('pair_nas.empty_qnap',
+      'QNAP: Control Panel → Network & File Services → SNMP → enable the SNMP service, version 1/2.')));
+    parts.push(paragraph(t('pair_nas.empty_linux',
+      'Linux: install and start snmpd, then make sure it listens on the LAN — the packaged configuration binds to 127.0.0.1 only, so it answers the machine itself and nobody else.')));
+    parts.push(paragraph(t('pair.empty_retry', 'Switch it on, then search again.')));
+
+    helpEl.innerHTML = parts.join('');
+    helpEl.className = 'nas-start-help';
+  }
+
+  /** « 192.168.1.30 — DiskStation ». L'adresse d'abord : c'est l'actionnable. */
+  function describe(finding) {
+    var what = labelFor(finding);
+    return what === finding.host ? finding.host : finding.host + ' — ' + what;
+  }
+
+  /**
+   * Comment nommer une machine qu'on n'a jamais vue.
+   *
+   * Le nom assemblé par le driver d'abord — il combine déjà la marque déduite de la MAC
+   * et le `sysName`. À défaut le `sysName` seul, puis la description tronquée, puis
+   * l'adresse — qui n'apprend rien mais n'est jamais vide.
+   */
+  function labelFor(finding) {
+    return (finding.device && finding.device.name) ||
+      finding.name ||
+      finding.description ||
+      finding.host;
+  }
+
+  /** La communauté saisie, qui est aussi celle avec laquelle on balaie. */
+  function community() {
+    return communityEl.value.trim() || 'public';
+  }
+
+  function render(findings) {
+    listEl.innerHTML = '';
+    for (var i = 0; i < findings.length; i += 1) {
+      listEl.appendChild(rowFor(findings[i]));
+    }
+  }
+
+  /** « 192.168.1.30 · 2 volumes · 6 mesures » — ce que l'appareil portera vraiment. */
+  function metaFor(finding) {
+    var parts = [finding.host];
+    if (typeof finding.volumes === 'number' && finding.volumes > 0) {
+      parts.push(finding.volumes === 1
+        ? t('pair_nas.one_volume', '1 volume')
+        : t('pair_nas.many_volumes', '{{count}} volumes', { count: finding.volumes })
+            .replace('{{count}}', String(finding.volumes)));
+    }
+    if (finding.device && finding.device.capabilities) {
+      parts.push(t('pair_nas.measures', '{{count}} measurements', { count: finding.device.capabilities.length })
+        .replace('{{count}}', String(finding.device.capabilities.length)));
+    }
+    return parts.join(' · ');
+  }
+
+  function rowFor(finding) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'nas-start-row';
+    button.innerHTML =
+      '<div class="nas-start-grow">' +
+        '<div class="nas-start-name">' + escapeHtml(labelFor(finding)) + '</div>' +
+        '<div class="nas-start-meta">' + escapeHtml(metaFor(finding)) + '</div>' +
+      '</div>';
+    button.addEventListener('click', function () { adopt(finding); });
+    return button;
+  }
+
+  /**
+   * Adopter, c'est repasser au SDK ce que le driver a déjà assemblé.
+   *
+   * 🔴 `finding.device` part TEL QUEL. Le tenter d'améliorer — ajouter `class`, recopier
+   * l'adresse au premier niveau, glisser le nombre de volumes à côté des réglages —
+   * vide la liste sans un message, et le SDK type ça `any` : ni le compilateur ni
+   * `homey app validate` ne le verraient. Le seul endroit du dépôt qui fabrique un
+   * résultat de pairing NAS est `drivers/nas/pairing.mts`, et c'est très bien ainsi.
+   */
+  function adopt(finding) {
+    if (adopting) return Promise.resolve();
+
+    // Un `Finding` sans charge utile est un hôte dont rien n'est lisible : l'offrir à
+    // l'adoption créerait un appareil sans une seule capability, donc une tuile vide
+    // pour toujours.
+    if (!finding.device) {
+      setError(t('pair_nas.not_readable', 'that address answered, but nothing on it could be read'));
+      return Promise.resolve();
+    }
+
+    adopting = true;
+    setStatus(t('pair.adding', 'Adding…'));
+    report('adopting ' + finding.host);
+
+    return Promise.resolve(Homey.createDevice(finding.device))
+      .then(function () {
+        report('created ' + finding.host);
+        // Ce que la vue a réellement créé. Sans ce retour, un `createDevice()` qui
+        // échoue côté Homey ne laisse aucune trace du côté de l'app — et une adoption
+        // muette est indiscernable d'une vue qui n'a jamais parlé.
+        report('adopted ' + finding.device.data.id);
+        try { Homey.emit('adopted', { host: finding.host, id: finding.device.data.id }); }
+        catch (e) { /* la trace vaut mieux que rien, mais l'appareil existe déjà */ }
+        setStatus(t('pair.added', 'Added.'));
+        // Une vue custom ne navigue pas : elle se termine. C'est `done()` qui ferme
+        // l'assistant, et rien d'autre.
+        Homey.done();
+      })
+      .catch(function (error) {
+        report('createDevice failed: ' + ((error && error.message) || error));
+        setError(error);
+        adopting = false;
+      });
+  }
+
+  /*
+   * 🔴 Lancer, puis interroger. Jamais attendre.
+   *
+   * Un appel d'API d'app est coupé à dix secondes et un balayage /24 en prend une
+   * quinzaine : un unique `scan` qui rendrait la liste finie ne peut pas exister.
+   * Donc `scan_start` rend la main aussitôt, et `scan_status` est interrogé toutes
+   * les 1,5 s — en requête/réponse. Surtout pas de `session.emit()` en push : un
+   * balayage tombé et un événement jamais arrivé y seraient indiscernables.
+   */
+  function sweep() {
+    if (sweeping) return Promise.resolve();
+    sweeping = true;
+    searchEl.disabled = true;
+    listEl.innerHTML = '';
+    hideHelp();
+    setSearching(true, t('pair.scanning', 'Searching the network…'));
+    report('sweep: requesting scan_start');
+
+    return Promise.resolve(Homey.emit('scan_start', { community: community() }))
+      .then(function (started) {
+        report('sweep: scan_start returned ' + JSON.stringify(started));
+        if (!started || !started.started) {
+          setSearching(false);
+          setError((started && started.reason) || 'scan_start refused');
+          return null;
+        }
+        return poll(0);
+      })
+      .catch(function (error) {
+        report('sweep failed: ' + ((error && error.message) || error));
+        setSearching(false);
+        setError(error);
+      })
+      .then(function () {
+        setSearching(false);
+        sweeping = false;
+        searchEl.disabled = false;
+        searchEl.textContent = t('pair.scan_button', 'Search again');
+      });
+  }
+
+  /**
+   * Une passe d'interrogation. Récursive plutôt que bouclée : rien à réaffecter.
+   *
+   * La limite est plus haute que celle du driver onduleur — 40 passes, soit une minute —
+   * parce qu'ici le balayage n'est que la première moitié du travail : chaque adresse
+   * qui a répondu en SNMP est ensuite interrogée sur HOST-RESOURCES-MIB, une par une.
+   */
+  function poll(attempt) {
+    if (attempt >= 40) {
+      report('sweep: gave up waiting after ' + attempt + ' polls');
+      setSearching(false);
+      setError('the scan did not finish');
+      return Promise.resolve();
+    }
+
+    return wait(1500)
+      .then(function () { return Homey.emit('scan_status', null); })
+      .then(function (data) {
+        if (!data) {
+          report('sweep: scan_status returned nothing');
+          setSearching(false);
+          setError('lost track of the scan');
+          return null;
+        }
+
+        var found = data.found || [];
+        var others = data.others || [];
+        render(found);
+
+        if (data.running) {
+          setSearching(true, progressText(data));
+          return poll(attempt + 1);
+        }
+
+        report('sweep: finished — ' + found.length + ' hosts, ' + others.length + ' other snmp');
+        setSearching(false);
+
+        // Une erreur de balayage n'est pas une liste vide : dire « activez le SNMP »
+        // à quelqu'un dont le balayage n'a pas pu démarrer l'envoie chercher ailleurs.
+        if (data.error) {
+          setError(data.error);
+          return null;
+        }
+
+        if (found.length) {
+          hideHelp();
+          setStatus(found.length === 1
+            ? t('pair_nas.found_one', '1 host found.')
+            : t('pair_nas.found_many', '{{count}} hosts found.', { count: found.length })
+                .replace('{{count}}', String(found.length)));
+        } else {
+          setStatus('');
+          showHelp(others, data.reachable || []);
+        }
+        return null;
+      });
+  }
+
+  /** « 61 adresses sur 254 » quand le driver compte, sinon la phrase seule. */
+  function progressText(data) {
+    if (typeof data.done === 'number' && typeof data.total === 'number' && data.total > 0) {
+      return t('pair.scanning_progress', 'Searching — {{done}} of {{total}} addresses checked.',
+        { done: data.done, total: data.total })
+        .replace('{{done}}', String(data.done))
+        .replace('{{total}}', String(data.total));
+    }
+    return t('pair.scanning', 'Searching the network…');
+  }
+
+  function wait(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  /**
+   * Tester une adresse qu'on connaît déjà.
+   *
+   * C'est la sortie de secours du balayage : une communauté qui n'est pas « public »,
+   * un NAS sur un autre sous-réseau, un agent qui ignore les requêtes en rafale. La
+   * sonde dit ce qu'elle a trouvé, et chaque réponse mène ailleurs.
+   */
+  function addManually() {
+    var host = hostEl.value.trim();
+    if (!host) return Promise.resolve();
+
+    addEl.disabled = true;
+    hideHelp();
+    setStatus(t('pair.probing', 'Contacting…'));
+    report('probing ' + host);
+
+    return Promise.resolve(Homey.emit('probe', { host: host, community: community() }))
+      .then(function (probe) {
+        if (!probe) {
+          setError('no answer from ' + host);
+          return null;
+        }
+
+        // Un hôte lisible : on adopte, c'est tout ce que la vue avait à faire.
+        if (probe.outcome === 'host') {
+          setStatus('');
+          return adopt(probe);
+        }
+
+        // Ça parle SNMP, mais pas la bonne MIB — ou rien de lisible dedans. Deux
+        // situations distinctes, un même endroit où aller regarder.
+        if (probe.outcome === 'snmp' || probe.outcome === 'nothing-readable') {
+          setStatus('');
+          showHelp([probe], []);
+          return null;
+        }
+
+        // Déjà dans Homey. Le dire, plutôt que « n'a pas répondu » : l'utilisateur
+        // cherche une machine qu'il a sous les yeux dans une autre pièce.
+        if (probe.outcome === 'already-paired') {
+          setError(t('pair.probe_already', '{{host}} is already added to Homey.', { host: host })
+            .replace('{{host}}', host));
+          return null;
+        }
+
+        setError(t('pair.probe_silent', '{{host}} did not answer at all. Check the address, or that the device is switched on.',
+          { host: host }).replace('{{host}}', host));
+        return null;
+      })
+      .catch(function (error) {
+        report('probe failed: ' + ((error && error.message) || error));
+        setError(error);
+      })
+      .then(function () { addEl.disabled = false; });
+  }
+
+  /*
+   * L'amorçage, et seulement lui, après que TOUT ce qui précède est affecté.
+   *
+   * 🔴 Le bug de course de vtherm est exactement là : `start()` lisait une valeur
+   * déclarée mais pas encore affectée, et ne se manifestait QUE lorsque l'API était
+   * déjà prête — donc jamais en développement, toujours chez l'utilisateur. Les deux
+   * chemins de démarrage sont exercés par `test/nas/pair-view.test.mts`.
+   */
+  function boot() {
+    report('view script running');
+
+    searchEl.addEventListener('click', function () { sweep(); });
+    addEl.addEventListener('click', function () { addManually(); });
+    hostEl.addEventListener('keydown', function (event) {
+      if (event && event.key === 'Enter') addManually();
+    });
+
+    translate('nas-start-title', 'pair_nas.title');
+    translate('nas-start-intro', 'pair_nas.intro');
+    translate('nas-start-manual-summary', 'pair.manual');
+    translate('nas-start-manual-hint', 'pair.manual_hint');
+    translate('nas-start-search', 'pair.scanning');
+    translate('nas-start-add', 'pair.manual_button');
+    hostEl.placeholder = t('pair.manual_placeholder', hostEl.placeholder);
+
+    report('view ready, starting sweep');
+    sweep();
+  }
+
+  /** Remplace le texte anglais du document par sa traduction, s'il y en a une. */
+  function translate(id, key) {
+    var element = document.getElementById(id);
+    if (element) element.textContent = t(key, element.textContent);
+  }
+
+  // `Homey.ready()` en premier, avant tout autre appel — et jamais `Homey.setTitle()`,
+  // qui appelé trop tôt tuait le script avant sa première ligne utile. Jamais
+  // `onHomeyReady` non plus : c'est la convention des pages de *settings*, elle n'est
+  // jamais appelée en pairing, et la vue reste blanche sans un mot.
+  var ready;
+  try {
+    ready = Homey.ready();
+  } catch (e) {
+    ready = null;
+    report('Homey.ready() threw: ' + e.message);
+  }
+  if (ready && typeof ready.then === 'function') ready.then(boot, boot);
+  else boot();
+})();
+</script>

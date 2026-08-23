@@ -1,0 +1,213 @@
+<!--
+  La vue de réparation : repointer un appareil existant vers une nouvelle adresse.
+
+  Elle vit dans le même dossier que `start.html`, donc dans le même document et la
+  même portée JavaScript. Tous ses identifiants sont préfixés `nas-repair-`, et son
+  script est enfermé dans sa propre IIFE. Sans cela, `getElementById('host')` rendrait
+  le champ de la vue de pairing, et l'utilisateur corrigerait une adresse qui ne serait
+  jamais lue.
+
+  Contrat attendu des handlers `onRepair` du driver :
+
+    viewLog(message: string)   -> pousse la ligne dans le tampon de traces
+    getConfig(null)            -> { host?: string, community?: string }
+    setAddress({host, community})
+                               -> { ok: true }
+                                | { ok: false, message?: string,
+                                    found?: string, expected?: string }
+                                  `found`/`expected` : l'adresse répond, mais c'est une
+                                  AUTRE machine. Rien n'est écrit dans ce cas — c'est le
+                                  driver qui compare, sur `sysName`.
+
+  ⚠️ Le repère est `sysName` et non un numéro de série : HOST-RESOURCES-MIB n'en publie
+  aucun. Il est donc plus faible que celui de l'onduleur — renommer sa machine puis la
+  réparer donne un refus. Le refus nomme les deux noms, et c'est le bon sens de
+  l'erreur : mieux vaut un utilisateur qui doit confirmer qu'un appareil qui relève
+  silencieusement la mauvaise machine.
+
+  Il n'y a ici aucune navigation, pas même un `addNavigationButton` : une vue custom ne
+  peut pas rejoindre un template système, et l'assistant se fermerait sur un écran
+  blanc. Le bouton est dans la page, et c'est `Homey.done()` qui termine.
+-->
+
+<style>
+  .nas-repair-intro { color: var(--homey-text-color-light); margin-bottom: 1.25rem; line-height: 1.45; }
+  .nas-repair-field { margin-bottom: 1rem; }
+  .nas-repair-field label { display: block; margin-bottom: .35rem; font-weight: 600; }
+  .nas-repair-field input {
+    width: 100%; box-sizing: border-box; padding: .6rem .7rem;
+    border: 1px solid var(--homey-line-color); border-radius: var(--homey-border-radius-small, 6px);
+    font-size: 1rem; background: var(--homey-background-color); color: var(--homey-text-color);
+  }
+  .nas-repair-field .nas-repair-hint { font-weight: 400; font-size: .85rem; color: var(--homey-text-color-light); }
+  .nas-repair-result { margin-top: 1rem; padding: .8rem .9rem; border-radius: 6px; line-height: 1.45; }
+  .nas-repair-result.ok { background: rgba(46, 160, 67, .12); }
+  .nas-repair-result.bad { background: rgba(218, 54, 51, .12); }
+  .nas-repair-button {
+    padding: .6rem 1.1rem; border-radius: 6px; border: 0; cursor: pointer;
+    background: var(--homey-color-blue, #1B6AC9); color: #fff; font: inherit; font-weight: 600;
+  }
+  .nas-repair-button:disabled { opacity: .55; cursor: default; }
+  .nas-repair-hidden { display: none; }
+</style>
+
+<h1 id="nas-repair-title">Point this device at a new address</h1>
+<p id="nas-repair-intro" class="nas-repair-intro">Use this when the host moved to a different IP address. Reserve a fixed address in your router to stop it happening again.</p>
+
+<div class="nas-repair-field">
+  <label for="nas-repair-host"><span id="nas-repair-host-label">IP address</span></label>
+  <input type="text" id="nas-repair-host" inputmode="decimal" autocomplete="off" placeholder="192.168.1.30">
+</div>
+
+<div class="nas-repair-field">
+  <label for="nas-repair-community">
+    <span id="nas-repair-community-label">SNMP community</span>
+    <span class="nas-repair-hint" id="nas-repair-community-hint">Almost always "public".</span>
+  </label>
+  <input type="text" id="nas-repair-community" autocomplete="off" value="public">
+</div>
+
+<button type="button" id="nas-repair-save" class="nas-repair-button">Save address</button>
+<div id="nas-repair-result" class="nas-repair-result nas-repair-hidden"></div>
+
+<script type="text/javascript">
+(function () {
+  'use strict';
+
+  function report(message) {
+    try { Homey.emit('viewLog', '[pair/repair] ' + String(message)); } catch (e) { /* rien à faire */ }
+  }
+
+  window.addEventListener('error', function (event) {
+    report('window error: ' + (event && event.message) + ' @' + (event && event.lineno));
+  });
+  window.addEventListener('unhandledrejection', function (event) {
+    var reason = event && event.reason;
+    report('unhandled rejection: ' + ((reason && reason.message) || reason));
+  });
+
+  function t(key, fallback, tags) {
+    try {
+      var value = tags ? Homey.__(key, tags) : Homey.__(key);
+      if (value && value !== key) return value;
+    } catch (e) {
+      report('translate failed for ' + key + ': ' + e.message);
+    }
+    return fallback;
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  var hostEl = document.getElementById('nas-repair-host');
+  var communityEl = document.getElementById('nas-repair-community');
+  var saveEl = document.getElementById('nas-repair-save');
+  var resultEl = document.getElementById('nas-repair-result');
+
+  var saving = false;
+
+  function show(kind, text) {
+    resultEl.className = 'nas-repair-result ' + kind;
+    resultEl.innerHTML = escapeHtml(text);
+  }
+
+  function showError(message) {
+    var text = (message && message.message) || message;
+    show('bad', t('pair.error', 'Something went wrong: {{message}}', { message: String(text) })
+      .replace('{{message}}', String(text)));
+  }
+
+  function save() {
+    if (saving) return Promise.resolve();
+    var host = hostEl.value.trim();
+    if (!host) return Promise.resolve();
+
+    saving = true;
+    saveEl.disabled = true;
+    show('ok', t('pair.probing', 'Contacting…'));
+    report('setAddress ' + host);
+
+    return Promise.resolve(Homey.emit('setAddress', { host: host, community: communityEl.value.trim() }))
+      .then(function (answer) {
+        if (answer && answer.ok) {
+          show('ok', t('pair.repair_ok', 'Address updated.'));
+          report('address updated to ' + host);
+          // Terminer, sans naviguer : le driver a déjà écrit le réglage.
+          Homey.done();
+          return;
+        }
+
+        // Le cas qui compte : ça répond, mais ce n'est pas la même machine.
+        // Écraser l'adresse ici ferait pointer l'appareil sur le voisin, en silence.
+        if (answer && answer.found) {
+          show('bad', t('pair_nas.repair_mismatch',
+            'That address answers, but it is a different host ({{found}} instead of {{expected}}). Nothing was changed.',
+            { found: answer.found, expected: answer.expected })
+            .replace('{{found}}', String(answer.found))
+            .replace('{{expected}}', String(answer.expected)));
+          report('mismatch: ' + answer.found + ' != ' + answer.expected);
+          return;
+        }
+
+        showError((answer && answer.message) || 'no SNMP answer from ' + host);
+      })
+      .catch(function (error) {
+        report('setAddress failed: ' + ((error && error.message) || error));
+        showError(error);
+      })
+      .then(function () {
+        saving = false;
+        saveEl.disabled = false;
+      });
+  }
+
+  function translate(id, key) {
+    var element = document.getElementById(id);
+    if (element) element.textContent = t(key, element.textContent);
+  }
+
+  /** Amorçage, après affectation de tout ce qui précède. */
+  function boot() {
+    report('view script running');
+
+    saveEl.addEventListener('click', function () { save(); });
+    hostEl.addEventListener('keydown', function (event) {
+      if (event && event.key === 'Enter') save();
+    });
+
+    translate('nas-repair-title', 'pair.repair_title');
+    translate('nas-repair-intro', 'pair_nas.repair_hint');
+    translate('nas-repair-save', 'pair.repair_button');
+    translate('nas-repair-community-label', 'pair.community_label');
+    translate('nas-repair-community-hint', 'pair.community_hint');
+    hostEl.placeholder = t('pair.manual_placeholder', hostEl.placeholder);
+
+    // Pré-remplir avec ce que l'appareil porte déjà : une réparation se résume
+    // presque toujours à corriger le dernier octet.
+    Promise.resolve(Homey.emit('getConfig', null))
+      .then(function (config) {
+        if (!config) return;
+        hostEl.value = config.host || '';
+        communityEl.value = config.community || 'public';
+        report('prefilled from ' + (config.host || '(nothing)'));
+      })
+      .catch(function (error) {
+        // Pas de config lisible : un formulaire vide est la bonne réponse.
+        report('getConfig failed: ' + ((error && error.message) || error));
+      });
+  }
+
+  var ready;
+  try {
+    ready = Homey.ready();
+  } catch (e) {
+    ready = null;
+    report('Homey.ready() threw: ' + e.message);
+  }
+  if (ready && typeof ready.then === 'function') ready.then(boot, boot);
+  else boot();
+})();
+</script>
