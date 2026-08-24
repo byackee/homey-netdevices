@@ -1,11 +1,20 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
-import { throughputBetween, type TrafficSample } from '../../lib/netswitch/throughput.mjs';
+import { NO_THROUGHPUT, throughputBetween, type TrafficSample } from '../../lib/netswitch/throughput.mjs';
 
-function sample(octetsIn: number | null, octetsOut: number | null, atMs: number, ticks: number | null = 100): TrafficSample {
-  return { octetsIn, octetsOut, discontinuityTicks: ticks, atMs };
+function sample(
+  octetsIn: number | null,
+  octetsOut: number | null,
+  atMs: number,
+  ticks: number | null = 100,
+  octetsWidth: 32 | 64 = 64,
+): TrafficSample {
+  return { octetsIn, octetsOut, octetsWidth, discontinuityTicks: ticks, atMs };
 }
+
+/** Un relevé 32 bits, les deux sens égaux — la forme des essais de débordement. */
+const c32 = (octets: number, atMs: number): TrafficSample => sample(octets, octets, atMs, 0, 32);
 
 test('🔴 les fixtures de débit distinguent ×8, ÷8 et « rien »', () => {
   // Garde-fou sur le test lui-même : le facteur 8 est le seul endroit où une erreur
@@ -83,4 +92,74 @@ test('une discontinuité inconnue des deux côtés ne bloque pas le calcul', () 
 test('le débit est arrondi au centième, sans inventer de précision', () => {
   const rates = throughputBetween(sample(0, 0, 0), sample(1_234_567, 0, 10_000));
   assert.equal(rates.rxMbps, 0.99);
+});
+
+// ---------------------------------------------------------------------------
+// Le repli 32 bits, et ce qu'un recul veut dire selon la largeur du compteur
+// ---------------------------------------------------------------------------
+
+/** 2³² octets — le tour d'horloge d'un Counter32. */
+const WRAP = 4_294_967_296;
+
+
+/**
+ * 🔴 Un recul de compteur ne veut pas dire la même chose selon sa largeur, et les deux
+ * réponses sont opposées.
+ *
+ * Un Counter64 ne déborde pas en pratique — quatre mille ans à 1 Gbit/s saturé — donc un
+ * recul y est un redémarrage d'agent. Un Counter32 déborde toutes les 34 secondes au même
+ * débit. Appliquer la règle du 64 bits au 32 bits effacerait un débit bien réel à chaque
+ * tour d'horloge ; appliquer l'inverse inventerait des gigabits à chaque redémarrage.
+ */
+test('🔴 un recul sur 64 bits reste un redémarrage, jamais un débordement', () => {
+  const avant = sample(4_000_000_000, 4_000_000_000, 0, 0, 64);
+  const apres = sample(1_000, 1_000, 10_000, 0, 64);
+  assert.deepEqual(throughputBetween(avant, apres, 1000), NO_THROUGHPUT);
+});
+
+test('🔴 un débordement 32 bits est rattrapé, et rend le vrai débit', () => {
+  // 12,5 Mo en 10 s = 10 Mbit/s. Le compteur passe juste au-dessus du tour d'horloge.
+  const octetsTransferes = 12_500_000;
+  const avant = c32(WRAP - 500_000, 0);
+  const apres = c32(octetsTransferes - 500_000, 10_000);
+
+  const r = throughputBetween(avant, apres, 1000);
+  assert.equal(r.rxMbps, 10, 'le tour d’horloge doit être ajouté, pas ignoré');
+  assert.equal(r.txMbps, 10);
+});
+
+test('🔴 sans vitesse de lien connue, un recul 32 bits ne se rattrape pas', () => {
+  // Rien ne distingue alors un débordement d'un redémarrage : un redémarrage « rattrapé »
+  // afficherait une pointe de plusieurs gigabits sortie de nulle part.
+  const avant = c32(WRAP - 500_000, 0);
+  const apres = c32(12_000_000, 10_000);
+  assert.deepEqual(throughputBetween(avant, apres, null), NO_THROUGHPUT);
+});
+
+test('🔴 quand deux tours d’horloge sont possibles, le débit se tait', () => {
+  // À 1 Gbit/s, 2³² octets passent en 34 s. Sur une fenêtre de 60 s, un tour et deux
+  // tours sont indiscernables — et choisir « un » diviserait le débit réel par deux tout
+  // en ayant l'air juste. C'est le cas où il faut refuser de répondre.
+  const avant = c32(WRAP - 500_000, 0);
+  const apres = c32(500_000, 60_000);
+  assert.deepEqual(throughputBetween(avant, apres, 1000), NO_THROUGHPUT);
+
+  // La même différence sur 10 s, elle, est décidable.
+  const court = throughputBetween(c32(WRAP - 500_000, 0), c32(500_000, 10_000), 1000);
+  assert.ok(court.rxMbps !== null && court.rxMbps > 0, 'décidable sur une fenêtre courte');
+});
+
+test('🔴 un rattrapage qui dépasse la capacité du lien est refusé', () => {
+  // 100 Mbit/s ne peut pas porter 4 Go en 10 s. Ce n'était donc pas un débordement.
+  const avant = c32(WRAP - 100, 0);
+  const apres = c32(4_000_000_000, 10_000);
+  assert.deepEqual(throughputBetween(avant, apres, 100), NO_THROUGHPUT);
+});
+
+test('deux relevés de largeurs différentes ne se soustraient pas', () => {
+  // L'agent a changé de table entre les deux : la différence n'aurait aucun sens.
+  assert.deepEqual(
+    throughputBetween(sample(1_000, 1_000, 0, 0, 64), c32(2_000, 10_000), 1000),
+    NO_THROUGHPUT,
+  );
 });

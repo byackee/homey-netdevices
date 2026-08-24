@@ -22,6 +22,7 @@ const FULL: PortSnapshot = {
   adminUp: true,
   errorsIn: 17,
   errorsOut: 3,
+  octetsWidth: 64,
   octetsIn: 12_500_000,
   octetsOut: 25_000_000,
   discontinuityTicks: 0,

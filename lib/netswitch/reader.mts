@@ -175,6 +175,13 @@ export async function readPortLive(
     `${IF_X_TABLE.hcInOctets}.${ifIndex}`,
     `${IF_X_TABLE.hcOutOctets}.${ifIndex}`,
     `${IF_X_TABLE.discontinuityTime}.${ifIndex}`,
+    // Le repli 32 bits de l'`ifTable`, demandé dans la même requête que le reste.
+    // Beaucoup de switches ne servent pas d'`ifXTable` du tout : sans ces deux colonnes,
+    // leur débit reste vide à vie alors que leurs compteurs d'erreurs, voisins dans la
+    // même table, remontent parfaitement. Deux OID de plus dans un `get` déjà groupé ne
+    // coûtent rien ; une requête séparée, décidée après coup, coûterait un aller-retour.
+    `${IF_TABLE.inOctets}.${ifIndex}`,
+    `${IF_TABLE.outOctets}.${ifIndex}`,
   ];
   const poeOids = poe === null ? [] : [
     poePortOid(PETH_PORT_TABLE.detectionStatus, poe),
@@ -190,13 +197,36 @@ export async function readPortLive(
     adminUp: adminUpOf(read(base[1]!)),
     errorsIn: read(base[2]!),
     errorsOut: read(base[3]!),
-    // 🔴 Counter64 : `null` en v1, où le type n'existe pas. C'est cette absence — et non
-    // une valeur à zéro — qui empêchera les capabilities de débit d'être déclarées.
-    octetsIn: read(base[4]!),
-    octetsOut: read(base[5]!),
+    // 🔴 Le 64 bits d'abord, le 32 bits seulement s'il manque — et jamais un mélange des
+    // deux : un `octetsIn` de l'`ifXTable` comparé à un `octetsOut` de l'`ifTable`
+    // donnerait deux compteurs de largeurs différentes sur le même port, donc deux règles
+    // de débordement contradictoires. C'est l'absence de **toute** valeur — et non un
+    // zéro — qui empêchera les capabilities de débit d'être déclarées.
+    ...octets(read(base[4]!), read(base[5]!), read(base[7]!), read(base[8]!)),
     discontinuityTicks: read(base[6]!),
     poe: poe === null ? null : poeReading(poe, read(poeOids[0]!), read(poeOids[1]!), read(poeOids[2]!)),
   };
+}
+
+/**
+ * Choisit la paire de compteurs, sans jamais panacher les largeurs.
+ *
+ * L'`ifXTable` est préférée quand elle répond : ses compteurs ne débordent pas, donc un
+ * recul y est un redémarrage d'agent et non une ambiguïté à trancher. On ne retombe sur
+ * l'`ifTable` que lorsque **les deux** valeurs 64 bits manquent — un agent qui n'en
+ * servirait qu'une seule est trop douteux pour qu'on complète l'autre depuis une table
+ * différente.
+ */
+function octets(
+  hcIn: number | null,
+  hcOut: number | null,
+  in32: number | null,
+  out32: number | null,
+): { octetsIn: number | null; octetsOut: number | null; octetsWidth: 32 | 64 } {
+  if (hcIn !== null || hcOut !== null) {
+    return { octetsIn: hcIn, octetsOut: hcOut, octetsWidth: 64 };
+  }
+  return { octetsIn: in32, octetsOut: out32, octetsWidth: 32 };
 }
 
 function poeReading(

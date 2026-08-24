@@ -140,6 +140,8 @@ if (profile === 'nas') {
 } else {
   // --- IF-MIB (RFC 2863) + POWER-ETHERNET-MIB (RFC 3621) ------------------
   const PORTS = 8;
+/** --no-ifx : n'expose que l'ifTable 32 bits, comme beaucoup de switches reels. */
+const NO_IFX = process.argv.includes('--no-ifx');
   scalar('ifNumber', '1.3.6.1.2.1.2.1.0', Integer, PORTS);
 
   const up = (i) => (i <= 5 ? 1 : 2); // cinq ports actifs, trois libres
@@ -150,15 +152,17 @@ if (profile === 'nas') {
     col(5, 'ifSpeed', Gauge),
     col(7, 'ifAdminStatus', Integer, RW),
     col(8, 'ifOperStatus', Integer),
+    col(10, 'ifInOctets', Counter),
     col(14, 'ifInErrors', Counter),
+    col(16, 'ifOutOctets', Counter),
     col(20, 'ifOutErrors', Counter),
   ], Array.from({ length: PORTS }, (_, k) => {
     const i = k + 1;
-    return [i, `GigabitEthernet0/${i}`, 6, up(i) === 1 ? 1_000_000_000 : 0, 1, up(i), i === 3 ? 12 : 0, 0];
+    return [i, `GigabitEthernet0/${i}`, 6, up(i) === 1 ? 1_000_000_000 : 0, 1, up(i), up(i) === 1 ? 4_000_000_000 + i * 1_000 : 0, i === 3 ? 12 : 0, up(i) === 1 ? 300_000_000 * i : 0, 0];
   }));
 
   // ifXTable AUGMENTS ifTable : son index est `ifIndex`, pas sa colonne 1.
-  table('ifXTable', '1.3.6.1.2.1.31.1.1.1', [
+  if (!NO_IFX) table('ifXTable', '1.3.6.1.2.1.31.1.1.1', [
     col(1, 'ifName', OctetString),
     // Les compteurs d'octets sont en Counter64 : c'est ce qui rend le debit lisible sur
     // du gigabit, ou un Counter32 boucle en une trentaine de secondes.

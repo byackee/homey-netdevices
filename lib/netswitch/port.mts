@@ -40,7 +40,8 @@ export interface PortLive {
   errorsIn: number | null;
   errorsOut: number | null;
   /**
-   * `ifHCInOctets` / `ifHCOutOctets`, bruts.
+   * Les compteurs d'octets, bruts — 64 bits de l'`ifXTable`, ou 32 bits de l'`ifTable`
+   * quand l'agent ne sert pas la première.
    *
    * 🔴 Ils portent **deux** informations, et il ne faut pas les confondre : leur valeur
    * sert à calculer un débit, mais c'est leur **présence** qui décide si les capabilities
@@ -49,6 +50,16 @@ export interface PortLive {
    */
   octetsIn: number | null;
   octetsOut: number | null;
+  /**
+   * La largeur du compteur d'où viennent `octetsIn`/`octetsOut`.
+   *
+   * 🔴 Elle décide de ce qu'un **recul** veut dire, et les deux réponses sont opposées :
+   * un Counter64 ne déborde pas en pratique — quatre mille ans à 1 Gbit/s saturé — donc
+   * un recul est un redémarrage d'agent ; un Counter32 déborde toutes les 34 secondes au
+   * même débit, donc un recul est très probablement un débordement à rattraper. Traiter
+   * l'un comme l'autre inventerait un débit ou en effacerait un vrai.
+   */
+  octetsWidth: 32 | 64;
   /** `ifCounterDiscontinuityTime`, en centièmes de seconde depuis le démarrage de l'agent. */
   discontinuityTicks: number | null;
   /** `null` quand aucune correspondance PoE n'a été établie. Voir `poe-index.mts`. */
@@ -91,6 +102,7 @@ export const UNKNOWN_LIVE: PortLive = {
   errorsOut: null,
   octetsIn: null,
   octetsOut: null,
+  octetsWidth: 64,
   discontinuityTicks: null,
   poe: null,
 };

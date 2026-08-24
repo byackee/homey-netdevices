@@ -29,6 +29,22 @@ export const IF_TABLE = {
   /** 🔴 RW : écrire ici coupe un port. Voir `lib/netswitch/control.mts`. */
   adminStatus: '1.3.6.1.2.1.2.2.1.7',
   operStatus: '1.3.6.1.2.1.2.2.1.8',
+  /**
+   * Counter**32** d'octets — le repli quand l'agent ne sert pas d'`ifXTable`.
+   *
+   * 🔴 Beaucoup de switches n'implémentent que cette table : la RFC 2863 ne rend les
+   * compteurs 64 bits obligatoires qu'au-delà de 20 Mbit/s, et une bonne part du parc
+   * s'en dispense quand même. Relevé sur un vrai switch : ses compteurs d'erreurs, qui
+   * viennent d'ici, remontaient — et son débit restait vide, parce que l'app ne
+   * demandait que l'`ifXTable`.
+   *
+   * Il déborde pour de bon : 2³² octets, soit 34 secondes à 1 Gbit/s saturé. C'est
+   * `lib/netswitch/throughput.mts` qui décide quand un recul est un débordement
+   * rattrapable et quand il est indécidable.
+   */
+  inOctets: '1.3.6.1.2.1.2.2.1.10',
+  /** Counter32 — voir {@link IF_TABLE.inOctets}. */
+  outOctets: '1.3.6.1.2.1.2.2.1.16',
   inErrors: '1.3.6.1.2.1.2.2.1.14',
   outErrors: '1.3.6.1.2.1.2.2.1.20',
 } as const;

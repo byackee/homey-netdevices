@@ -324,10 +324,14 @@ export default class NetSwitchPortDevice extends Homey.Device {
     const sample: TrafficSample = {
       octetsIn: live.octetsIn,
       octetsOut: live.octetsOut,
+      octetsWidth: live.octetsWidth,
       discontinuityTicks: live.discontinuityTicks,
       atMs: Date.now(),
     };
-    const rates = throughputBetween(this.lastSample, sample);
+    // Le débit négocié n'entre dans le calcul que pour juger un recul de compteur
+    // 32 bits — il vient du rythme lent, donc il peut encore être `null` aux premiers
+    // relevés, et le repli 32 bits se tait alors plutôt que de deviner.
+    const rates = throughputBetween(this.lastSample, sample, this.current.speedMbps);
     this.lastSample = sample;
     this.current = { ...this.current, ...live, ...rates };
   }
