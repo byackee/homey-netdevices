@@ -75,13 +75,17 @@ export function looksLikeSwitch(inventory: SwitchInventory): boolean {
  * utilisable : `ifDescr` suffit à nommer et à identifier un port.
  */
 export async function readInventory(client: SnmpReader): Promise<SwitchInventory> {
-  const [descr, type, speed, highSpeed, name, alias] = await Promise.all([
+  const [descr, type, speed, highSpeed, name, alias, operStatus] = await Promise.all([
     walkColumn(client, IF_TABLE.descr),
     walkColumn(client, IF_TABLE.type),
     walkColumn(client, IF_TABLE.speed),
     walkColumn(client, IF_X_TABLE.highSpeed),
     walkColumn(client, IF_X_TABLE.name),
     walkColumn(client, IF_X_TABLE.alias),
+    // 🔴 L'état des liens sert **uniquement** à corroborer la correspondance PoE, et il
+    // vient de l'`ifTable` que tout agent conforme sert depuis la RFC 1213. Un parcours
+    // de plus au rythme lent : le prix d'une commande qui vise la bonne prise.
+    walkColumn(client, IF_TABLE.operStatus),
   ]);
 
   // `ifDescr` est la seule colonne que tout agent conforme possède depuis RFC 1213 :
@@ -106,7 +110,10 @@ export async function readInventory(client: SnmpReader): Promise<SwitchInventory
   }
 
   const declared = toNumber(await one(client, IF_NUMBER));
-  const poe = await readPoeMapping(client, ports.map((port) => port.ifIndex));
+  const linkUp = ports
+    .map((port) => port.ifIndex)
+    .filter((ifIndex) => linkStateOf(toNumber(operStatus.get(ifIndex) ?? null)) === 'up');
+  const poe = await readPoeMapping(client, ports.map((port) => port.ifIndex), linkUp);
 
   return {
     ports,
@@ -127,6 +134,7 @@ export async function readInventory(client: SnmpReader): Promise<SwitchInventory
 async function readPoeMapping(
   client: SnmpReader,
   physicalIfIndexes: readonly number[],
+  linkUp: readonly number[],
 ): Promise<PoeMapping | null> {
   let rows: Map<string, SnmpValue>;
   try {
@@ -136,15 +144,22 @@ async function readPoeMapping(
   }
 
   const refs: PoePortRef[] = [];
-  for (const oid of rows.keys()) {
+  const delivering: PoePortRef[] = [];
+  for (const [oid, valeur] of rows) {
     const ref = poeRefFromOid(PETH_PORT_TABLE.detectionStatus, oid);
-    if (ref !== null) refs.push(ref);
+    if (ref === null) continue;
+    refs.push(ref);
+    // Le parcours rendait déjà cette valeur ; elle était jetée. C'est elle qui corrobore.
+    if (poeStatusOf(toNumber(valeur)) === 'delivering') delivering.push(ref);
   }
   if (refs.length === 0) return null;
 
-  const mapping = mapPoePorts(physicalIfIndexes, refs);
+  const mapping = mapPoePorts(physicalIfIndexes, refs, { delivering, linkUp });
   if (mapping === null) {
-    trace.warn('netswitch', `${client.host} publie ${refs.length} prise(s) PoE sans correspondance sûre avec ses ${physicalIfIndexes.length} port(s) — PoE non déclaré`);
+    trace.warn('netswitch', `${client.host} publie ${refs.length} prise(s) PoE sans correspondance sûre avec ses ${physicalIfIndexes.length} port(s) — PoE non déclaré`, {
+      alimentees: delivering.length,
+      liensActifs: linkUp.length,
+    });
     return null;
   }
 
