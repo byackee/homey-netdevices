@@ -35,11 +35,20 @@ for (const driver of DRIVERS) {
   test(`🔴 ${driver} : le réglage de port déclaré est réellement utilisé`, () => {
     const device = read(`drivers/${driver}/device.mts`);
 
-    assert.match(
-      device,
-      /getSetting\('port'\)/,
-      'les réglages relus doivent lire la clé `port`',
-    );
+    // 🔴 Les quatre clés de connexion, pas seulement `port`.
+    //
+    // `port` a fait défaut parce que personne ne le lisait ; rien n'empêche `community`,
+    // `host` ou `version` de subir le même sort. Un `getSetting('comunity')` mal
+    // orthographié ne serait vu par rien : le compilateur voit deux `unknown` de part et
+    // d'autre, `homey app validate` ne lit que la forme du JSON, et le `Device` de Homey
+    // ne s'instancie dans aucun test. Ce garde statique est la seule chose qui reste.
+    for (const cle of ['host', 'community', 'port', 'version']) {
+      assert.match(
+        device,
+        new RegExp(`getSetting\\('${cle}'\\)`),
+        `les réglages relus doivent lire la clé \`${cle}\``,
+      );
+    }
 
     // Chaque session ouverte doit recevoir le port. `new SnmpClient({…})` en lecture,
     // `writeVarbinds({…})` en écriture : une commande envoyée sur 161 alors que l'agent
@@ -54,6 +63,8 @@ for (const driver of DRIVERS) {
     // Sans cela, changer le port dans les réglages ne reconstruit pas la conversation :
     // l'appareil continuerait de parler à l'ancien port jusqu'au prochain redémarrage.
     const keys = device.match(/const CONNECTION_KEYS = \[[^\]]*\]/)?.[0] ?? '';
-    assert.match(keys, /'port'/, 'un changement de port doit invalider la conversation');
+    for (const cle of ['host', 'community', 'port', 'version']) {
+      assert.match(keys, new RegExp(`'${cle}'`), `changer ${cle} doit invalider la conversation`);
+    }
   });
 }
