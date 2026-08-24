@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { test } from 'node:test';
 
 /**
@@ -61,4 +62,49 @@ test('aucune copie orpheline ne traîne dans pair/ pour une vue que seul repair 
       );
     }
   }
+});
+
+/**
+ * 🔴 La community stockée ne se réaffiche pas en clair.
+ *
+ * Le réglage est de type `password` : Homey le masque partout. Mais la vue de réparation
+ * reçoit la valeur **stockée** et la peignait dans un champ texte — ouvrir « réparer »
+ * suffisait donc à relire un secret que l'app masque ailleurs, ce qui vidait ce masquage
+ * de son sens.
+ *
+ * La vue d'appairage, elle, garde son champ lisible, et c'est délibéré : l'utilisateur y
+ * **tape** la community et doit pouvoir vérifier ce qu'il a saisi. Les deux situations ne
+ * posent pas le même problème — l'une affiche ce qu'on lui a donné, l'autre révèle ce
+ * qu'elle avait gardé.
+ *
+ * ⚠️ Ce que ce garde ne couvre pas : la valeur atteint toujours la vue, donc reste
+ * lisible à qui ouvre les outils de développement. La corriger vraiment demanderait de ne
+ * plus l'envoyer et de traiter un champ vide comme « inchangé ».
+ */
+test('🔴 les vues de réparation masquent la community, les vues d’appairage non', () => {
+  const racine = process.cwd();
+  const drivers = readdirSync(join(racine, 'drivers'), { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+
+  let vues = 0;
+  for (const driver of drivers) {
+    for (const [sous, fichier, attendu] of [
+      ['repair', 'repair.html', 'password'],
+      ['pair', 'start.html', 'text'],
+    ] as const) {
+      const chemin = join(racine, 'drivers', driver, sous, fichier);
+      if (!existsSync(chemin)) continue;
+      const html = readFileSync(chemin, 'utf8');
+
+      const champ = html.match(/<input[^>]*id="[a-z-]*community"[^>]*>/)?.[0];
+      if (!champ) continue;
+      vues += 1;
+
+      assert.match(champ, new RegExp(`type="${attendu}"`), `${driver}/${sous} : ${champ}`);
+      // Le navigateur ne doit mémoriser aucune des deux.
+      assert.match(champ, /autocomplete="off"/, `${driver}/${sous} sans autocomplete="off"`);
+    }
+  }
+  assert.ok(vues >= 5, `seulement ${vues} champ(s) vus — le test ne prouverait rien`);
 });

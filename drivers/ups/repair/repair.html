@@ -58,7 +58,18 @@
     <span id="ups-repair-community-label">SNMP community</span>
     <span class="ups-repair-hint" id="ups-repair-community-hint">Almost always "public".</span>
   </label>
-  <input type="text" id="ups-repair-community" autocomplete="off" value="public">
+  <!--
+    🔴 Masque ici, et lisible dans la vue d'appairage — les deux ne posent pas le
+    meme probleme. En appairage l'utilisateur **tape** la community et doit pouvoir
+    verifier ce qu'il a saisi. Ici elle vient du **stockage** et s'affiche sans qu'on
+    l'ait demandee : ouvrir « reparer » relisait en clair un reglage que Homey masque
+    partout ailleurs, ce qui vidait ce masquage de son sens.
+
+    Ce que cela ne resout pas : la valeur atteint toujours la vue, donc reste lisible
+    a qui ouvre les outils de developpement. La corriger vraiment demanderait de ne
+    plus l'envoyer du tout et de traiter un champ vide comme « inchange ».
+  -->
+  <input type="password" id="ups-repair-community" autocomplete="off" value="public">
 </div>
 
 <button type="button" id="ups-repair-save" class="ups-repair-button">Save address</button>
