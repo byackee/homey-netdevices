@@ -223,6 +223,33 @@ export default class NetDevicesApp extends Homey.App {
   async startScan(skip: ReadonlySet<string> = new Set(), community = 'public'): Promise<ScanState> {
     if (this.scan.running) return this.getScanState();
 
+    // 🔴 Le drapeau se pose **avant** le premier `await`, et non après.
+    //
+    // Il vivait plus bas, une fois le sous-réseau connu. Entre le test ci-dessus et sa
+    // pose, `getLocalAddress()` rendait la main : deux déclencheurs quasi simultanés — la
+    // page de réglages qui lance un balayage pendant qu'une vue de pairing en demande un,
+    // ou simplement deux vues ouvertes — passaient tous deux le test et démarraient deux
+    // parcours. Quarante-huit sockets UDP au lieu de vingt-quatre, et le second
+    // écrasait l'accumulateur du premier : résultats partiels perdus, progression
+    // incohérente. C'est exactement ce que le commentaire ci-dessus dit empêcher, et pour
+    // la raison qu'il donne.
+    //
+    // Poser le drapeau tôt oblige à le relâcher sur tous les chemins de sortie. Le
+    // sous-réseau indéterminable le fait lui-même plus bas, en réécrivant l'état complet ;
+    // le `catch` couvre ce qui lèverait avant. Le succès, lui, le garde levé jusqu'à ce
+    // que le parcours se termine.
+    this.scan = { ...this.scan, running: true };
+
+    try {
+      return await this.beginScan(skip, community);
+    } catch (error) {
+      this.scan = { ...this.scan, running: false };
+      throw error;
+    }
+  }
+
+  /** Le corps du balayage, une fois la course refermée par {@link startScan}. */
+  private async beginScan(skip: ReadonlySet<string>, community: string): Promise<ScanState> {
     const localAddress = await this.homey.cloud.getLocalAddress().catch(() => '');
     const subnet = subnetOf(String(localAddress));
 
