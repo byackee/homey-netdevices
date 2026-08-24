@@ -302,16 +302,25 @@ export default class NetSwitchPortDevice extends Homey.Device {
   /**
    * Applique ce que le suivi de contact a décidé.
    *
+   * L'ordre compte : **la disponibilité se règle avant l'écriture.** Athom documente qu'un
+   * appareil indisponible voit « all capabilities and Flow actions » empêchées. Mesuré sur
+   * un Homey Pro 2023, ce blocage ne porte en fait que sur le sens entrant — une écriture
+   * de l'app pendant l'indisponibilité passe sans erreur et atteint bien le cœur. Nous ne
+   * nous appuyons pas sur cette tolérance : elle n'est écrite nulle part, et le jour où
+   * elle disparaît, c'est le premier relevé de chaque retour de contact qui serait perdu
+   * en silence — celui-là même qui annonce que la machine est revenue.
+   *
    * `outcome.live === null` veut dire « n'écris rien » et non « écris du vide » : un paquet
    * UDP perdu ne doit pas faire tomber le lien, ni déclencher les Flows de coupure.
    */
   private async applyOutcome(outcome: ContactOutcome): Promise<void> {
+    await this.applyAvailability(outcome);
+
     if (outcome.live !== null) {
       this.mergeLive(outcome.live);
       await this.writeValues();
       await this.fireTriggers(this.changes.observe(this.current));
     }
-    await this.applyAvailability(outcome);
   }
 
   /**
