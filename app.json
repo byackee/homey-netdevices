@@ -335,10 +335,15 @@
           {
             "name": "state",
             "type": "dropdown",
+            "title": {
+              "en": "State",
+              "fr": "État",
+              "nl": "Status"
+            },
             "values": [
               {
                 "id": "any",
-                "label": {
+                "title": {
                   "en": "any state",
                   "fr": "n’importe lequel",
                   "nl": "elke status"
@@ -346,7 +351,7 @@
               },
               {
                 "id": "up",
-                "label": {
+                "title": {
                   "en": "link up",
                   "fr": "lien actif",
                   "nl": "link actief"
@@ -354,7 +359,7 @@
               },
               {
                 "id": "down",
-                "label": {
+                "title": {
                   "en": "link down",
                   "fr": "lien inactif",
                   "nl": "link inactief"
@@ -362,7 +367,7 @@
               },
               {
                 "id": "dormant",
-                "label": {
+                "title": {
                   "en": "dormant",
                   "fr": "en veille",
                   "nl": "slapend"
@@ -370,7 +375,7 @@
               },
               {
                 "id": "notPresent",
-                "label": {
+                "title": {
                   "en": "module not present",
                   "fr": "module absent",
                   "nl": "module afwezig"
@@ -378,7 +383,7 @@
               },
               {
                 "id": "lowerLayerDown",
-                "label": {
+                "title": {
                   "en": "lower layer down",
                   "fr": "couche inférieure tombée",
                   "nl": "onderliggende laag uit"
@@ -1053,11 +1058,18 @@
           {
             "name": "mbps",
             "type": "number",
+            "title": {
+              "en": "Speed",
+              "fr": "Débit",
+              "nl": "Snelheid"
+            },
             "min": 0,
             "max": 400000,
             "step": 1,
             "placeholder": {
-              "en": "1000"
+              "en": "1000",
+              "fr": "1000",
+              "nl": "1000"
             }
           }
         ]
@@ -1216,10 +1228,15 @@
           {
             "name": "state",
             "type": "dropdown",
+            "title": {
+              "en": "State",
+              "fr": "État",
+              "nl": "Status"
+            },
             "values": [
               {
                 "id": "on",
-                "label": {
+                "title": {
                   "en": "on",
                   "fr": "en marche",
                   "nl": "aan"
@@ -1227,7 +1244,7 @@
               },
               {
                 "id": "off",
-                "label": {
+                "title": {
                   "en": "off",
                   "fr": "à l’arrêt",
                   "nl": "uit"
@@ -1263,10 +1280,15 @@
           {
             "name": "state",
             "type": "dropdown",
+            "title": {
+              "en": "State",
+              "fr": "État",
+              "nl": "Status"
+            },
             "values": [
               {
                 "id": "on",
-                "label": {
+                "title": {
                   "en": "on",
                   "fr": "en marche",
                   "nl": "aan"
@@ -1274,7 +1296,7 @@
               },
               {
                 "id": "off",
-                "label": {
+                "title": {
                   "en": "off",
                   "fr": "à l’arrêt",
                   "nl": "uit"
