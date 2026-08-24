@@ -513,6 +513,16 @@
             ? t('pair_nas.found_one', '1 host found.')
             : t('pair_nas.found_many', '{{count}} hosts found.', { count: found.length })
                 .replace('{{count}}', String(found.length)));
+        } else if (data.alreadyPaired > 0) {
+          // Voir la vue de l'onduleur : une liste vide parce que tout est déjà ajouté
+          // n'est pas une liste vide parce que rien n'a répondu, et l'aide « activez le
+          // SNMP » est fausse dans le premier cas.
+          hideHelp();
+          setStatus(data.alreadyPaired === 1
+            ? t('pair_nas.only_paired_one', 'The one host on this network is already added to Homey.')
+            : t('pair_nas.only_paired_many', 'The {{count}} hosts on this network are already added to Homey.',
+                { count: data.alreadyPaired })
+                .replace('{{count}}', String(data.alreadyPaired)));
         } else {
           setStatus('');
           showHelp(others, data.reachable || []);

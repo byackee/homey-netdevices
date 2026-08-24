@@ -490,6 +490,17 @@
             ? t('pair.found_one', '1 UPS found.')
             : t('pair.found_many', '{{count}} UPS found.', { count: found.length })
                 .replace('{{count}}', String(found.length)));
+        } else if (data.alreadyPaired > 0) {
+          // 🔴 Une liste vide n'est pas la même chose selon la raison. Ici le balayage a
+          // bien reconnu un onduleur : il n'est pas proposé parce qu'il est déjà dans
+          // Homey. Afficher l'aide « activez le SNMP » à ce moment-là envoie l'utilisateur
+          // réparer un appareil qui fonctionne, et lui cache la seule chose vraie.
+          hideHelp();
+          setStatus(data.alreadyPaired === 1
+            ? t('pair.only_paired_one', 'The one UPS on this network is already added to Homey.')
+            : t('pair.only_paired_many', 'The {{count}} UPS devices on this network are already added to Homey.',
+                { count: data.alreadyPaired })
+                .replace('{{count}}', String(data.alreadyPaired)));
         } else {
           setStatus('');
           showHelp(others, data.reachable || []);

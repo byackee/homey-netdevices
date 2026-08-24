@@ -211,7 +211,7 @@ export default class NetSwitchDriver extends Homey.Driver {
     }> => {
       const community = communityOf(data);
       this.scanCommunity = community;
-      this.note('scan_start', { communauté: community === 'public' ? 'public' : '(personnalisée)' });
+      this.note('scan_start', { community: community === 'public' ? 'public' : '(custom)' });
 
       const app = this.homey.app as NetDevicesApp;
       // 🔴 Aucun `skip` : un switch dont un port est déjà appairé est précisément
@@ -379,7 +379,7 @@ export default class NetSwitchDriver extends Homey.Driver {
         try {
           live = await readPortLive(client, port.ifIndex, poe);
         } catch (error) {
-          trace.warn('pair', `premier relevé sans réponse sur ${client.host} port ${port.ifIndex}`, error);
+          trace.warn('pair', `first reading got no answer at ${client.host} port ${port.ifIndex}`, error);
         }
 
         out.set(port.ifIndex, {

@@ -39,7 +39,7 @@ import { trace } from './trace.mjs';
  */
 export function guardSession(session: snmp.Session, host: string): snmp.Session {
   session.on('error', (error: unknown) => {
-    trace.warn(`snmp:${host}`, 'datagramme illisible ignoré', error);
+    trace.warn(`snmp:${host}`, 'unreadable datagram ignored', error);
   });
   return session;
 }

@@ -102,7 +102,7 @@ export async function scanSubnet<T>(
     if (!skip.has(host)) targets.push(host);
   }
 
-  trace.info('scan', `balayage de ${subnet}.0/24`, { cibles: targets.length, ignorées: skip.size });
+  trace.info('scan', `sweeping ${subnet}.0/24`, { targets: targets.length, skipped: skip.size });
 
   // On retient l'adresse à côté du résultat : la sonde est générique, le balayage
   // ne peut donc rien présumer de la forme de T — pas même qu'il porte un host.
@@ -133,7 +133,7 @@ export async function scanSubnet<T>(
       try {
         onFound?.(value, host);
       } catch (error) {
-        trace.warn('scan', `onFound a levé pour ${host}`, error);
+        trace.warn('scan', `onFound threw for ${host}`, error);
       }
     }
   }
@@ -144,7 +144,7 @@ export async function scanSubnet<T>(
   // deux balayages du même réseau rendent la même liste dans le même ordre.
   found.sort((a, b) => Number(a.host.split('.')[3] ?? 0) - Number(b.host.split('.')[3] ?? 0));
 
-  trace.info('scan', `balayage de ${subnet}.0/24 terminé`, { trouvés: found.length });
+  trace.info('scan', `sweep of ${subnet}.0/24 finished`, { found: found.length });
 
   return found.map((f) => f.value);
 }

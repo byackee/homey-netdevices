@@ -254,7 +254,7 @@ export default class NetDevicesApp extends Homey.App {
     const subnet = subnetOf(String(localAddress));
 
     if (subnet === null) {
-      trace.error('scan', `sous-réseau indéterminable depuis « ${String(localAddress)} »`);
+      trace.error('scan', `cannot work out a subnet from "${String(localAddress)}"`);
       this.scan = {
         running: false,
         subnet: null,
@@ -292,14 +292,14 @@ export default class NetDevicesApp extends Homey.App {
       },
     })
       .then(() => {
-        trace.info('scan', 'balayage terminé', {
-          onduleurs: this.scan.found.length,
-          autres: this.scan.others.length,
+        trace.info('scan', 'sweep finished', {
+          ups: this.scan.found.length,
+          other: this.scan.others.length,
         });
       })
       .catch((error: Error) => {
         this.error(`Sweep failed: ${error.message}`);
-        trace.error('scan', 'balayage interrompu', error);
+        trace.error('scan', 'sweep aborted', error);
         this.scan.error = error.message;
       })
       .finally(() => {
@@ -374,9 +374,9 @@ export default class NetDevicesApp extends Homey.App {
       // not the finding itself.
     }
 
-    trace.info('scan', `onduleur reconnu sur ${client.host}`, {
+    trace.info('scan', `UPS recognised at ${client.host}`, {
       source: detection.reader.source,
-      modèle: identity.model,
+      model: identity.model,
     });
 
     return { ...base, source: detection.reader.source, ...identity };
@@ -441,7 +441,7 @@ export default class NetDevicesApp extends Homey.App {
     const version = await negotiateVersion(host, community, PROBE_NEGOTIATE_MS, port);
     if (version === null) {
       const reachable = await isReachable(host);
-      trace.info('probe', `${host} muet en SNMP`, { joignable: reachable });
+      trace.info('probe', `${host} is silent over SNMP`, { joignable: reachable });
       return { ...empty, outcome: reachable ? 'reachable' : 'silent' };
     }
 
@@ -474,12 +474,12 @@ export default class NetDevicesApp extends Homey.App {
     try {
       detection = await detectUpsSource(client);
     } catch (error) {
-      trace.warn('probe', `${host} a cessé de répondre pendant la détection`, error);
+      trace.warn('probe', `${host} stopped answering during detection`, error);
       return answered;
     }
 
     if (detection.reader === null) {
-      trace.info('probe', `${host} répond en SNMP mais n'est pas un onduleur`, {
+      trace.info('probe', `${host} answers SNMP but is not a UPS`, {
         déclinés: detection.declined,
       });
       return answered;
@@ -489,10 +489,10 @@ export default class NetDevicesApp extends Homey.App {
     try {
       identity = await detection.reader.readIdentity(client);
     } catch (error) {
-      trace.warn('probe', `identité illisible sur ${host}`, error);
+      trace.warn('probe', `identity unreadable at ${host}`, error);
     }
 
-    trace.info('probe', `${host} est un onduleur`, {
+    trace.info('probe', `${host} is a UPS`, {
       source: detection.reader.source,
       modèle: identity.model,
     });

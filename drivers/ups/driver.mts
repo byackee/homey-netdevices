@@ -71,6 +71,16 @@ interface ScanStatusReply {
   subnet: string | null;
   error: string | null;
   found: Finding[];
+  /**
+   * 🔴 Combien d'onduleurs le balayage a reconnus **et** que ce driver a déjà.
+   *
+   * Sans ce compte, une liste vide est ambiguë et la vue tranche du mauvais côté : elle
+   * conclut que rien n'a répondu et explique comment allumer le SNMP, alors que
+   * l'onduleur répond très bien et se trouve déjà dans Homey. Signalé sur le forum, où
+   * l'utilisateur a redémarré l'app en vain avant de constater que son journal disait
+   * l'inverse de son écran.
+   */
+  alreadyPaired: number;
   /** Répondent en SNMP sans être des onduleurs : un diagnostic, pas du bruit. */
   others: Finding[];
   /**
@@ -250,7 +260,7 @@ export default class UpsDriver extends Homey.Driver {
       // Retenue pour toute la durée du balayage : `fromScan()` en a besoin pour que
       // l'appareil adopté soit interrogé avec la communauté réellement saisie.
       this.scanCommunity = community;
-      this.note('scan_start', { communauté: community === 'public' ? 'public' : '(personnalisée)' });
+      this.note('scan_start', { community: community === 'public' ? 'public' : '(custom)' });
 
       const app = this.homey.app as NetDevicesApp;
       const state = await app.startScan(this.pairedHosts(), community);
@@ -259,7 +269,7 @@ export default class UpsDriver extends Homey.Driver {
       // et la vue doit pouvoir afficher sa barre pendant ce temps-là.
       void this.probeAnnounced(community);
 
-      this.note(`balayage running=${state.running} subnet=${state.subnet ?? 'inconnu'}`);
+      this.note(`sweep running=${state.running} subnet=${state.subnet ?? 'unknown'}`);
       if (state.subnet === null) {
         return {
           started: false,
@@ -279,12 +289,17 @@ export default class UpsDriver extends Homey.Driver {
 
       // La découverte d'abord : elle connaît la marque par l'OUI, donc elle nomme mieux
       // le même appareil que le balayage trouvera une seconde plus tard.
-      const found = dedupeByHost([...this.discovered, ...state.found.map((f) => this.fromScan(f, this.scanCommunity))])
+      const reconnus = dedupeByHost([...this.discovered, ...state.found.map((f) => this.fromScan(f, this.scanCommunity))]);
+      const found = reconnus
         .filter((finding) => !taken.has(finding.host))
         .filter((finding) => finding.device === undefined || !ids.has(finding.device.data.id));
 
+      // Ce que le filtre vient d'écarter, et pour quelle raison. C'est la seule
+      // information qui distingue « rien sur le réseau » de « tout est déjà là ».
+      const alreadyPaired = reconnus.length - found.length;
+
       if (!state.running) {
-        this.note(`balayage terminé : ${found.length} onduleur(s), ${state.others.length} autre(s) en SNMP, ${this.silent.length} muet(s)`);
+        this.note(`sweep done: ${found.length} UPS offered, ${alreadyPaired} already added, ${state.others.length} other SNMP, ${this.silent.length} silent`);
       }
 
       return {
@@ -294,6 +309,7 @@ export default class UpsDriver extends Homey.Driver {
         subnet: state.subnet,
         error: scanError(state.error, state.subnet),
         found,
+        alreadyPaired,
         others: state.others.map((f) => this.fromScan(f, this.scanCommunity)),
         reachable: [...this.silent],
       };
@@ -364,7 +380,7 @@ export default class UpsDriver extends Homey.Driver {
       // Deux numéros de série connus qui diffèrent : c'est un autre onduleur. On n'écrit
       // rien et on le dit, plutôt que de faire pointer l'appareil sur le voisin.
       if (expected !== null && found !== null && expected !== found) {
-        this.note(`setAddress ${host}: série ${found} ≠ ${expected}, réglages inchangés`);
+        this.note(`setAddress ${host}: serial ${found} != ${expected}, settings left alone`);
         return { ok: false, found, expected };
       }
 
@@ -373,9 +389,9 @@ export default class UpsDriver extends Homey.Driver {
       // vérification existe n'en portait pas, et sans ça il n'en porterait jamais.
       if (found !== null) {
         await device.setStoreValue('serial', found).catch((error: Error) =>
-          this.error(`Impossible de mémoriser le numéro de série : ${error.message}`));
+          this.error(`Could not remember the serial number: ${error.message}`));
       }
-      this.note(`setAddress ${host}: réglages réécrits (série ${found ?? 'inconnue'})`);
+      this.note(`setAddress ${host}: settings rewritten (serial ${found ?? 'unknown'})`);
       return { ok: true };
     });
   }
@@ -425,7 +441,7 @@ export default class UpsDriver extends Homey.Driver {
     } catch (error) {
       // Une stratégie absente ou pas encore prête ne doit pas faire tomber le pairing :
       // le balayage trouve les mêmes appareils, juste plus lentement.
-      trace.warn('pair', 'découverte illisible', error);
+      trace.warn('pair', 'discovery unreadable', error);
       return [];
     }
   }
@@ -443,7 +459,7 @@ export default class UpsDriver extends Homey.Driver {
     const taken = this.pairedHosts();
     const announced = this.announcedAddresses().filter((entry) => !taken.has(entry.address));
 
-    this.note(`découverte : ${announced.length} adresse(s) annoncée(s)`);
+    this.note(`discovery: ${announced.length} address(es) announced`);
 
     // Séquentiel : ce sont quelques adresses, et elles partagent le réseau avec un
     // balayage de 254 adresses qui tourne au même moment.
@@ -454,7 +470,7 @@ export default class UpsDriver extends Homey.Driver {
         if (probe.outcome === 'ups') {
           const finding = this.fromProbe(probe, community, 161, entry.mac, entry.vendor);
           this.discovered = dedupeByHost([...this.discovered, finding]);
-          this.note(`découverte : ${entry.address} est un onduleur ${entry.vendor ?? ''}`.trim());
+          this.note(`discovery: ${entry.address} is a UPS ${entry.vendor ?? ''}`.trim());
           continue;
         }
 
@@ -462,9 +478,9 @@ export default class UpsDriver extends Homey.Driver {
 
         // Annoncée par l'ARP, donc présente ; muette en SNMP, donc à activer.
         if (!this.silent.includes(entry.address)) this.silent.push(entry.address);
-        this.note(`découverte : ${entry.address} (${entry.vendor ?? 'marque inconnue'}) est là mais muette en SNMP`);
+        this.note(`discovery: ${entry.address} (${entry.vendor ?? 'unknown vendor'}) is there but silent over SNMP`);
       } catch (error) {
-        trace.warn('pair', `sonde de découverte échouée sur ${entry.address}`, error);
+        trace.warn('pair', `discovery probe failed at ${entry.address}`, error);
       }
     }
   }

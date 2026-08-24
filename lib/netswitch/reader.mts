@@ -156,14 +156,14 @@ async function readPoeMapping(
 
   const mapping = mapPoePorts(physicalIfIndexes, refs, { delivering, linkUp });
   if (mapping === null) {
-    trace.warn('netswitch', `${client.host} publie ${refs.length} prise(s) PoE sans correspondance sûre avec ses ${physicalIfIndexes.length} port(s) — PoE non déclaré`, {
+    trace.warn('netswitch', `${client.host} exposes ${refs.length} PoE socket(s) with no safe match to its ${physicalIfIndexes.length} port(s) — PoE not declared`, {
       alimentees: delivering.length,
       liensActifs: linkUp.length,
     });
     return null;
   }
 
-  trace.info('netswitch', `${client.host} : PoE rapproché par « ${mapping.strategy} »`, {
+  trace.info('netswitch', `${client.host}: PoE matched by "${mapping.strategy}"`, {
     prises: refs.length,
     groupes: groupsOf(mapping),
   });

@@ -157,14 +157,14 @@ export default class UpsDevice extends Homey.Device {
 
     const detection = await detectUpsSource(this.client);
     if (detection.reader === null) {
-      this.log(`Aucun dialecte reconnu — décliné par : ${detection.declined.join(', ') || 'aucun'}`);
+      this.log(`No dialect recognised — declined by: ${detection.declined.join(', ') || 'none'}`);
       return null;
     }
 
     this.reader = detection.reader;
     this.current.source = detection.reader.source;
     await this.setStoreValue('source', detection.reader.source).catch((e: Error) =>
-      this.error(`Impossible de mémoriser la source : ${e.message}`));
+      this.error(`Could not remember the source: ${e.message}`));
     this.log(`Source reconnue : ${detection.reader.source}`);
     return this.reader;
   }
@@ -254,7 +254,7 @@ export default class UpsDevice extends Homey.Device {
         this.mergeSlow(identity, detail);
         await this.writeValues();
       } catch (error) {
-        this.log(`Relevé lent sans réponse (l'état secteur, lui, continue) : ${describe(error)}`);
+        this.log(`Slow poll got no answer (mains status keeps going): ${describe(error)}`);
       }
     });
   }
@@ -355,7 +355,7 @@ export default class UpsDevice extends Homey.Device {
     });
 
     if (result.orphaned.length > 0 && !this.orphansLogged) {
-      this.log(`Capabilities sans source, conservées pour l'historique : ${result.orphaned.join(', ')}`);
+      this.log(`Capabilities with no source, kept for their history: ${result.orphaned.join(', ')}`);
       this.orphansLogged = true;
     }
   }
@@ -364,7 +364,7 @@ export default class UpsDevice extends Homey.Device {
     await this.syncCapabilities();
     for (const { id, value } of capabilityValues(this.current, this.getCapabilities())) {
       await this.setCapabilityValue(id, value).catch((e: Error) =>
-        this.error(`Impossible d'écrire ${id} : ${e.message}`));
+        this.error(`Could not write ${id}: ${e.message}`));
     }
     await this.writeAlarmText();
   }
@@ -396,7 +396,7 @@ export default class UpsDevice extends Homey.Device {
       : renderAlarmSummary(summary, (part) => this.homey.__(part));
 
     await this.setCapabilityValue('ups_alarm_text', text).catch((e: Error) =>
-      this.error(`Impossible d'écrire ups_alarm_text : ${e.message}`));
+      this.error(`Could not write ups_alarm_text: ${e.message}`));
   }
 
   // -------------------------------------------------------------------------
@@ -417,7 +417,7 @@ export default class UpsDevice extends Homey.Device {
     await this.homey.flow
       .getDeviceTriggerCard(card)
       .trigger(this, tokens, state)
-      .catch((e: Error) => this.error(`Déclencheur ${card} : ${e.message}`));
+      .catch((e: Error) => this.error(`Trigger ${card}: ${e.message}`));
   }
 
   private async fireContactLost(): Promise<void> {
@@ -478,7 +478,7 @@ export default class UpsDevice extends Homey.Device {
   private logFailure(outcome: ContactOutcome, error: unknown): void {
     const message = `${describe(error)} (échec ${outcome.failures})`;
     if (outcome.reason === 'absorbing') {
-      this.log(`Relevé sans réponse, absorbé : ${message}`);
+      this.log(`Poll got no answer, absorbed: ${message}`);
       return;
     }
     this.error(outcome.reason === 'lost-during-outage'

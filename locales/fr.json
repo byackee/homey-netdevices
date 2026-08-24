@@ -58,7 +58,9 @@
     "sw_pick": "Cochez les ports que vous voulez comme appareils. Ceux dont le lien est actif sont déjà cochés.",
     "sw_pick_unsure": "Cela ne ressemble pas à un switch, mais l’appareil publie bien des ports réseau. Cochez ceux que vous voulez comme appareils.",
     "sw_title": "Trouvez votre switch",
-    "title": "Trouver votre onduleur"
+    "title": "Trouver votre onduleur",
+    "only_paired_one": "Le seul onduleur de ce réseau est déjà ajouté à Homey.",
+    "only_paired_many": "Les {{count}} onduleurs de ce réseau sont déjà ajoutés à Homey."
   },
   "pair_nas": {
     "empty_lead": "Une liste vide veut presque toujours dire que le SNMP est encore éteint, pas qu’il n’y a pas de NAS. Chaque chemin pris en charge demande d’activer quelque chose d’abord.",
@@ -77,7 +79,9 @@
     "others_title": "Le SNMP marche ici, mais aucun hôte n’a répondu",
     "repair_hint": "À utiliser quand l’hôte a changé d’adresse IP. Réservez une adresse fixe dans votre routeur pour que cela ne se reproduise pas.",
     "repair_mismatch": "Cette adresse répond, mais c’est un autre hôte ({{found}} au lieu de {{expected}}). Rien n’a été changé.",
-    "title": "Trouver votre NAS"
+    "title": "Trouver votre NAS",
+    "only_paired_one": "Le seul hôte de ce réseau est déjà ajouté à Homey.",
+    "only_paired_many": "Les {{count}} hôtes de ce réseau sont déjà ajoutés à Homey."
   },
   "settings": {
     "about": "Ce que cette app lit",

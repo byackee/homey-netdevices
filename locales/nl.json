@@ -58,7 +58,9 @@
     "sw_pick": "Vink de poorten aan die je als apparaat wilt. Poorten met een actieve link zijn al aangevinkt.",
     "sw_pick_unsure": "Dit lijkt geen switch, maar het apparaat publiceert wel netwerkpoorten. Vink aan welke je als apparaat wilt.",
     "sw_title": "Vind je switch",
-    "title": "Je UPS zoeken"
+    "title": "Je UPS zoeken",
+    "only_paired_one": "De enige UPS op dit netwerk is al toegevoegd aan Homey.",
+    "only_paired_many": "De {{count}} UPS-apparaten op dit netwerk zijn al toegevoegd aan Homey."
   },
   "pair_nas": {
     "empty_lead": "Een lege lijst betekent bijna altijd dat SNMP nog uitstaat, niet dat er geen NAS is. Elk ondersteund pad vereist dat je eerst iets inschakelt.",
@@ -77,7 +79,9 @@
     "others_title": "SNMP werkt hier, maar geen enkele host antwoordde",
     "repair_hint": "Gebruik dit wanneer de host een ander IP-adres heeft gekregen. Reserveer een vast adres in je router zodat het niet opnieuw gebeurt.",
     "repair_mismatch": "Dat adres antwoordt, maar het is een andere host ({{found}} in plaats van {{expected}}). Er is niets gewijzigd.",
-    "title": "Vind je NAS"
+    "title": "Vind je NAS",
+    "only_paired_one": "De enige host op dit netwerk is al toegevoegd aan Homey.",
+    "only_paired_many": "De {{count}} hosts op dit netwerk zijn al toegevoegd aan Homey."
   },
   "settings": {
     "about": "Wat deze app uitleest",

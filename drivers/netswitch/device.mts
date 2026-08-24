@@ -236,7 +236,7 @@ export default class NetSwitchPortDevice extends Homey.Device {
         }
         await this.writeValues();
       } catch (error) {
-        this.log(`Relevé lent sans réponse (l'état du lien, lui, continue) : ${describe(error)}`);
+        this.log(`Slow poll got no answer (link status keeps going): ${describe(error)}`);
       }
     });
   }
@@ -269,11 +269,11 @@ export default class NetSwitchPortDevice extends Homey.Device {
 
     if (resolved === this.current.ifIndex) return;
 
-    this.log(`Le port a changé d'index : ${this.current.ifIndex} → ${resolved}`);
+    this.log(`The port changed index: ${this.current.ifIndex} -> ${resolved}`);
     this.current.ifIndex = resolved;
     if (resolved !== store.ifIndex) {
       await this.setStoreValue('ifIndex', resolved).catch((e: Error) =>
-        this.error(`Impossible de mémoriser l'index : ${e.message}`));
+        this.error(`Could not remember the index: ${e.message}`));
     }
   }
 
@@ -383,7 +383,7 @@ export default class NetSwitchPortDevice extends Homey.Device {
     if (result.added.includes('onoff')) await this.bindOnOff();
 
     if (result.orphaned.length > 0 && !this.orphansLogged) {
-      this.log(`Capabilities sans source, conservées pour l'historique : ${result.orphaned.join(', ')}`);
+      this.log(`Capabilities with no source, kept for their history: ${result.orphaned.join(', ')}`);
       this.orphansLogged = true;
     }
   }
@@ -392,7 +392,7 @@ export default class NetSwitchPortDevice extends Homey.Device {
     await this.syncCapabilities();
     for (const { id, value } of portCapabilityValues(this.current, this.getCapabilities())) {
       await this.setCapabilityValue(id, value).catch((e: Error) =>
-        this.error(`Impossible d'écrire ${id} : ${e.message}`));
+        this.error(`Could not write ${id}: ${e.message}`));
     }
   }
 
@@ -454,7 +454,7 @@ export default class NetSwitchPortDevice extends Homey.Device {
     await this.refusePortIfRenumbered();
 
     const { host, community, port, version } = this.readSettings();
-    this.log(`Écriture demandée : ${what}`);
+    this.log(`Write requested: ${what}`);
     // Le port compte **aussi** en ecriture : un agent joignable seulement ailleurs qu'en
     // 161 accepterait la lecture et verrait partir ses commandes dans le vide.
     await writeVarbinds({ host, community, port, version }, decision.writes);
@@ -538,7 +538,7 @@ export default class NetSwitchPortDevice extends Homey.Device {
     await this.homey.flow
       .getDeviceTriggerCard(card)
       .trigger(this, tokens, state)
-      .catch((e: Error) => this.error(`Déclencheur ${card} : ${e.message}`));
+      .catch((e: Error) => this.error(`Trigger ${card}: ${e.message}`));
   }
 
   private async fireTriggers(change: LinkChangeSet): Promise<void> {
@@ -583,10 +583,10 @@ export default class NetSwitchPortDevice extends Homey.Device {
   private logFailure(outcome: ContactOutcome, error: unknown): void {
     const message = `${describe(error)} (échec ${outcome.failures})`;
     if (outcome.absorbing) {
-      this.log(`Relevé sans réponse, absorbé : ${message}`);
+      this.log(`Poll got no answer, absorbed: ${message}`);
       return;
     }
-    this.error(`Switch injoignable : ${message}`);
+    this.error(`Switch unreachable: ${message}`);
   }
 
   override async onSettings({ changedKeys }: {

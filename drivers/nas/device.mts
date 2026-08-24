@@ -107,11 +107,11 @@ export default class NasDevice extends Homey.Device {
     // mémoire. Lancés, pas attendus : Homey initialise les appareils en séquence, et
     // bloquer ici sur un hôte injoignable retiendrait tous ceux qui suivent.
     void this.pollDetail()
-      .catch((error: unknown) => this.error(`Relevé lent initial : ${describe(error)}`))
+      .catch((error: unknown) => this.error(`Initial slow poll: ${describe(error)}`))
       .finally(() => {
         this.scheduleDetail();
         void this.pollLive()
-          .catch((error: unknown) => this.error(`Relevé rapide initial : ${describe(error)}`))
+          .catch((error: unknown) => this.error(`Initial fast poll: ${describe(error)}`))
           .finally(() => this.scheduleLive());
       });
   }
@@ -155,7 +155,7 @@ export default class NasDevice extends Homey.Device {
     if (this.stopped) return;
     this.liveTimer = this.homey.setTimeout(() => {
       void this.pollLive()
-        .catch((error: unknown) => this.error(`Relevé rapide : ${describe(error)}`))
+        .catch((error: unknown) => this.error(`Fast poll: ${describe(error)}`))
         .finally(() => this.scheduleLive());
     }, intervalMs(this.readSettings().liveInterval, NAS_LIVE_RHYTHM));
   }
@@ -164,7 +164,7 @@ export default class NasDevice extends Homey.Device {
     if (this.stopped) return;
     this.detailTimer = this.homey.setTimeout(() => {
       void this.pollDetail()
-        .catch((error: unknown) => this.error(`Relevé lent : ${describe(error)}`))
+        .catch((error: unknown) => this.error(`Slow poll: ${describe(error)}`))
         .finally(() => this.scheduleDetail());
     }, intervalMs(this.readSettings().detailInterval, NAS_DETAIL_RHYTHM));
   }
@@ -225,7 +225,7 @@ export default class NasDevice extends Homey.Device {
         await this.writeValues();
         await this.fireVolumeCrossings(this.volumes.observe(detail.volumes));
       } catch (error) {
-        this.log(`Relevé lent sans réponse (le reste continue) : ${describe(error)}`);
+        this.log(`Slow poll got no answer (the rest keeps going): ${describe(error)}`);
       }
     });
   }
@@ -303,7 +303,7 @@ export default class NasDevice extends Homey.Device {
       // Un volume démonté, ou une mesure que l'hôte a cessé de publier. Conservée :
       // `removeCapability` détruit l'historique Insights de façon irréversible, et une
       // mesure absente d'un cycle n'est pas une mesure disparue.
-      this.log(`Capabilities sans source, conservées pour l'historique : ${result.orphaned.join(', ')}`);
+      this.log(`Capabilities with no source, kept for their history: ${result.orphaned.join(', ')}`);
       this.orphansLogged = true;
     }
   }
@@ -312,7 +312,7 @@ export default class NasDevice extends Homey.Device {
     await this.syncCapabilities();
     for (const { id, value } of nasCapabilityValues(this.current, this.getCapabilities())) {
       await this.setCapabilityValue(id, value).catch((e: Error) =>
-        this.error(`Impossible d'écrire ${id} : ${e.message}`));
+        this.error(`Could not write ${id}: ${e.message}`));
     }
   }
 
@@ -329,7 +329,7 @@ export default class NasDevice extends Homey.Device {
     const summary = rejected.map((entry) => `${entry.label} (${entry.reason})`).join(', ');
     if (summary === this.lastRejected) return;
     this.lastRejected = summary;
-    if (summary !== '') this.log(`Lignes de stockage écartées : ${summary}`);
+    if (summary !== '') this.log(`Storage rows rejected: ${summary}`);
   }
 
   // -------------------------------------------------------------------------
@@ -350,7 +350,7 @@ export default class NasDevice extends Homey.Device {
     await this.homey.flow
       .getDeviceTriggerCard(card)
       .trigger(this, tokens, state)
-      .catch((e: Error) => this.error(`Déclencheur ${card} : ${e.message}`));
+      .catch((e: Error) => this.error(`Trigger ${card}: ${e.message}`));
   }
 
   private async fireTriggers(change: NasChangeSet): Promise<void> {
@@ -408,10 +408,10 @@ export default class NasDevice extends Homey.Device {
   private logFailure(outcome: HostOutcome, error: unknown): void {
     const message = `${describe(error)} (échec ${outcome.failures})`;
     if (outcome.reason === 'absorbing') {
-      this.log(`Relevé sans réponse, absorbé : ${message}`);
+      this.log(`Poll got no answer, absorbed: ${message}`);
       return;
     }
-    this.error(`Hôte injoignable : ${message}`);
+    this.error(`Host unreachable: ${message}`);
   }
 
   override async onSettings({ changedKeys }: {
@@ -432,10 +432,10 @@ export default class NasDevice extends Homey.Device {
         this.volumes.reset();
         this.current = { ...this.current, ...NAS_LIVE_UNKNOWN, ...NAS_UNKNOWN_DETAIL };
         void this.pollDetail()
-          .catch((error: unknown) => this.error(`Relevé lent après réglage : ${describe(error)}`))
+          .catch((error: unknown) => this.error(`Slow poll after settings change: ${describe(error)}`))
           .finally(() => {
             void this.pollLive().catch((error: unknown) =>
-              this.error(`Relevé rapide après réglage : ${describe(error)}`));
+              this.error(`Fast poll after settings change: ${describe(error)}`));
           });
       }, SETTINGS_SETTLE_MS);
     }

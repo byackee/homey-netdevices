@@ -74,7 +74,7 @@ export async function writeVarbinds(options: WriterOptions, writes: readonly Por
     value: write.value,
   }));
 
-  trace.warn('netswitch', `écriture SNMP sur ${options.host}`, varbinds.map((v) => `${v.oid}=${String(v.value)}`));
+  trace.warn('netswitch', `SNMP write to ${options.host}`, varbinds.map((v) => `${v.oid}=${String(v.value)}`));
 
   try {
     await new Promise<void>((resolve, reject) => {

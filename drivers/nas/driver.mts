@@ -88,6 +88,8 @@ interface ScanStatusReply {
   subnet: string | null;
   error: string | null;
   found: Finding[];
+  /** Combien d'hôtes reconnus sont déjà appairés ici — voir le champ homonyme côté onduleur. */
+  alreadyPaired: number;
   /**
    * Répondent en SNMP sans parler HOST-RESOURCES-MIB : un diagnostic, pas du bruit.
    *
@@ -258,7 +260,7 @@ export default class NasDriver extends Homey.Driver {
       const community = communityOf(data);
       const port = portOf(data);
       this.scanCommunity = community;
-      this.note('scan_start', { communauté: community === 'public' ? 'public' : '(personnalisée)' });
+      this.note('scan_start', { community: community === 'public' ? 'public' : '(custom)' });
 
       const app = this.homey.app as NetDevicesApp;
       const state = await app.startScan(this.pairedHosts(), community);
@@ -267,7 +269,7 @@ export default class NasDriver extends Homey.Driver {
       // la vue doit pouvoir afficher sa barre pendant ce temps-là.
       void this.probeAnnounced(community);
 
-      this.note(`balayage running=${state.running} subnet=${state.subnet ?? 'inconnu'}`);
+      this.note(`sweep running=${state.running} subnet=${state.subnet ?? 'unknown'}`);
       if (state.subnet === null) {
         return {
           started: false,
@@ -291,12 +293,17 @@ export default class NasDriver extends Homey.Driver {
 
       const taken = this.pairedHosts();
       const ids = this.pairedIds();
-      const found = dedupeByHost([...this.confirmed])
+      const reconnus = dedupeByHost([...this.confirmed]);
+      const found = reconnus
         .filter((finding) => !taken.has(finding.host))
         .filter((finding) => finding.device === undefined || !ids.has(finding.device.data.id));
 
+      // Voir `drivers/ups/driver.mts` : sans ce compte, la vue prend « tout est déjà
+      // ajouté » pour « rien n'a répondu » et explique comment allumer un SNMP allumé.
+      const alreadyPaired = reconnus.length - found.length;
+
       if (!state.running) {
-        this.note(`balayage terminé : ${found.length} hôte(s), ${this.declined.length} autre(s) en SNMP, ${this.silent.length} muet(s)`);
+        this.note(`sweep done: ${found.length} hosts offered, ${alreadyPaired} already added, ${this.declined.length} other SNMP, ${this.silent.length} silent`);
       }
 
       return {
@@ -306,6 +313,7 @@ export default class NasDriver extends Homey.Driver {
         subnet: state.subnet,
         error: scanError(state.error, state.subnet),
         found,
+        alreadyPaired,
         others: dedupeByHost([...this.declined]).filter((finding) => !taken.has(finding.host)),
         reachable: [...this.silent],
       };
@@ -379,12 +387,12 @@ export default class NasDriver extends Homey.Driver {
       // Deux noms connus qui diffèrent : c'est une autre machine. On n'écrit rien et on le
       // dit, plutôt que de faire pointer l'appareil sur le voisin.
       if (expected !== null && found !== null && expected !== found) {
-        this.note(`setAddress ${host}: nom ${found} ≠ ${expected}, réglages inchangés`);
+        this.note(`setAddress ${host}: name ${found} != ${expected}, settings left alone`);
         return { ok: false, found, expected };
       }
 
       await device.setSettings({ host, community, version: result.version });
-      this.note(`setAddress ${host}: réglages réécrits (nom ${found ?? 'inconnu'})`);
+      this.note(`setAddress ${host}: settings rewritten (name ${found ?? 'unknown'})`);
       return { ok: true };
     });
   }
@@ -437,7 +445,7 @@ export default class NasDriver extends Homey.Driver {
     } catch (error) {
       // Une stratégie absente ou pas encore prête ne doit pas faire tomber le pairing : le
       // balayage trouve les mêmes appareils, juste plus lentement et sans MAC.
-      trace.warn('pair-nas', 'découverte illisible', error);
+      trace.warn('pair-nas', 'discovery unreadable', error);
       return [];
     }
   }
@@ -447,7 +455,7 @@ export default class NasDriver extends Homey.Driver {
     const taken = this.pairedHosts();
     const announced = this.announcedAddresses().filter((entry) => !taken.has(entry.address));
 
-    this.note(`découverte : ${announced.length} adresse(s) annoncée(s)`);
+    this.note(`discovery: ${announced.length} address(es) announced`);
 
     // Séquentiel : ce sont quelques adresses, et elles partagent le réseau avec un
     // balayage de 254 adresses qui tourne au même moment.
@@ -456,7 +464,7 @@ export default class NasDriver extends Homey.Driver {
       if (result.outcome === 'silent' && !this.silent.includes(entry.address)) {
         // Annoncée par l'ARP, donc présente ; muette en SNMP, donc à activer.
         this.silent.push(entry.address);
-        this.note(`découverte : ${entry.address} (${entry.vendor ?? 'marque inconnue'}) est là mais muette en SNMP`);
+        this.note(`discovery: ${entry.address} (${entry.vendor ?? 'unknown vendor'}) is there but silent over SNMP`);
       }
     }
   }
@@ -504,7 +512,7 @@ export default class NasDriver extends Homey.Driver {
     try {
       speaks = await probeHost(client);
     } catch (error) {
-      trace.warn('pair-nas', `${host} a cessé de répondre pendant la sonde`, error);
+      trace.warn('pair-nas', `${host} stopped answering during the probe`, error);
       return { outcome: 'snmp', version, finding: { ...emptyFinding(host), version, vendor } };
     }
 
@@ -518,7 +526,7 @@ export default class NasDriver extends Homey.Driver {
     try {
       snapshot = await readNasSnapshot(client);
     } catch (error) {
-      trace.warn('pair-nas', `${host} a cessé de répondre pendant le relevé`, error);
+      trace.warn('pair-nas', `${host} stopped answering during the reading`, error);
       return { outcome: 'snmp', version, finding: { ...emptyFinding(host), version, vendor } };
     }
 
@@ -549,14 +557,14 @@ export default class NasDriver extends Homey.Driver {
     });
 
     if (offer.candidate === null) {
-      this.note(`${host} parle HOST-RESOURCES mais ne rend aucune mesure`, plan.omitted);
+      this.note(`${host} speaks HOST-RESOURCES but returns no measurement`, plan.omitted);
       this.remember(this.declined, finding);
       return { outcome: offer.reason, version, finding };
     }
 
     const complete: Finding = { ...finding, device: offer.candidate.device };
     this.remember(this.confirmed, complete);
-    this.note(`${host} est un hôte : ${plan.capabilities.length} mesure(s), ${snapshot.volumes.length} volume(s)`);
+    this.note(`${host} is a host: ${plan.capabilities.length} measurement(s), ${snapshot.volumes.length} volume(s)`);
     return { outcome: offer.reason, version, finding: complete };
   }
 
