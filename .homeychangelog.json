@@ -26,5 +26,10 @@
     "en": "The alarm text now speaks your language. What a UPS reports as wrong — on bypass, fan failed, charger failed — was written in French only, whatever language you use Homey in. Anything the UPS itself words is still shown exactly as it sent it.",
     "fr": "Le texte d'alarme parle désormais votre langue. Ce qu'un onduleur signale — sur bypass, ventilateur en panne, chargeur en panne — n'existait qu'en français, quelle que soit la langue de votre Homey. Ce que l'onduleur formule lui-même reste affiché mot pour mot.",
     "nl": "De alarmtekst spreekt nu uw taal. Wat een UPS meldt — op bypass, ventilator defect, lader defect — bestond alleen in het Frans, ongeacht de taal van uw Homey. Wat de UPS zelf verwoordt wordt nog steeds letterlijk getoond."
+  },
+  "1.0.7": {
+    "en": "A switch port command could reach the wrong port: a switch that renumbers its interfaces after a restart is only noticed on the slow poll, so for a few minutes a Flow could switch off a neighbour. The command is now refused instead. A NAS no longer offers /tmp as if it were storage, switch throughput now also works on switches that only publish 32-bit counters, and the app has its own icon.",
+    "fr": "Une commande de port de switch pouvait atteindre le mauvais port : un switch qui renumérote ses interfaces après un redémarrage n'est vu qu'au relevé lent, si bien qu'un Flow pouvait couper un voisin pendant quelques minutes. La commande est désormais refusée. Un NAS ne propose plus /tmp comme s'il s'agissait de stockage, le débit fonctionne aussi sur les switches qui ne publient que des compteurs 32 bits, et l'app a sa propre icône.",
+    "nl": "Een opdracht voor een switchpoort kon de verkeerde poort raken: een switch die na een herstart zijn interfaces hernummert wordt pas bij de trage uitlezing opgemerkt, waardoor een Flow enkele minuten lang een buurpoort kon uitschakelen. De opdracht wordt nu geweigerd. Een NAS biedt /tmp niet langer aan alsof het opslag is, doorvoer werkt nu ook op switches die alleen 32-bits tellers publiceren, en de app heeft een eigen pictogram."
   }
 }
