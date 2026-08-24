@@ -71,7 +71,17 @@ export type VolumeRejection =
   /** Point de montage virtuel : `/dev/shm`, `/run`, `/proc`… */
   | 'pseudo-mount'
   /** Taille nulle, négative, ou occupation incohérente. */
-  | 'no-usable-size';
+  | 'no-usable-size'
+  /**
+   * Au-delà du plafond de volumes retenus.
+   *
+   * 🔴 Chaque volume devient une sous-capability, avec son journal Insights, et une
+   * capability n'est **jamais** retirée — `removeCapability` détruirait cet historique.
+   * Un hôte qui publierait des centaines de lignes de `hrStorageTable` ferait donc
+   * gonfler l'appareil de façon irréversible, sans autre issue que de le supprimer et le
+   * réappairer. Le plafond n'est pas une limite de travail, c'est un cliquet.
+   */
+  | 'over-limit';
 
 /** Un volume, tel qu'il finit en sous-capability. */
 export interface NasVolume {

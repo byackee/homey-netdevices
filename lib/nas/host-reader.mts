@@ -170,6 +170,17 @@ export interface StorageScan {
  * constater l'effet est un filtre qu'on découvre trop agressif le jour où l'utilisateur
  * demande où est passé son volume — et qu'on n'a alors aucun moyen de lui répondre.
  */
+/**
+ * Le nombre de volumes qu'un appareil peut porter.
+ *
+ * Large devant tout NAS réel — les Synology et QNAP du parc visé en publient une poignée,
+ * et vingt-quatre couvre un châssis bien rempli avec ses points de montage. Ce n'est pas
+ * une limite de travail : c'est un cliquet contre l'irréversible, parce que chaque volume
+ * devient une sous-capability qu'on ne retirera jamais. Le surplus part dans `rejected`,
+ * où il reste visible au diagnostic au lieu de disparaître en silence.
+ */
+export const MAX_VOLUMES = 24;
+
 export function buildVolumes(rows: readonly TableRow[]): StorageScan {
   const volumes: NasVolume[] = [];
   const rejected: { label: string; reason: VolumeRejection }[] = [];
@@ -206,6 +217,14 @@ export function buildVolumes(rows: readonly TableRow[]): StorageScan {
       // deux cas on n'a pas de pourcentage, donc pas de capability — et surtout pas 0 %,
       // qui se lirait comme un disque flambant neuf.
       rejected.push({ label, reason: 'no-usable-size' });
+      continue;
+    }
+
+    // 🔴 Le plafond se teste **ici**, après les filtres et non avant : un hôte dont les
+    // trente premières lignes sont des pseudo-montages n'a pas à voir ses vrais volumes
+    // écartés par un compte que du bruit aurait épuisé.
+    if (volumes.length >= MAX_VOLUMES) {
+      rejected.push({ label, reason: 'over-limit' });
       continue;
     }
 

@@ -1,8 +1,12 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
+import { MAX_VOLUMES, buildVolumes } from '../../lib/nas/host-reader.mjs';
+import { columnId, type TableRow } from '../../lib/nas/table.mjs';
+import type { SnmpValue } from '../../lib/nas/snapshot.mjs';
 import {
   FILESYSTEM_TYPES,
+  HR_STORAGE_COLUMN,
   HR_STORAGE_TYPE,
   isPseudoMount,
   storageBytes,
@@ -138,4 +142,67 @@ test('isPseudoMount ne regarde que le point de montage, pas l\'étiquette qui su
   // type de système de fichiers. Seul le premier mot est un chemin.
   assert.ok(isPseudoMount('/dev/shm  (tmpfs)'));
   assert.ok(!isPseudoMount('/data  /dev/sda1'), 'le second mot n\'est pas le point de montage');
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * 🔴 Le plafond de volumes est un cliquet contre l'irréversible.
+ *
+ * Chaque volume devient une sous-capability, avec son journal Insights, et une capability
+ * n'est **jamais** retirée — `removeCapability` détruirait cet historique. Un hôte qui
+ * publierait des centaines de lignes de `hrStorageTable` ferait donc gonfler l'appareil
+ * sans autre issue que de le supprimer et le réappairer.
+ *
+ * Il ne faut pas d'appareil compromis pour y arriver : un firmware fantaisiste suffit, et
+ * l'utilisateur a déjà appairé la machine.
+ */
+test('🔴 le nombre de volumes est plafonné, et le surplus reste visible', () => {
+  const lignes = Array.from({ length: MAX_VOLUMES + 15 }, (_, i) => ({
+    index: i + 1,
+    cells: new Map<number, SnmpValue>([
+      [columnId(HR_STORAGE_COLUMN.type), HR_STORAGE_TYPE.fixedDisk],
+      [columnId(HR_STORAGE_COLUMN.descr), `/volume${i + 1}`],
+      [columnId(HR_STORAGE_COLUMN.allocationUnits), 4096],
+      [columnId(HR_STORAGE_COLUMN.size), 1_000_000],
+      [columnId(HR_STORAGE_COLUMN.used), 500_000],
+    ]),
+  }));
+
+  const scan = buildVolumes(lignes);
+  assert.equal(scan.volumes.length, MAX_VOLUMES, 'le plafond tient');
+  assert.equal(
+    scan.rejected.filter((r) => r.reason === 'over-limit').length,
+    15,
+    'le surplus part dans les rejets plutôt que de disparaître en silence',
+  );
+});
+
+test('🔴 le plafond se compte après les filtres, pas avant', () => {
+  // Un hôte dont les premières lignes sont des pseudo-montages ne doit pas voir ses vrais
+  // volumes écartés par un compte que du bruit aurait épuisé.
+  const bruit = Array.from({ length: MAX_VOLUMES }, (_, i) => ({
+    index: i + 1,
+    cells: new Map<number, SnmpValue>([
+      [columnId(HR_STORAGE_COLUMN.type), HR_STORAGE_TYPE.fixedDisk],
+      [columnId(HR_STORAGE_COLUMN.descr), `/tmp/cache${i}`],
+      [columnId(HR_STORAGE_COLUMN.allocationUnits), 4096],
+      [columnId(HR_STORAGE_COLUMN.size), 1_000],
+      [columnId(HR_STORAGE_COLUMN.used), 500],
+    ]),
+  }));
+  const vrai = {
+    index: 999,
+    cells: new Map<number, SnmpValue>([
+      [columnId(HR_STORAGE_COLUMN.type), HR_STORAGE_TYPE.fixedDisk],
+      [columnId(HR_STORAGE_COLUMN.descr), '/volume1'],
+      [columnId(HR_STORAGE_COLUMN.allocationUnits), 4096],
+      [columnId(HR_STORAGE_COLUMN.size), 1_000_000],
+      [columnId(HR_STORAGE_COLUMN.used), 500_000],
+    ]),
+  };
+
+  const scan = buildVolumes([...bruit, vrai]);
+  assert.equal(scan.volumes.length, 1, 'le seul vrai volume passe');
+  assert.equal(scan.volumes[0]?.label, '/volume1');
 });
