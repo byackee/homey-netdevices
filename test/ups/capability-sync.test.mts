@@ -120,3 +120,33 @@ test('une source avare ne déclare que ce qu\'elle rend', async () => {
   assert.ok(!state.capabilities.includes('measure_battery'),
     'une mesure absente ne doit pas être déclarée puis posée à null');
 });
+
+/**
+ * 🔴 `energy` se pose même quand il n'y a plus rien à ajouter.
+ *
+ * Il vivait après la boucle d'ajout, donc après le retour anticipé qui coupe court
+ * lorsque l'appareil porte déjà toutes ses capabilities. Un appareil neuf n'était pas
+ * concerné — il a forcément des capabilities à ajouter — mais un appareil **migré**
+ * depuis une version antérieure, ou celui dont le premier appel avait échoué (l'échec
+ * est avalé), restait sans `energy.batteries` pour toujours. Homey l'exige dès que
+ * `measure_battery` ou `alarm_battery` est déclarée.
+ *
+ * Le cas est invisible au pairing et ne se voit qu'au deuxième cycle : c'est pourquoi il
+ * a survécu à une suite de tests qui, sans ce cas-là, passait entièrement.
+ */
+test('🔴 un appareil déjà complet reçoit quand même son objet energy', async () => {
+  const { state, api } = sink(['ups_status', 'measure_battery']);
+
+  const result = await syncCapabilities(
+    {
+      capabilities: ['ups_status', 'measure_battery'],
+      options: new Map(),
+      energy: { batteries: ['INTERNAL'] },
+    },
+    api,
+  );
+
+  assert.deepEqual(result.added, [], 'rien à ajouter : c’est précisément le cas piégeux');
+  assert.equal(result.changed, false);
+  assert.deepEqual(state.energy, { batteries: ['INTERNAL'] }, 'energy doit être posé malgré tout');
+});

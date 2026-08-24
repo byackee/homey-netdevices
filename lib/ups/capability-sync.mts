@@ -61,6 +61,22 @@ export async function syncCapabilities(
 ): Promise<CapabilitySyncResult> {
   const { toAdd, orphaned } = reconcileCapabilities(sink.listCapabilities(), plan.capabilities);
 
+  // 🔴 `energy` se pose **avant** le retour anticipé, et non après.
+  //
+  // Il vivait plus bas, après la boucle d'ajout : un appareil qui portait déjà toutes ses
+  // capabilities sortait donc ici et ne le recevait jamais. Sans effet au premier
+  // appairage — un appareil neuf a forcément des capabilities à ajouter — mais un
+  // appareil migré depuis une version antérieure, ou celui dont le premier appel avait
+  // échoué (l'échec est avalé juste en dessous), restait sans `energy.batteries` pour
+  // toujours. Or Homey l'exige dès que `measure_battery` ou `alarm_battery` est déclarée.
+  //
+  // Il est idempotent : le reposer à chaque cycle ne coûte qu'un appel et referme le trou.
+  if (plan.energy) {
+    // Légitime ici : la batterie est bien dans l'appareil, d'où `INTERNAL`.
+    await sink.setEnergy(plan.energy).catch((error: Error) =>
+      sink.error(`Impossible de déclarer la batterie : ${error.message}`));
+  }
+
   if (toAdd.length === 0) return { added: [], orphaned, changed: false };
 
   sink.log(`Cet onduleur publie ${toAdd.length} mesure(s) de plus : ${toAdd.join(', ')}`);
@@ -82,13 +98,6 @@ export async function syncCapabilities(
     if (!added.includes(id) && !sink.listCapabilities().includes(id)) continue;
     await sink.setCapabilityOptions(id, options).catch((error: Error) =>
       sink.error(`Impossible de titrer ${id} : ${error.message}`));
-  }
-
-  if (plan.energy) {
-    // Obligatoire dès que `measure_battery` ou `alarm_battery` est déclarée. Légitime
-    // ici : la batterie est bien dans l'appareil, d'où `INTERNAL`.
-    await sink.setEnergy(plan.energy).catch((error: Error) =>
-      sink.error(`Impossible de déclarer la batterie : ${error.message}`));
   }
 
   return { added, orphaned, changed: added.length > 0 };
