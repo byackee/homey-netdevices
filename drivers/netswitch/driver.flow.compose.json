@@ -13,8 +13,30 @@
         "nl": "Er is iets aangesloten of teruggekomen. Wordt geactiveerd bij de verandering, niet bij de status — een poort die actief blijft, activeert niet opnieuw."
       },
       "tokens": [
-        { "name": "port", "type": "string", "title": { "en": "Port", "fr": "Port", "nl": "Poort" }, "example": { "en": "Gi1/0/5" } },
-        { "name": "speed", "type": "string", "title": { "en": "Negotiated speed", "fr": "Débit négocié", "nl": "Onderhandelde snelheid" }, "example": { "en": "1000 Mbit/s" } }
+        {
+          "name": "port",
+          "type": "string",
+          "title": {
+            "en": "Port",
+            "fr": "Port",
+            "nl": "Poort"
+          },
+          "example": {
+            "en": "Gi1/0/5"
+          }
+        },
+        {
+          "name": "speed",
+          "type": "string",
+          "title": {
+            "en": "Negotiated speed",
+            "fr": "Débit négocié",
+            "nl": "Onderhandelde snelheid"
+          },
+          "example": {
+            "en": "1000 Mbit/s"
+          }
+        }
       ]
     },
     {
@@ -30,8 +52,30 @@
         "nl": "De kabel is losgekoppeld of het apparaat aan de andere kant ging uit. Een uitlezing zonder antwoord activeert deze kaart NIET — een onbereikbare switch maakt het apparaat onbeschikbaar, zodat een verloren SNMP-pakket nooit op een losgetrokken kabel lijkt."
       },
       "tokens": [
-        { "name": "port", "type": "string", "title": { "en": "Port", "fr": "Port", "nl": "Poort" }, "example": { "en": "Gi1/0/5" } },
-        { "name": "speed", "type": "string", "title": { "en": "Last negotiated speed", "fr": "Dernier débit négocié", "nl": "Laatst onderhandelde snelheid" }, "example": { "en": "1000 Mbit/s" } }
+        {
+          "name": "port",
+          "type": "string",
+          "title": {
+            "en": "Port",
+            "fr": "Port",
+            "nl": "Poort"
+          },
+          "example": {
+            "en": "Gi1/0/5"
+          }
+        },
+        {
+          "name": "speed",
+          "type": "string",
+          "title": {
+            "en": "Last negotiated speed",
+            "fr": "Dernier débit négocié",
+            "nl": "Laatst onderhandelde snelheid"
+          },
+          "example": {
+            "en": "1000 Mbit/s"
+          }
+        }
       ]
     },
     {
@@ -50,19 +94,88 @@
         {
           "name": "state",
           "type": "dropdown",
+          "title": {
+            "en": "State",
+            "fr": "État",
+            "nl": "Status"
+          },
           "values": [
-            { "id": "any", "label": { "en": "any state", "fr": "n’importe lequel", "nl": "elke status" } },
-            { "id": "up", "label": { "en": "link up", "fr": "lien actif", "nl": "link actief" } },
-            { "id": "down", "label": { "en": "link down", "fr": "lien inactif", "nl": "link inactief" } },
-            { "id": "dormant", "label": { "en": "dormant", "fr": "en veille", "nl": "slapend" } },
-            { "id": "notPresent", "label": { "en": "module not present", "fr": "module absent", "nl": "module afwezig" } },
-            { "id": "lowerLayerDown", "label": { "en": "lower layer down", "fr": "couche inférieure tombée", "nl": "onderliggende laag uit" } }
+            {
+              "id": "any",
+              "title": {
+                "en": "any state",
+                "fr": "n’importe lequel",
+                "nl": "elke status"
+              }
+            },
+            {
+              "id": "up",
+              "title": {
+                "en": "link up",
+                "fr": "lien actif",
+                "nl": "link actief"
+              }
+            },
+            {
+              "id": "down",
+              "title": {
+                "en": "link down",
+                "fr": "lien inactif",
+                "nl": "link inactief"
+              }
+            },
+            {
+              "id": "dormant",
+              "title": {
+                "en": "dormant",
+                "fr": "en veille",
+                "nl": "slapend"
+              }
+            },
+            {
+              "id": "notPresent",
+              "title": {
+                "en": "module not present",
+                "fr": "module absent",
+                "nl": "module afwezig"
+              }
+            },
+            {
+              "id": "lowerLayerDown",
+              "title": {
+                "en": "lower layer down",
+                "fr": "couche inférieure tombée",
+                "nl": "onderliggende laag uit"
+              }
+            }
           ]
         }
       ],
       "tokens": [
-        { "name": "port", "type": "string", "title": { "en": "Port", "fr": "Port", "nl": "Poort" }, "example": { "en": "Gi1/0/5" } },
-        { "name": "state", "type": "string", "title": { "en": "New state", "fr": "Nouvel état", "nl": "Nieuwe status" }, "example": { "en": "up" } }
+        {
+          "name": "port",
+          "type": "string",
+          "title": {
+            "en": "Port",
+            "fr": "Port",
+            "nl": "Poort"
+          },
+          "example": {
+            "en": "Gi1/0/5"
+          }
+        },
+        {
+          "name": "state",
+          "type": "string",
+          "title": {
+            "en": "New state",
+            "fr": "Nouvel état",
+            "nl": "Nieuwe status"
+          },
+          "example": {
+            "en": "up"
+          }
+        }
       ]
     },
     {
@@ -78,7 +191,18 @@
         "nl": "De switch meldt dat hij deze poort niet kan voeden — kortsluiting, overbelasting of een apparaat dat meer trekt dan zijn klasse. Werkt alleen op switches waarvan de PoE-aansluitingen betrouwbaar aan een poort konden worden gekoppeld."
       },
       "tokens": [
-        { "name": "port", "type": "string", "title": { "en": "Port", "fr": "Port", "nl": "Poort" }, "example": { "en": "Gi1/0/5" } }
+        {
+          "name": "port",
+          "type": "string",
+          "title": {
+            "en": "Port",
+            "fr": "Port",
+            "nl": "Poort"
+          },
+          "example": {
+            "en": "Gi1/0/5"
+          }
+        }
       ]
     }
   ],
@@ -122,7 +246,23 @@
         "nl": "Antwoordt onwaar als de snelheid onbekend is. Een niet-gelezen waarde is geen snelle link, en ook geen trage."
       },
       "args": [
-        { "name": "mbps", "type": "number", "min": 0, "max": 400000, "step": 1, "placeholder": { "en": "1000" } }
+        {
+          "name": "mbps",
+          "type": "number",
+          "title": {
+            "en": "Speed",
+            "fr": "Débit",
+            "nl": "Snelheid"
+          },
+          "min": 0,
+          "max": 400000,
+          "step": 1,
+          "placeholder": {
+            "en": "1000",
+            "fr": "1000",
+            "nl": "1000"
+          }
+        }
       ]
     }
   ],
@@ -156,9 +296,28 @@
         {
           "name": "state",
           "type": "dropdown",
+          "title": {
+            "en": "State",
+            "fr": "État",
+            "nl": "Status"
+          },
           "values": [
-            { "id": "on", "label": { "en": "on", "fr": "en marche", "nl": "aan" } },
-            { "id": "off", "label": { "en": "off", "fr": "à l’arrêt", "nl": "uit" } }
+            {
+              "id": "on",
+              "title": {
+                "en": "on",
+                "fr": "en marche",
+                "nl": "aan"
+              }
+            },
+            {
+              "id": "off",
+              "title": {
+                "en": "off",
+                "fr": "à l’arrêt",
+                "nl": "uit"
+              }
+            }
           ]
         }
       ]
@@ -184,9 +343,28 @@
         {
           "name": "state",
           "type": "dropdown",
+          "title": {
+            "en": "State",
+            "fr": "État",
+            "nl": "Status"
+          },
           "values": [
-            { "id": "on", "label": { "en": "on", "fr": "en marche", "nl": "aan" } },
-            { "id": "off", "label": { "en": "off", "fr": "à l’arrêt", "nl": "uit" } }
+            {
+              "id": "on",
+              "title": {
+                "en": "on",
+                "fr": "en marche",
+                "nl": "aan"
+              }
+            },
+            {
+              "id": "off",
+              "title": {
+                "en": "off",
+                "fr": "à l’arrêt",
+                "nl": "uit"
+              }
+            }
           ]
         }
       ]
