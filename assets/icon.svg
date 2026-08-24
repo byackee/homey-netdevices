@@ -1,23 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <g fill="none" stroke="#000000" stroke-width="34" stroke-linejoin="round" stroke-linecap="round">
     <!--
-      A UPS tower rather than a bare battery symbol: the icon has to read as a
-      piece of equipment sitting on the floor, because that is what the user is
-      looking for in the app list.
+      Une baie, et non l'un des trois appareils. L'icône de l'app ne peut pas être celle
+      d'un driver — la grille de relecture d'Athom le rejette explicitement
+      (homey-lib/lib/AIReviewer/data/checklist.md : « App icon cannot be the same as a
+      driver icon — reject »), et elle mentirait : l'app lit un onduleur, un NAS et un
+      switch. Une baie les contient tous les trois sans en désigner aucun, et se distingue
+      des trois icônes de driver — tour à éclair, boîtier à baies, boîtier à ports.
     -->
-    <rect x="352" y="136" width="320" height="752" rx="44"/>
+    <rect x="152" y="120" width="720" height="784" rx="52"/>
 
-    <!-- Vent grille, and the line that separates it from the face below. -->
-    <path d="M428 236H596"/>
-    <path d="M428 288H596"/>
-    <path d="M428 340H596"/>
-    <path d="M352 400H672"/>
+    <!-- Trois unités empilées : l'onduleur, le NAS, le switch. -->
+    <rect x="256" y="240" width="512" height="152" rx="28"/>
+    <rect x="256" y="436" width="512" height="152" rx="28"/>
+    <rect x="256" y="632" width="512" height="152" rx="28"/>
 
     <!--
-      The bolt is filled while the body is stroked. Drawn as an outline it
-      collapses into an unreadable notch once the icon is scaled down to 75
-      pixels; solid, it stays a bolt.
+      Les voyants sont **pleins**, jamais tracés. Un cercle de 30 unités dessiné au trait
+      se referme en tache illisible dès que l'icône tombe à 75 pixels — la même leçon que
+      l'éclair de l'onduleur et que l'icône « batterie à remplacer », redessinée pour ça.
     -->
-    <path d="M556 440L428 672H500L468 840L596 608H524Z" fill="#000000" stroke="none"/>
+    <circle cx="340" cy="316" r="28" fill="#000000" stroke="none"/>
+    <circle cx="340" cy="512" r="28" fill="#000000" stroke="none"/>
+    <circle cx="340" cy="708" r="28" fill="#000000" stroke="none"/>
+
+    <!-- Les façades, qui évitent que les trois unités se lisent comme un menu. -->
+    <path d="M448 316H672"/>
+    <path d="M448 512H672"/>
+    <path d="M448 708H672"/>
   </g>
 </svg>
