@@ -32,7 +32,8 @@ import { PortContactTracker, type ContactOutcome } from '../../lib/netswitch/con
 import { planPoePower, planPortPower, type ControlContext, type ControlDecision } from '../../lib/netswitch/control.mjs';
 import type { PoePortRef } from '../../lib/netswitch/poe-mib.mjs';
 import { UNKNOWN_LIVE, resolvePortIndex, type PortLive, type PortSnapshot } from '../../lib/netswitch/port.mjs';
-import { readInventory, readPortLive, readPortSpeed } from '../../lib/netswitch/reader.mjs';
+import { readInventory, readPortIdentity, readPortLive, readPortSpeed } from '../../lib/netswitch/reader.mjs';
+import { comparePortIdentity } from '../../lib/netswitch/identity-check.mjs';
 import { NO_THROUGHPUT, throughputBetween, type TrafficSample } from '../../lib/netswitch/throughput.mjs';
 import { writeVarbinds } from '../../lib/netswitch/writer.mjs';
 import { LinkChangeDetector, type LinkChangeSet } from '../../lib/netswitch/link-change.mjs';
@@ -437,6 +438,12 @@ export default class NetSwitchPortDevice extends Homey.Device {
   private async applyDecision(decision: ControlDecision, what: string): Promise<void> {
     if (!decision.allowed) throw new Error(this.refusal(decision.reason));
 
+    // 🔴 Vise-t-on encore le port qu'on croit viser ? L'index n'est réaligné qu'au relevé
+    // lent — 300 s par défaut, jusqu'à 24 h — et une renumérotation entre-temps ferait
+    // couper le **mauvais port**. Ni le transport ni l'agent n'attraperaient ça : une
+    // écriture bien formée sur un OID valide réussit et remonte comme un succès.
+    await this.refusePortIfRenumbered();
+
     const { host, community, port, version } = this.readSettings();
     this.log(`Écriture demandée : ${what}`);
     // Le port compte **aussi** en ecriture : un agent joignable seulement ailleurs qu'en
@@ -446,6 +453,39 @@ export default class NetSwitchPortDevice extends Homey.Device {
     // Le relevé rapide confirmera — ou infirmera — dans la seconde qui suit. C'est lui qui
     // fait foi : un SET accepté par l'agent n'est pas encore un port qui a changé d'état.
     void this.pollLive();
+  }
+
+  /**
+   * Relit l'identité du port juste avant d'écrire, et refuse si elle a changé.
+   *
+   * Un aller-retour de plus, sur une action déclenchée à la main : le coût est nul devant
+   * la conséquence qu'il évite. Une lecture qui échoue ne bloque pas — l'agent est
+   * peut-être momentanément muet, et refuser sur cette base priverait de la commande un
+   * appareil qui n'a rien fait de mal ; le doute ne profite au refus que lorsqu'on a une
+   * **preuve** de divergence.
+   */
+  private async refusePortIfRenumbered(): Promise<void> {
+    const store = this.storedPort();
+    if (this.current.ifIndex <= 0) return;
+
+    let live: { ifName: string | null; ifDescr: string | null };
+    try {
+      live = await readPortIdentity(this.client, this.current.ifIndex);
+    } catch {
+      return;
+    }
+
+    if (comparePortIdentity(store, live) !== 'changed') return;
+
+    this.error(
+      `Écriture refusée : l'index ${this.current.ifIndex} ne désigne plus « `
+      + `${store.ifName ?? store.ifDescr ?? '?'} » mais « ${live.ifName ?? live.ifDescr ?? '?'} »`,
+    );
+    throw new Error(this.homey.__({
+      en: 'This switch has renumbered its ports since this device was added, so the command would have hit a different port. Nothing was sent. It will realign on its own within a few minutes — try again then.',
+      fr: 'Ce switch a renuméroté ses ports depuis l’ajout de cet appareil : la commande serait partie sur un autre port. Rien n’a été envoyé. Le réalignement se fait tout seul en quelques minutes — réessayez ensuite.',
+      nl: 'Deze switch heeft zijn poorten hernummerd sinds dit apparaat werd toegevoegd, dus de opdracht zou een andere poort hebben geraakt. Er is niets verzonden. Hij lijnt zichzelf binnen enkele minuten weer uit — probeer het dan opnieuw.',
+    }));
   }
 
   private refusal(reason: 'control-disabled' | 'no-port' | 'no-poe'): string {

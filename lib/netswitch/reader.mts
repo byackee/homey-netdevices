@@ -256,6 +256,29 @@ export async function readPortSpeed(client: SnmpReader, ifIndex: number): Promis
   return speedMbps(toNumber(answers.get(oids[0]!) ?? null), toNumber(answers.get(oids[1]!) ?? null));
 }
 
+/**
+ * Relit l'identité d'un port, pour vérifier qu'un index désigne encore le même.
+ *
+ * Deux OID, un seul aller-retour. Appelé juste avant une écriture — voir
+ * `lib/netswitch/identity-check.mts` pour la raison, qui n'est pas une précaution
+ * générale mais un cas précis : entre deux relevés lents, un index renuméroté ferait
+ * couper le mauvais port.
+ */
+export async function readPortIdentity(
+  client: SnmpReader,
+  ifIndex: number,
+): Promise<{ ifName: string | null; ifDescr: string | null }> {
+  const oids = [`${IF_X_TABLE.name}.${ifIndex}`, `${IF_TABLE.descr}.${ifIndex}`];
+  const answers = await client.get(oids);
+  const texte = (oid: string): string | null => {
+    const v = answers.get(oid);
+    if (v === null || v === undefined) return null;
+    const t = (Buffer.isBuffer(v) ? v.toString('latin1') : String(v)).trim();
+    return t.length > 0 ? t : null;
+  };
+  return { ifName: texte(oids[0]!), ifDescr: texte(oids[1]!) };
+}
+
 // ---------------------------------------------------------------------------
 // Petits outils
 // ---------------------------------------------------------------------------
