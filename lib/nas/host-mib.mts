@@ -191,6 +191,15 @@ export const PSEUDO_MOUNTS: readonly string[] = [
   '/proc',
   '/sys',
   '/run',
+  /**
+   * 🔴 `/tmp` est de la RAM sur la plupart des systèmes, et Synology la déclare avec un
+   * type de **disque** — elle passe donc le filtre de type et n'est arrêtée que par ce
+   * filtre-ci. Relevé sur un vrai DSM : l'app y offrait « /tmp » à 0,7 % et
+   * « /tmp/SynologyAuthService » à 2,8 % comme s'il s'agissait de volumes de stockage.
+   *
+   * Le préfixe couvre les enfants : `/tmp/SynologyAuthService` tombe avec le parent.
+   */
+  '/tmp',
   '/tmpfs',
   '/var/lib/docker',
   '/snap',

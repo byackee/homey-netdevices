@@ -113,6 +113,13 @@ test('🔴 isPseudoMount écarte ce que le type laisse passer', () => {
   assert.ok(isPseudoMount('/run/lock'));
   assert.ok(isPseudoMount('/proc'));
   assert.ok(isPseudoMount('/sys/fs/cgroup'));
+
+  // 🔴 `/tmp` est de la RAM, et Synology le déclare avec un type de **disque** : il passe
+  // donc le filtre de type et n'est arrêté que par celui-ci. Relevé sur un vrai DSM, où
+  // l'app offrait « /tmp » et « /tmp/SynologyAuthService » comme s'il s'agissait de
+  // volumes de stockage, à côté du seul vrai — `/volume1`.
+  assert.ok(isPseudoMount('/tmp'));
+  assert.ok(isPseudoMount('/tmp/SynologyAuthService'), 'le préfixe doit emporter les enfants');
 });
 
 test('🔴 isPseudoMount compare des segments, pas des sous-chaînes', () => {
