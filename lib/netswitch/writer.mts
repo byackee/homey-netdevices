@@ -16,6 +16,7 @@
 import * as snmp from 'net-snmp';
 
 import type { SnmpVersion } from '../snmp/client.mjs';
+import { guardSession } from '../snmp/session-guard.mjs';
 import { trace } from '../snmp/trace.mjs';
 import type { PortWrite } from './control.mjs';
 
@@ -58,12 +59,14 @@ export class SnmpWriteError extends Error {
 export async function writeVarbinds(options: WriterOptions, writes: readonly PortWrite[]): Promise<void> {
   if (writes.length === 0) return;
 
-  const session = snmp.createSession(options.host, options.community, {
+  // Même exposition qu'en lecture : sans l'écouteur `'error'` que pose `guardSession`,
+  // un paquet UDP illisible reçu pendant l'écriture ferait tomber l'app entière.
+  const session = guardSession(snmp.createSession(options.host, options.community, {
     version: options.version === 'v1' ? snmp.Version1 : snmp.Version2c,
     timeout: options.timeout ?? DEFAULT_TIMEOUT,
     retries: options.retries ?? DEFAULT_RETRIES,
     port: options.port ?? DEFAULT_PORT,
-  });
+  }), options.host);
 
   const varbinds = writes.map((write) => ({
     oid: write.oid,

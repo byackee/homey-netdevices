@@ -16,6 +16,7 @@
 
 // Import de namespace : `net-snmp` est du CommonJS et ne publie pas d'export par défaut.
 import * as snmp from 'net-snmp';
+import { guardSession } from './session-guard.mjs';
 
 /** Versions SNMP proposées. v3 est hors périmètre : aucune de nos cibles ne l'impose. */
 export type SnmpVersion = 'v2c' | 'v1';
@@ -184,12 +185,14 @@ export class SnmpClient implements SnmpReader {
    *   requête après l'échéance, et celle qui est déjà en vol la dépasse librement.
    */
   private openSession(timeoutMs?: number): snmp.Session {
-    return snmp.createSession(this.host, this.community, {
+    // `guardSession` n'est pas décoratif : sans son écouteur `'error'`, un seul paquet
+    // UDP illisible arrivant sur ce socket tue le processus de l'app. Voir son en-tête.
+    return guardSession(snmp.createSession(this.host, this.community, {
       version: this.version === 'v1' ? snmp.Version1 : snmp.Version2c,
       timeout: timeoutMs === undefined ? this.timeout : Math.max(1, Math.min(this.timeout, timeoutMs)),
       retries: this.retries,
       port: this.port,
-    });
+    }), this.host);
   }
 
   /**
