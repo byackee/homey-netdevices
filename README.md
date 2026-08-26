@@ -1,4 +1,4 @@
-# SNMP - Network Devices
+# Network Devices
 
 A Homey app that reads network equipment over SNMP. Version 1 covers one class of
 device: the **UPS** — including, and above all, a USB UPS plugged into a Synology NAS.
@@ -150,7 +150,7 @@ generates it, so it has to exist to bootstrap.
 
 ## Adding a device
 
-Add device → *SNMP - Network Devices* → UPS. Homey sweeps your subnet for anything that
+Add device → *Network Devices* → UPS. Homey sweeps your subnet for anything that
 answers over SNMP and lists what it found; pick your UPS and it is added. A full sweep of
 a /24 takes about fifteen seconds, so the view shows progress rather than freezing.
 
@@ -164,17 +164,22 @@ devices found" — see *What you have to enable* above.
 
 ## Status
 
-Work in progress, and close to complete for version 1: the SNMP core, the UPS reader, the
-device with its two polling rhythms, the twelve Flow cards, pairing and repair are all in.
-Nothing is published to the App Store yet, and the app name still has to change before it
-could be (see below).
+Feature-complete and submitted, not yet published. Version 1.0.10 went to certification
+and was rejected on three counts — the protocol name in the app name, the NAS and switch
+driver images, and a settings-page bug that made every connection test report a failure.
+All three are fixed in 1.0.11, which is what goes back for review.
 
 ## Naming note
 
 The Homey App Store guidelines forbid protocol names in an app's display name and cap it
-at four words. **"SNMP - Network Devices" will not survive review as it stands**, and the
-name will have to change before submission — the app id will not, which is why it is the
-neutral `com.dataweavelabs.netdevices`.
+at four words, and version 1.0.10 was rejected on exactly that: *"Your app's name contains
+the protocol name SNMP"*. The display name is now **Network Devices**. The app id never
+carried the protocol, which is why it could stay `com.dataweavelabs.netdevices` across the
+rename — a Homey app id cannot change without becoming a different app.
+
+`SNMP` stays in the description and in the store tags, where it is allowed and where it is
+what people search for. `test/store-review.test.mts` keeps the name clear of protocol
+names from now on.
 
 ## Support ❤️
 

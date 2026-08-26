@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+  <!--
+    The managed switch driver image, on white for the same reason as the NAS one:
+    guideline 1.4 rejected the dark teal tile it used to sit on.
+
+    A switch is a wide box and the tile is square, so the white space above and below
+    is unavoidable. It is spent rather than wasted: the chassis is drawn large enough
+    that the *row of ports* — the thing that makes the shape a switch and not a
+    modem — still reads at 75 pixels.
+  -->
+  <rect width="1000" height="1000" fill="#FFFFFF"/>
+
+  <defs>
+    <linearGradient id="chassis" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3A4247"/>
+      <stop offset="1" stop-color="#20262A"/>
+    </linearGradient>
+    <linearGradient id="ear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4A5359"/>
+      <stop offset="1" stop-color="#2C3338"/>
+    </linearGradient>
+    <radialGradient id="ground">
+      <stop offset="0" stop-color="#12181B" stop-opacity="0.26"/>
+      <stop offset="0.55" stop-color="#12181B" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#12181B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <ellipse cx="500" cy="742" rx="392" ry="28" fill="url(#ground)"/>
+
+  <!-- The rack ears. They are what stops the shape reading as a set-top box. -->
+  <rect x="40" y="330" width="66" height="380" rx="12" fill="url(#ear)"/>
+  <rect x="894" y="330" width="66" height="380" rx="12" fill="url(#ear)"/>
+  <g fill="#1A1F22">
+    <circle cx="73" cy="392" r="13"/>
+    <circle cx="73" cy="648" r="13"/>
+    <circle cx="927" cy="392" r="13"/>
+    <circle cx="927" cy="648" r="13"/>
+  </g>
+
+  <rect x="86" y="318" width="828" height="404" rx="26" fill="url(#chassis)"/>
+  <rect x="86" y="318" width="828" height="404" rx="26" fill="none" stroke="#151A1D" stroke-width="4"/>
+
+  <!--
+    Sixteen ports in two rows. Each is drawn as a socket with the RJ45 tab notch
+    below it — the notch is what a network port looks like and nothing else does,
+    so it is worth the two extra shapes even though it closes up at 75 pixels,
+    where what survives is the row itself.
+  -->
+  <g>
+    <rect x="132" y="388" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="143" y="399" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="160" y="426" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="222" y="388" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="233" y="399" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="250" y="426" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="312" y="388" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="323" y="399" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="340" y="426" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="402" y="388" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="413" y="399" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="430" y="426" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="492" y="388" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="503" y="399" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="520" y="426" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="582" y="388" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="593" y="399" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="610" y="426" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="672" y="388" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="683" y="399" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="700" y="426" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="762" y="388" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="773" y="399" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="790" y="426" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="132" y="588" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="143" y="599" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="160" y="626" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="222" y="588" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="233" y="599" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="250" y="626" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="312" y="588" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="323" y="599" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="340" y="626" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="402" y="588" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="413" y="599" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="430" y="626" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="492" y="588" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="503" y="599" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="520" y="626" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="582" y="588" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="593" y="599" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="610" y="626" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="672" y="588" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="683" y="599" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="700" y="626" width="16" height="13" rx="3" fill="#39424A"/>
+    <rect x="762" y="588" width="72" height="60" rx="9" fill="#D8DFE2"/>
+    <rect x="773" y="599" width="50" height="30" rx="4" fill="#39424A"/>
+    <rect x="790" y="626" width="16" height="13" rx="3" fill="#39424A"/>
+  </g>
+
+  <!--
+    One port lit teal. A port is a device in this driver, and this is the one you
+    added — the whole reason the row is drawn. It is also the only colour here.
+  -->
+  <g>
+    <rect x="492" y="388" width="72" height="60" rx="9" fill="#17C3B2"/>
+    <rect x="503" y="399" width="50" height="30" rx="4" fill="#0B5F5E"/>
+    <rect x="520" y="426" width="16" height="13" rx="3" fill="#0B5F5E"/>
+  </g>
+
+  <!-- The port link lights, one lit per active port, in the strip between rows. -->
+  <g fill="#394248">
+    <circle cx="168" cy="518" r="11"/>
+    <circle cx="258" cy="518" r="11"/>
+    <circle cx="348" cy="518" r="11"/>
+    <circle cx="438" cy="518" r="11"/>
+    <circle cx="618" cy="518" r="11"/>
+    <circle cx="708" cy="518" r="11"/>
+    <circle cx="798" cy="518" r="11"/>
+  </g>
+  <circle cx="528" cy="518" r="11" fill="#17C3B2"/>
+
+  <!-- The power light at the far end, so the chassis has a front and not just a
+       face: it is what keeps the box from reading as a patch panel. -->
+  <circle cx="866" cy="518" r="13" fill="#17C3B2"/>
+</svg>

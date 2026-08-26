@@ -5,6 +5,14 @@
     "sourceMap": true,
     "rootDir": "."
   },
-  "include": ["lib/**/*.mts", "test/**/*.mts"],
-  "exclude": ["node_modules", ".homeybuild", ".testbuild"]
+  "include": [
+    "api.mts",
+    "lib/**/*.mts",
+    "test/**/*.mts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".homeybuild",
+    ".testbuild"
+  ]
 }

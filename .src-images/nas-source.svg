@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+  <!--
+    The NAS driver image. White background, not the brand teal: the App Store
+    review rejected the teal version under guideline 1.4, which wants the device
+    on white so it sits on the store's own background instead of punching a
+    coloured tile into it.
+
+    Dark body on white, like the UPS driver image next to it — the three drivers
+    have to read as one app, and the UPS one is a photograph of a black box on a
+    white sweep. The teal survives only as the activity light, which is the one
+    place it says something.
+  -->
+  <rect width="1000" height="1000" fill="#FFFFFF"/>
+
+  <defs>
+    <!-- Front panel: lit from above left, the way a box on a shelf is. -->
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3A4247"/>
+      <stop offset="1" stop-color="#20262A"/>
+    </linearGradient>
+    <!-- The caddies are brighter than the chassis, which is what makes them read
+         as removable trays rather than as vents cut into the front. -->
+    <linearGradient id="bay" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5A646A"/>
+      <stop offset="1" stop-color="#414A50"/>
+    </linearGradient>
+    <!-- A contact shadow rather than a drop shadow: no blur filter, so the render
+         is identical whatever rasteriser runs it. -->
+    <radialGradient id="ground">
+      <stop offset="0" stop-color="#12181B" stop-opacity="0.26"/>
+      <stop offset="0.55" stop-color="#12181B" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#12181B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <ellipse cx="500" cy="884" rx="238" ry="34" fill="url(#ground)"/>
+
+  <!-- Two bays, not four. Two is what almost every home NAS has, and four caddies
+       collapse into a striped smudge once the image is scaled to 75 pixels. -->
+  <rect x="318" y="132" width="364" height="742" rx="42" fill="url(#body)"/>
+  <rect x="318" y="132" width="364" height="742" rx="42" fill="none" stroke="#151A1D" stroke-width="4"/>
+
+  <rect x="362" y="196" width="128" height="536" rx="14" fill="url(#bay)"/>
+  <rect x="510" y="196" width="128" height="536" rx="14" fill="url(#bay)"/>
+
+  <!-- The grab notch at the top of each caddy: the one detail that says "pull this
+       drive out" instead of "grille". -->
+  <rect x="392" y="236" width="68" height="12" rx="6" fill="#8E999F"/>
+  <rect x="540" y="236" width="68" height="12" rx="6" fill="#8E999F"/>
+
+  <!-- Ventilation down each caddy, faint enough to disappear at small sizes rather
+       than turn into moiré. -->
+  <g fill="#333B41">
+    <rect x="386" y="290" width="80" height="8" rx="4"/>
+    <rect x="386" y="322" width="80" height="8" rx="4"/>
+    <rect x="386" y="354" width="80" height="8" rx="4"/>
+    <rect x="534" y="290" width="80" height="8" rx="4"/>
+    <rect x="534" y="322" width="80" height="8" rx="4"/>
+    <rect x="534" y="354" width="80" height="8" rx="4"/>
+  </g>
+
+  <!-- The status lights. One lit in the brand teal, two dark: the contrast between
+       "this one is doing something" and "these are not" is the whole reason the row
+       is there, and it is the only colour in the image. -->
+  <circle cx="392" cy="800" r="17" fill="#17C3B2"/>
+  <circle cx="452" cy="800" r="17" fill="#394248"/>
+  <circle cx="512" cy="800" r="17" fill="#394248"/>
+</svg>

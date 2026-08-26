@@ -23,6 +23,7 @@
     "@types/node": "^22.10.0",
     "@types/source-map-support": "^0.5.10",
     "homey": "^4.4.2",
+    "sharp": "^0.33.5",
     "typescript": "^5.7.0"
   }
 }

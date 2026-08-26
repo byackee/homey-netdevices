@@ -174,7 +174,11 @@ export default class NetDevicesApp extends Homey.App {
         return text === '' ? [] : text.split('\n');
       },
     });
-    this.log('SNMP - Network Devices app initialised');
+    // Pas le nom de l'app : Homey préfixe déjà chaque ligne de journal de l'id de
+    // l'app, et le nom recopié ici est ce qui a survécu au renommage de la 1.0.11 —
+    // le journal a continué d'annoncer « SNMP - Network Devices » après que le
+    // manifeste eut cessé de le faire. Une copie d'un nom finit toujours par mentir.
+    this.log('App initialised');
   }
 
   /** Called once by whoever creates the buffer, during its own init. */

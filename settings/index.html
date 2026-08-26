@@ -119,9 +119,36 @@
     const scanButton = document.getElementById('scan-run');
     const scanTarget = document.getElementById('scan-result');
 
+    /**
+     * How to name an address the sweep has just met.
+     *
+     * Same order as the pairing view: the name the agent gives itself comes
+     * before the model, because it is the user who wrote it.
+     */
+    function labelFor(entry) {
+      // No manufacturer here, unlike the probe's own label: a sweep entry does
+      // not carry one. Reading a field the endpoint does not send is the very
+      // mistake this panel is being fixed for.
+      return entry.name || entry.model || entry.description || '';
+    }
+
+    function listOf(entries, cssClass) {
+      return '<ul class="results">' + entries.map((e) => {
+        const label = labelFor(e);
+        return '<li' + (cssClass ? ' class="' + cssClass + '"' : '') + '>'
+          + esc(e.host) + (label ? ' — ' + esc(label) : '') + '</li>';
+      }).join('') + '</ul>';
+    }
+
     function renderScan(status) {
-      const found = Array.isArray(status.devices) ? status.devices : [];
-      const silent = Array.isArray(status.reachableWithoutSnmp) ? status.reachableWithoutSnmp : [];
+      // 🔴 `found` and `others`, which is what GET /scan returns. This read used
+      // to be `status.devices` and `status.reachableWithoutSnmp` — names the
+      // endpoint has never sent, and that belong to the *pairing* view's own
+      // contract, where they are correct. Both were therefore always undefined:
+      // the sweep listed nothing whatever it found, and finished by announcing
+      // "no SNMP device answered" on a subnet full of devices that had answered.
+      const found = Array.isArray(status.found) ? status.found : [];
+      const others = Array.isArray(status.others) ? status.others : [];
       const parts = [];
 
       if (status.running) {
@@ -133,22 +160,24 @@
 
       if (found.length) {
         parts.push('<p>' + esc(t('settings.scan_found', { count: found.length })) + '</p>');
-        parts.push('<ul class="results">' + found.map((d) => (
-          '<li>' + esc(d.host) + (d.model ? ' — ' + esc(d.model) : '') + '</li>'
-        )).join('') + '</ul>');
+        parts.push(listOf(found, ''));
       }
 
-      // A reachable-but-silent address is the whole point of this panel: it is
-      // the difference between "nothing is there" and "SNMP is switched off",
-      // and only the second one has an action attached to it.
-      if (silent.length) {
-        parts.push('<p class="warn">' + esc(Homey.__('pair.reachable_lead')) + '</p>');
-        parts.push('<ul class="results">' + silent.map((host) => (
-          '<li class="warn">' + esc(t('pair.reachable_item', { host })) + '</li>'
-        )).join('') + '</ul>');
+      // An address that speaks SNMP without being a UPS is a diagnosis, not
+      // noise: it proves SNMP works on this network, which is the difference
+      // between "nothing is there" and "the UPS itself is not answering".
+      if (others.length) {
+        parts.push('<p class="warn">' + esc(Homey.__('pair.others_title')) + '</p>');
+        parts.push('<p class="hint">' + esc(Homey.__('pair.others_lead')) + '</p>');
+        parts.push(listOf(others, 'warn'));
       }
 
-      if (!status.running && !found.length) {
+      // The sweep's own failure, which used to be swallowed: an error left the
+      // list empty, and an empty list was reported as "nothing answered" — the
+      // one reading that sends the user to check hardware that is fine.
+      if (status.error) {
+        parts.push('<p class="bad">' + esc(String(status.error)) + '</p>');
+      } else if (!status.running && !found.length && !others.length) {
         parts.push('<p class="hint">' + esc(Homey.__('settings.scan_none')) + '</p>');
       }
 
@@ -222,12 +251,35 @@
         // Three outcomes, deliberately not two: answered, reachable but silent,
         // and nothing at all. Collapsing the middle one into "not found" is the
         // exact failure that has left the forum's APC thread unresolved.
-        if (result && result.ok) {
+        //
+        // 🔴 Read `outcome`, which is the only verdict POST /probe returns.
+        // This branch used to test `result.ok` and `result.reachable`, fields the
+        // endpoint has never sent: both were undefined whatever happened, so every
+        // probe fell through to "did not answer at all" — the page reported a dead
+        // address for a UPS that had just replied with its model.
+        const outcome = result && result.outcome;
+
+        if (outcome === 'ups' || outcome === 'snmp') {
+          // Même règle de nommage que la vue de pairing : le nom que l'agent se
+          // donne avant le modèle, parce que c'est l'utilisateur qui l'a écrit.
+          // Sans cette cascade, un NAS ou un switch — qui n'ont pas d'identité
+          // constructeur/modèle, celle-ci n'étant lue que pour les onduleurs —
+          // répondait « a répondu : — » alors qu'il venait de se nommer.
+          const label = result.name
+            || [result.manufacturer, result.model].filter(Boolean).join(' ')
+            || result.description
+            || '—';
           probeTarget.innerHTML = '<p>' + esc(t('settings.probe_ok', {
-            host, model: result.model || '—',
+            host, model: label,
           })) + '</p>';
-        } else if (result && result.reachable) {
+        } else if (outcome === 'reachable') {
           probeTarget.innerHTML = '<p class="warn">' + esc(t('settings.probe_no_snmp', { host })) + '</p>';
+        } else if (outcome === 'no-host') {
+          // The empty address is caught above and never reaches the endpoint, so
+          // this branch is unreachable today. It exists because the alternative
+          // is the failure being fixed here: an outcome nobody claimed falling
+          // into "did not answer at all", which blames a device for a typo.
+          probeTarget.innerHTML = '<p class="bad">' + esc(Homey.__('settings.probe_needs_host')) + '</p>';
         } else {
           probeTarget.innerHTML = '<p class="hint">' + esc(t('settings.probe_silent', { host })) + '</p>';
         }
