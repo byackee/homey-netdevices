@@ -176,6 +176,19 @@ at four words. **"SNMP - Network Devices" will not survive review as it stands**
 name will have to change before submission — the app id will not, which is why it is the
 neutral `com.dataweavelabs.netdevices`.
 
+## Support ❤️
+
+This app is free, and built on my own time — evenings spent reading MIBs so that a UPS
+plugged into a NAS, or a switch port nobody was watching, finally shows up in Homey. If
+it saves your server from an unnoticed power cut, you can support the work:
+
+- ☕ Buy me a coffee: https://buymeacoffee.com/byackee
+- 🔗 All my links: https://linktr.ee/byackee
+
+Opening an issue with what your own hardware reports helps just as much — every device
+that lands here makes the next one work out of the box. Thank you for using it, and for
+every bit of support 🙏
+
 ## Licence
 
 See `LICENSE`.
