@@ -101,13 +101,13 @@ test('le nom proposé prend ce que l’agent publie, sans répéter la marque', 
   assert.equal(suggestName('APC Smart-UPS 1500', 'APC', 'ups-garage', '192.168.1.20'), 'APC Smart-UPS 1500');
   assert.equal(suggestName(null, 'Eaton', 'ups-cave', '192.168.1.20'), 'Eaton');
   assert.equal(suggestName(null, null, 'ups-cave', '192.168.1.20'), 'ups-cave');
-  assert.equal(suggestName(null, null, '   ', '192.168.1.20'), 'Onduleur (192.168.1.20)');
-  assert.equal(suggestName('  ', null, null, '10.0.0.9'), 'Onduleur (10.0.0.9)');
+  assert.equal(suggestName(null, null, '   ', '192.168.1.20'), 'UPS (192.168.1.20)');
+  assert.equal(suggestName('  ', null, null, '10.0.0.9'), 'UPS (10.0.0.9)');
 });
 
 test('le sous-titre dit où l’appareil est et d’où vient la lecture', () => {
   const relayed = buildCandidate(input({ source: 'synology', serial: null }));
-  assert.equal(relayed.subtitle, '192.168.1.20 · relayé par un NAS Synology');
+  assert.equal(relayed.subtitle, '192.168.1.20 · relayed by a Synology NAS');
 
   const direct = buildCandidate(input({ source: 'rfc1628' }));
   assert.equal(direct.subtitle, '192.168.1.20 · nº AS1234567890 · RFC 1628');

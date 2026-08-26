@@ -154,3 +154,94 @@ test('🔴 chaque createSession passe par guardSession', async () => {
     + nus.join('\n'),
   );
 });
+
+/**
+ * 🔴 Le datagramme avalé doit ressortir dans le message d'échec.
+ *
+ * Le garde empêche le plantage, mais il rend l'appareil bavard **invisible** : la requête
+ * va à son délai et l'app annonce « No SNMP answer », exactement comme pour une adresse
+ * morte. L'utilisateur va donc vérifier son adresse et sa communauté, et cherche là où il
+ * n'y a rien — le symptôme réel étant un appareil qui répond du charabia.
+ *
+ * L'idée vient de l'app imprimante, qui a subi le même plantage et a eu la bonne réaction
+ * avant nous. On y ajoute une chose : le champ est remis à zéro à chaque opération. Le
+ * garder d'une opération à l'autre collerait un incident vieux de dix minutes sur un délai
+ * qui n'a rien à voir, et un faux indice est pire que pas d'indice.
+ */
+test('🔴 le message d’échec nomme le datagramme illisible', async () => {
+  const socket = await agentBavard(11_641);
+  try {
+    const client = new SnmpClient({
+      host: '127.0.0.1', community: 'public', port: 11_641,
+      version: 'v2c', timeout: 300, retries: 0,
+    });
+    await assert.rejects(
+      () => client.get(['1.3.6.1.2.1.1.1.0']),
+      (error: Error) => {
+        assert.match(
+          error.message,
+          /unreadable reply also arrived/i,
+          `l’appareil bavard reste indiscernable d’une adresse morte : ${error.message}`,
+        );
+        return true;
+      },
+    );
+  } finally {
+    socket.close();
+  }
+});
+
+test('🔴 une adresse simplement muette n’invente pas de datagramme', async () => {
+  // Le pendant du test précédent : sans charabia reçu, le message ne doit rien ajouter.
+  // Sans ce contrôle, un champ jamais remis à zéro passerait le test ci-dessus.
+  const muet = dgram.createSocket('udp4');
+  await new Promise<void>((resolve) => muet.bind(11_642, '127.0.0.1', resolve));
+  try {
+    const client = new SnmpClient({
+      host: '127.0.0.1', community: 'public', port: 11_642,
+      version: 'v2c', timeout: 300, retries: 0,
+    });
+    await assert.rejects(
+      () => client.get(['1.3.6.1.2.1.1.1.0']),
+      (error: Error) => {
+        assert.doesNotMatch(error.message, /unreadable reply/i, error.message);
+        return true;
+      },
+    );
+  } finally {
+    muet.close();
+  }
+});
+
+test('🔴 le datagramme d’une opération ne contamine pas la suivante', async () => {
+  // Le même client sert deux fois : d'abord contre l'agent bavard, puis contre une
+  // adresse muette. Le second échec ne doit pas hériter du charabia du premier.
+  const bavard = await agentBavard(11_643);
+  const client = new SnmpClient({
+    host: '127.0.0.1', community: 'public', port: 11_643,
+    version: 'v2c', timeout: 300, retries: 0,
+  });
+  try {
+    await client.get(['1.3.6.1.2.1.1.1.0']).catch(() => undefined);
+  } finally {
+    bavard.close();
+  }
+
+  const muet = dgram.createSocket('udp4');
+  await new Promise<void>((resolve) => muet.bind(11_643, '127.0.0.1', resolve));
+  try {
+    await assert.rejects(
+      () => client.get(['1.3.6.1.2.1.1.1.0']),
+      (error: Error) => {
+        assert.doesNotMatch(
+          error.message,
+          /unreadable reply/i,
+          `un incident de l’opération précédente est recollé sur celle-ci : ${error.message}`,
+        );
+        return true;
+      },
+    );
+  } finally {
+    muet.close();
+  }
+});

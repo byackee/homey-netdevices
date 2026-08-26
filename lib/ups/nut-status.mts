@@ -16,20 +16,20 @@
 
 /** Les jetons `ups.status` documentés, avec ce qu'ils veulent dire. */
 export const NUT_FLAGS = {
-  OL: 'sur secteur',
-  OB: 'sur batterie',
-  LB: 'batterie faible',
-  HB: 'batterie haute',
-  RB: 'batterie à remplacer',
-  CHRG: 'en charge',
-  DISCHRG: 'en décharge',
-  BYPASS: 'bypass — plus de protection',
-  CAL: 'calibration en cours',
-  OFF: 'onduleur éteint',
-  OVER: 'surcharge',
-  TRIM: 'tension d\'entrée rabaissée',
-  BOOST: 'tension d\'entrée relevée',
-  FSD: 'arrêt forcé demandé',
+  OL: 'on mains',
+  OB: 'on battery',
+  LB: 'battery low',
+  HB: 'battery overvoltage',
+  RB: 'battery needs replacing',
+  CHRG: 'charging',
+  DISCHRG: 'discharging',
+  BYPASS: 'on bypass — no protection',
+  CAL: 'calibration running',
+  OFF: 'UPS switched off',
+  OVER: 'overload',
+  TRIM: 'trimming high mains',
+  BOOST: 'boosting low mains',
+  FSD: 'forced shutdown requested',
 } as const;
 
 export type NutFlag = keyof typeof NUT_FLAGS;

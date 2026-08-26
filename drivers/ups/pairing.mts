@@ -165,14 +165,14 @@ export function suggestName(
   if (label !== '') return label;
   const named = (sysName ?? '').trim();
   if (named !== '') return named;
-  return `Onduleur (${host})`;
+  return `UPS (${host})`;
 }
 
 /** D'où vient la lecture, dit à l'utilisateur : c'est ce qui explique ce qu'il verra ensuite. */
 export function sourceLabel(source: UpsSource): string {
   switch (source) {
     case 'synology':
-      return 'relayé par un NAS Synology';
+      return 'relayed by a Synology NAS';
     case 'rfc1628':
       return 'RFC 1628';
     case 'apc':

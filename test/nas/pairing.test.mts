@@ -165,8 +165,8 @@ test('la marque n\'est pas répétée quand le nom la porte déjà', () => {
 test('sans nom, on prend ce qu\'il y a — et jamais rien', () => {
   assert.equal(suggestNasName(null, 'QNAP', 'Linux TS-453', '192.168.1.40'), 'QNAP (192.168.1.40)');
   assert.equal(suggestNasName(null, null, 'Linux srv01 5.15.0', '192.168.1.41'), 'Linux (192.168.1.41)');
-  assert.equal(suggestNasName(null, null, null, '192.168.1.42'), 'Hôte (192.168.1.42)');
-  assert.equal(suggestNasName('   ', null, '   ', '192.168.1.43'), 'Hôte (192.168.1.43)');
+  assert.equal(suggestNasName(null, null, null, '192.168.1.42'), 'Host (192.168.1.42)');
+  assert.equal(suggestNasName('   ', null, '   ', '192.168.1.43'), 'Host (192.168.1.43)');
 });
 
 test('le sous-titre dit ce que l\'appareil portera vraiment', () => {

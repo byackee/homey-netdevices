@@ -74,12 +74,12 @@ export async function syncCapabilities(
   if (plan.energy) {
     // Légitime ici : la batterie est bien dans l'appareil, d'où `INTERNAL`.
     await sink.setEnergy(plan.energy).catch((error: Error) =>
-      sink.error(`Impossible de déclarer la batterie : ${error.message}`));
+      sink.error(`Could not declare the battery: ${error.message}`));
   }
 
   if (toAdd.length === 0) return { added: [], orphaned, changed: false };
 
-  sink.log(`Cet onduleur publie ${toAdd.length} mesure(s) de plus : ${toAdd.join(', ')}`);
+  sink.log(`This UPS publishes ${toAdd.length} more measurement(s): ${toAdd.join(', ')}`);
 
   const added: string[] = [];
   for (const id of toAdd) {

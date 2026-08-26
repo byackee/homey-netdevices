@@ -201,7 +201,7 @@ export default class NetSwitchPortDevice extends Homey.Device {
       const store = this.storedPort();
       let outcome: ContactOutcome;
       try {
-        if (this.current.ifIndex <= 0) throw new Error('aucun index de port connu pour cet appareil');
+        if (this.current.ifIndex <= 0) throw new Error('no port index is known for this device');
         outcome = this.contact.succeeded(await readPortLive(this.client, this.current.ifIndex, this.poeRef() ?? store.poe));
       } catch (error) {
         outcome = this.contact.failed();
@@ -291,7 +291,7 @@ export default class NetSwitchPortDevice extends Homey.Device {
     await this.setStoreValue('poeGroup', poe?.group ?? null).catch(() => {});
     await this.setStoreValue('poePort', poe?.port ?? null).catch(() => {});
     this.log(poe === null
-      ? 'Aucune correspondance PoE pour ce port — les mesures PoE ne sont plus relevées'
+      ? 'No PoE match for this port — PoE readings are no longer taken'
       : `Correspondance PoE : groupe ${poe.group}, prise ${poe.port}`);
   }
 
@@ -487,8 +487,8 @@ export default class NetSwitchPortDevice extends Homey.Device {
     if (comparePortIdentity(store, live) !== 'changed') return;
 
     this.error(
-      `Écriture refusée : l'index ${this.current.ifIndex} ne désigne plus « `
-      + `${store.ifName ?? store.ifDescr ?? '?'} » mais « ${live.ifName ?? live.ifDescr ?? '?'} »`,
+      `Write refused: index ${this.current.ifIndex} no longer points at "`
+      + `${store.ifName ?? store.ifDescr ?? '?'}" but at "${live.ifName ?? live.ifDescr ?? '?'}"`,
     );
     throw new Error(this.homey.__({
       en: 'This switch has renumbered its ports since this device was added, so the command would have hit a different port. Nothing was sent. It will realign on its own within a few minutes — try again then.',
@@ -581,7 +581,7 @@ export default class NetSwitchPortDevice extends Homey.Device {
   // -------------------------------------------------------------------------
 
   private logFailure(outcome: ContactOutcome, error: unknown): void {
-    const message = `${describe(error)} (échec ${outcome.failures})`;
+    const message = `${describe(error)} (failure ${outcome.failures})`;
     if (outcome.absorbing) {
       this.log(`Poll got no answer, absorbed: ${message}`);
       return;

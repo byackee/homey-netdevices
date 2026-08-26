@@ -236,7 +236,7 @@ export function suggestNasName(
   // en pratique le système (« Linux », « Windows », « VMware »). Mieux qu'une adresse
   // toute seule, et honnête sur ce qu'on sait.
   const first = (description ?? '').trim().split(/\s+/)[0] ?? '';
-  return first === '' ? `Hôte (${host})` : `${first} (${host})`;
+  return first === '' ? `Host (${host})` : `${first} (${host})`;
 }
 
 /**

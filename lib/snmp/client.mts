@@ -142,10 +142,19 @@ function toRaw(varbind: snmp.Varbind): Buffer | null {
   return Buffer.isBuffer(varbind.value) ? varbind.value : null;
 }
 
-/** Levée quand l'appareil n'a pas pu être joint du tout — par opposition à « je ne sais pas ». */
+/**
+ * Levée quand l'appareil n'a pas pu être joint du tout — par opposition à « je ne sais pas ».
+ *
+ * `garbled` porte le dernier datagramme illisible reçu **pendant cette opération**, quand
+ * il y en a eu un. Sans lui, un appareil qui répond du charabia est indiscernable d'un
+ * appareil absent : le message dit « aucune réponse », l'utilisateur va vérifier son
+ * adresse et sa communauté, et il cherche là où il n'y a rien.
+ */
 export class SnmpUnreachableError extends Error {
-  constructor(host: string, cause: string) {
-    super(`Aucune réponse SNMP de ${host} : ${cause}`);
+  constructor(host: string, cause: string, garbled: string | null = null) {
+    super(garbled === null
+      ? `No SNMP answer from ${host}: ${cause}`
+      : `No SNMP answer from ${host}: ${cause} (an unreadable reply also arrived: ${garbled})`);
     this.name = 'SnmpUnreachableError';
   }
 }
@@ -168,6 +177,17 @@ export class SnmpClient implements SnmpReader {
   private readonly port: number;
   /** Plafond de temps d'un `get`, décisif sur le chemin v1. `undefined` = aucun. */
   private readonly budgetMs: number | undefined;
+
+  /**
+   * Le dernier datagramme illisible reçu, ou `null`.
+   *
+   * 🔴 Remis à `null` au début de **chaque** opération, et c'est la seule façon honnête de
+   * s'en servir. Le garder d'une opération à l'autre reviendrait à coller un incident
+   * d'il y a dix minutes sur un délai dépassé qui n'a rien à voir — un faux indice, ce qui
+   * est pire qu'aucun. Ce champ ne prétend donc qu'à une chose : « pendant que cette
+   * requête-ci attendait, ceci est arrivé sur le socket ».
+   */
+  private garbled: string | null = null;
 
   constructor(options: SnmpOptions) {
     this.host = options.host;
@@ -192,7 +212,7 @@ export class SnmpClient implements SnmpReader {
       timeout: timeoutMs === undefined ? this.timeout : Math.max(1, Math.min(this.timeout, timeoutMs)),
       retries: this.retries,
       port: this.port,
-    }), this.host);
+    }), this.host, (message) => { this.garbled = message; });
   }
 
   /**
@@ -207,6 +227,7 @@ export class SnmpClient implements SnmpReader {
    */
   async get(oids: string[], keepRaw = false): Promise<Map<string, SnmpValue>> {
     if (oids.length === 0) return new Map();
+    this.garbled = null;
     if (this.version === 'v1') return this.getOneByOne(oids, keepRaw);
 
     const session = this.openSession();
@@ -228,7 +249,7 @@ export class SnmpClient implements SnmpReader {
       });
       return out;
     } catch (error) {
-      throw new SnmpUnreachableError(this.host, (error as Error).message);
+      throw new SnmpUnreachableError(this.host, (error as Error).message, this.garbled);
     } finally {
       session.close();
     }
@@ -245,7 +266,7 @@ export class SnmpClient implements SnmpReader {
   private async getOneByOne(oids: string[], keepRaw: boolean): Promise<Map<string, SnmpValue>> {
     const out = new Map<string, SnmpValue>();
     let reachable = false;
-    let lastError = 'aucune réponse';
+    let lastError = 'no answer';
     const deadline = this.budgetMs === undefined ? Infinity : Date.now() + this.budgetMs;
 
     const askOne = async (oid: string): Promise<void> => {
@@ -290,7 +311,7 @@ export class SnmpClient implements SnmpReader {
 
     // Un budget épuisé n'est pas une injoignabilité : si une seule feuille a répondu,
     // l'appareil est là et la lecture est simplement partielle.
-    if (!reachable) throw new SnmpUnreachableError(this.host, lastError);
+    if (!reachable) throw new SnmpUnreachableError(this.host, lastError, this.garbled);
     return out;
   }
 
@@ -321,6 +342,7 @@ export class SnmpClient implements SnmpReader {
    * ligne absente vaut déjà `null`, et c'est le même verdict qu'un sous-arbre vide.
    */
   async walk(rootOid: string, maxRepetitions = 20): Promise<Map<string, SnmpValue>> {
+    this.garbled = null;
     const session = this.openSession();
     const out = new Map<string, SnmpValue>();
     let previousOid: string | null = null;
@@ -350,7 +372,7 @@ export class SnmpClient implements SnmpReader {
       });
       return out;
     } catch (error) {
-      throw new SnmpUnreachableError(this.host, (error as Error).message);
+      throw new SnmpUnreachableError(this.host, (error as Error).message, this.garbled);
     } finally {
       session.close();
     }

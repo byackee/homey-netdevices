@@ -124,5 +124,5 @@ test('🔴 columnId dérive le numéro de colonne de l\'OID, il ne le recopie pa
 });
 
 test('columnId lève sur un OID qui n\'en est pas un, plutôt que de rendre NaN', () => {
-  assert.throws(() => columnId('pas.un.oid'), /colonne illisible/);
+  assert.throws(() => columnId('pas.un.oid'), /unreadable column/);
 });

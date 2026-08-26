@@ -23,6 +23,7 @@
  */
 
 import { alarmParts } from './alarm-summary.mjs';
+import type { LocalisedText } from './alarm-summary.mjs';
 import {
   APC_BATTERY_STATUS,
   APC_OUTPUT_STATUS,
@@ -230,34 +231,53 @@ export function apcAlarms(outputStatus: number | null, batteryStatus: number | n
  * `bypass` — ce qui est juste pour piloter un Flow, et très pauvre pour comprendre.
  * Les états sains rendent `null` : il n'y a rien à signaler quand tout va bien.
  */
-function apcOutputStatusLabel(status: number | null): string | null {
+function apcOutputStatusLabel(status: number | null): LocalisedText | null {
   switch (status) {
-    case APC_OUTPUT_STATUS.onBattery: return 'sur batterie';
-    case APC_OUTPUT_STATUS.softwareBypass: return 'bypass logiciel, charge non protégée';
-    case APC_OUTPUT_STATUS.switchedBypass: return 'bypass commuté, charge non protégée';
-    case APC_OUTPUT_STATUS.hardwareFailureBypass: return 'bypass sur défaut matériel';
-    case APC_OUTPUT_STATUS.emergencyStaticBypass: return 'bypass statique d\'urgence';
-    case APC_OUTPUT_STATUS.staticBypassStandby: return 'bypass statique en attente';
-    case APC_OUTPUT_STATUS.off: return 'sortie coupée';
-    case APC_OUTPUT_STATUS.rebooting: return 'redémarrage en cours';
-    case APC_OUTPUT_STATUS.sleepingUntilPowerReturn: return 'en veille jusqu\'au retour du secteur';
-    case APC_OUTPUT_STATUS.timedSleeping: return 'en veille programmée';
-    case APC_OUTPUT_STATUS.onBatteryTest: return 'test de batterie en cours';
-    case APC_OUTPUT_STATUS.selfTest: return 'autotest en cours';
-    case APC_OUTPUT_STATUS.onSmartBoost: return 'correction de tension basse';
-    case APC_OUTPUT_STATUS.onSmartTrim: return 'correction de tension haute';
-    case APC_OUTPUT_STATUS.chargerOnly: return 'chargeur seul, pas de sortie';
-    case APC_OUTPUT_STATUS.inverterStandby: return 'onduleur en attente';
+    case APC_OUTPUT_STATUS.onBattery:
+      return { en: 'on battery', fr: 'sur batterie', nl: 'op accu' };
+    case APC_OUTPUT_STATUS.softwareBypass:
+      return { en: 'software bypass, load unprotected', fr: 'bypass logiciel, charge non protégée', nl: 'software-bypass, belasting onbeschermd' };
+    case APC_OUTPUT_STATUS.switchedBypass:
+      return { en: 'switched bypass, load unprotected', fr: 'bypass commuté, charge non protégée', nl: 'geschakelde bypass, belasting onbeschermd' };
+    case APC_OUTPUT_STATUS.hardwareFailureBypass:
+      return { en: 'bypass on hardware failure', fr: 'bypass sur défaut matériel', nl: 'bypass na hardwarestoring' };
+    case APC_OUTPUT_STATUS.emergencyStaticBypass:
+      return { en: 'emergency static bypass', fr: 'bypass statique d’urgence', nl: 'statische noodbypass' };
+    case APC_OUTPUT_STATUS.staticBypassStandby:
+      return { en: 'static bypass on standby', fr: 'bypass statique en attente', nl: 'statische bypass in stand-by' };
+    case APC_OUTPUT_STATUS.off:
+      return { en: 'output switched off', fr: 'sortie coupée', nl: 'uitgang uitgeschakeld' };
+    case APC_OUTPUT_STATUS.rebooting:
+      return { en: 'rebooting', fr: 'redémarrage en cours', nl: 'bezig met herstarten' };
+    case APC_OUTPUT_STATUS.sleepingUntilPowerReturn:
+      return { en: 'asleep until mains return', fr: 'en veille jusqu’au retour du secteur', nl: 'in slaap tot netstroom terugkeert' };
+    case APC_OUTPUT_STATUS.timedSleeping:
+      return { en: 'asleep on a timer', fr: 'en veille programmée', nl: 'in slaap volgens timer' };
+    case APC_OUTPUT_STATUS.onBatteryTest:
+      return { en: 'battery test running', fr: 'test de batterie en cours', nl: 'accutest bezig' };
+    case APC_OUTPUT_STATUS.selfTest:
+      return { en: 'self test running', fr: 'autotest en cours', nl: 'zelftest bezig' };
+    case APC_OUTPUT_STATUS.onSmartBoost:
+      return { en: 'boosting low mains', fr: 'correction de tension basse', nl: 'lage netspanning gecorrigeerd' };
+    case APC_OUTPUT_STATUS.onSmartTrim:
+      return { en: 'trimming high mains', fr: 'correction de tension haute', nl: 'hoge netspanning gecorrigeerd' };
+    case APC_OUTPUT_STATUS.chargerOnly:
+      return { en: 'charger only, no output', fr: 'chargeur seul, pas de sortie', nl: 'alleen lader, geen uitgang' };
+    case APC_OUTPUT_STATUS.inverterStandby:
+      return { en: 'inverter on standby', fr: 'onduleur en attente', nl: 'omvormer in stand-by' };
     default: return null;
   }
 }
 
 /** Idem pour la batterie : seuls les états qui appellent une action sont nommés. */
-function apcBatteryStatusLabel(status: number | null): string | null {
+function apcBatteryStatusLabel(status: number | null): LocalisedText | null {
   switch (status) {
-    case APC_BATTERY_STATUS.batteryLow: return 'batterie faible';
-    case APC_BATTERY_STATUS.batteryInFaultCondition: return 'batterie en défaut, à remplacer';
-    case APC_BATTERY_STATUS.noBatteryPresent: return 'aucune batterie détectée';
+    case APC_BATTERY_STATUS.batteryLow:
+      return { en: 'battery low', fr: 'batterie faible', nl: 'accu bijna leeg' };
+    case APC_BATTERY_STATUS.batteryInFaultCondition:
+      return { en: 'battery faulty, needs replacing', fr: 'batterie en défaut, à remplacer', nl: 'accu defect, moet vervangen worden' };
+    case APC_BATTERY_STATUS.noBatteryPresent:
+      return { en: 'no battery detected', fr: 'aucune batterie détectée', nl: 'geen accu gedetecteerd' };
     default: return null;
   }
 }
@@ -324,7 +344,12 @@ export class ApcUpsReader implements UpsSourceReader {
       // « bypass matériel en défaut » et « mode économie » se ressemblent beaucoup une
       // fois repliés sur le vocabulaire commun. Le libellé d'origine les sépare.
       alarmSummary: alarmParts({
-        texts: [apcOutputStatusLabel(outputStatus), apcBatteryStatusLabel(batteryStatus)],
+        // 🔴 `parts` et non `texts` : `texts` est repris **mot pour mot**, donc un libellé
+        // écrit en dur s'affiche tel quel sur la tuile, quelle que soit la langue de
+        // l'utilisateur. Ces libellés-ci sont traduits, comme ceux des jetons NUT.
+        parts: [apcOutputStatusLabel(outputStatus), apcBatteryStatusLabel(batteryStatus)]
+          .filter((text): text is LocalisedText => text !== null)
+          .map((text) => ({ kind: 'named' as const, text })),
       }),
       batteryCharge: charge,
       runtimeMinutes: apcRuntimeMinutes(values.get(APC_UPS_OID.advBatteryRunTimeRemaining)),

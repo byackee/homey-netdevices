@@ -56,7 +56,7 @@ function formatDetail(detail: unknown): string {
     else if (typeof detail === 'object') text = JSON.stringify(detail, jsonSafe()) ?? String(detail);
     else text = String(detail);
   } catch (error) {
-    text = `<non sérialisable: ${(error as Error).message}>`;
+    text = `<not serialisable: ${(error as Error).message}>`;
   }
   return text.length > MAX_DETAIL_CHARS ? `${text.slice(0, MAX_DETAIL_CHARS)}…` : text;
 }
@@ -172,7 +172,7 @@ export class TraceBuffer {
       return e.detail === undefined ? head : `${head} — ${e.detail}`;
     });
     const dropped = this.dropped;
-    if (dropped > 0) lines.unshift(`… ${dropped} entrée(s) plus ancienne(s) perdue(s)`);
+    if (dropped > 0) lines.unshift(`... ${dropped} older entr${dropped === 1 ? 'y' : 'ies'} lost`);
     return lines.join('\n');
   }
 

@@ -225,7 +225,7 @@ export default class UpsDevice extends Homey.Device {
       let outcome: ContactOutcome;
       try {
         const reader = await this.ensureReader();
-        if (reader === null) throw new Error('aucune source SNMP reconnue sur cet appareil');
+        if (reader === null) throw new Error('no SNMP dialect was recognised on this device');
         outcome = this.contact.succeeded(await reader.readLive(this.client));
       } catch (error) {
         outcome = this.contact.failed();
@@ -476,14 +476,14 @@ export default class UpsDevice extends Homey.Device {
   // -------------------------------------------------------------------------
 
   private logFailure(outcome: ContactOutcome, error: unknown): void {
-    const message = `${describe(error)} (échec ${outcome.failures})`;
+    const message = `${describe(error)} (failure ${outcome.failures})`;
     if (outcome.reason === 'absorbing') {
       this.log(`Poll got no answer, absorbed: ${message}`);
       return;
     }
     this.error(outcome.reason === 'lost-during-outage'
-      ? `Contact perdu pendant une coupure, état figé sur « batterie » : ${message}`
-      : `Onduleur injoignable : ${message}`);
+      ? `Contact lost during an outage, state frozen on "battery": ${message}`
+      : `UPS unreachable: ${message}`);
   }
 
   override async onSettings({ changedKeys }: {

@@ -45,7 +45,7 @@ const DEFAULT_PORT = 161;
 /** Levée quand l'agent a refusé l'écriture — droits, objet en lecture seule, valeur hors bornes. */
 export class SnmpWriteError extends Error {
   constructor(host: string, cause: string) {
-    super(`L'agent ${host} a refusé l'écriture : ${cause}`);
+    super(`The agent at ${host} refused the write: ${cause}`);
     this.name = 'SnmpWriteError';
   }
 }

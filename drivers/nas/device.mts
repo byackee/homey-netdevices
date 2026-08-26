@@ -406,7 +406,7 @@ export default class NasDevice extends Homey.Device {
   // -------------------------------------------------------------------------
 
   private logFailure(outcome: HostOutcome, error: unknown): void {
-    const message = `${describe(error)} (échec ${outcome.failures})`;
+    const message = `${describe(error)} (failure ${outcome.failures})`;
     if (outcome.reason === 'absorbing') {
       this.log(`Poll got no answer, absorbed: ${message}`);
       return;

@@ -32,14 +32,27 @@ import { trace } from './trace.mjs';
  * que du SNMP. D'où la trace : sans elle, un appareil qui émet du charabia en continu
  * ne se manifesterait que par des relevés qui expirent, sans jamais dire pourquoi.
  *
+ * Le rappel `onParseError` existe pour que ce silence ne soit pas total. Avalé, le
+ * datagramme ne laisse sinon de trace que dans le tampon — et l'appelant, lui, ne voit
+ * qu'un délai dépassé. Il annonce alors « aucune réponse », l'utilisateur va vérifier son
+ * adresse et sa communauté, et cherche là où il n'y a rien : le vrai symptôme est un
+ * appareil qui répond du charabia. L'idée vient de l'app imprimante, qui a rencontré le
+ * même plantage et a eu la bonne réaction avant nous.
+ *
  * (À savoir en lisant `net-snmp` : son `Session.prototype.onError` fait `this.emit(error)`
  * et non `this.emit('error', error)` — l'objet d'erreur y sert de *nom* d'événement. Les
  * erreurs de socket n'atteignent donc jamais cet écouteur. Ce n'est pas notre chemin de
  * plantage, mais ça explique qu'on ne puisse pas compter dessus pour les voir.)
  */
-export function guardSession(session: snmp.Session, host: string): snmp.Session {
+export function guardSession(
+  session: snmp.Session,
+  host: string,
+  onParseError: (message: string) => void = () => {},
+): snmp.Session {
   session.on('error', (error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
     trace.warn(`snmp:${host}`, 'unreadable datagram ignored', error);
+    onParseError(message);
   });
   return session;
 }

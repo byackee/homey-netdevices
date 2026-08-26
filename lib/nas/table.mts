@@ -81,7 +81,7 @@ export function tableRows(values: ReadonlyMap<string, SnmpValue>, root: string):
 export function columnId(columnOid: string): number {
   const last = columnOid.split('.').pop() ?? '';
   const id = Number(last);
-  if (!Number.isInteger(id)) throw new Error(`colonne illisible : ${columnOid}`);
+  if (!Number.isInteger(id)) throw new Error(`unreadable column: ${columnOid}`);
   return id;
 }
 

@@ -29,7 +29,7 @@ test('les entrées perdues sont comptées : une absence silencieuse serait pire 
   assert.equal(buffer.dropped, 0, 'plein mais rien de perdu');
   buffer.info('t', 'c');
   assert.equal(buffer.dropped, 1);
-  assert.match(buffer.toText(), /1 entrée\(s\) plus ancienne\(s\) perdue\(s\)/);
+  assert.match(buffer.toText(), /1 older entry lost/);
 });
 
 test('avant débordement, les entrées sortent dans l\'ordre chronologique', () => {
@@ -81,7 +81,7 @@ test('un détail impossible à sérialiser ne fait pas tomber ce qu\'il observe'
 
   const explosif = { get piege(): never { throw new Error('boum'); } };
   assert.doesNotThrow(() => buffer.info('t', 'getter', explosif));
-  assert.match(String(buffer.entries()[1]?.detail), /non sérialisable/);
+  assert.match(String(buffer.entries()[1]?.detail), /not serialisable/);
 
   buffer.info('t', 'bigint', { n: 42n });
   assert.match(String(buffer.entries()[2]?.detail), /42n/);
