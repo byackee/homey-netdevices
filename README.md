@@ -209,4 +209,4 @@ for every bit of support 🙏
 
 See `LICENSE`.
 
-[forum]: https://community.homey.app/t/app-pro-snmp-network-devices-your-ups-nas-and-switch-ports-in-homey/158664
+[forum]: https://community.homey.app/t/app-pro-network-devices-your-ups-nas-and-switch-ports-in-homey/158664
