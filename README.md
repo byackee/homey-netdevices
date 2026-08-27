@@ -1,9 +1,13 @@
 # Network Devices
 
-A Homey app that reads network equipment over SNMP. Version 1 covers one class of
-device: the **UPS** — including, and above all, a USB UPS plugged into a Synology NAS.
+A Homey app that reads network equipment over SNMP: the **UPS** — including, and above
+all, a USB UPS plugged into a Synology NAS — plus **NAS** boxes and the ports of a
+**managed switch**.
 
-Homey app id: `com.dataweavelabs.netdevices`.
+**Install it from the Homey App Store: https://homey.app/a/com.dataweavelabs.netdevices/**
+
+Homey app id: `com.dataweavelabs.netdevices`. Questions, hardware reports and support go
+to the [community thread][forum].
 
 ## Why this exists
 
@@ -164,10 +168,16 @@ devices found" — see *What you have to enable* above.
 
 ## Status
 
-Feature-complete and submitted, not yet published. Version 1.0.10 went to certification
-and was rejected on three counts — the protocol name in the app name, the NAS and switch
-driver images, and a settings-page bug that made every connection test report a failure.
-All three are fixed in 1.0.11, which is what goes back for review.
+**Published.** Version 1.0.11 passed Athom's certification and is live on the App Store at
+https://homey.app/a/com.dataweavelabs.netdevices/ — there is no test channel to join any
+more.
+
+It did not pass first time. 1.0.10 was rejected on three counts: the protocol name in the
+app name, the NAS and switch driver images, and a settings-page bug that made every
+connection test report a failure. All three are fixed in 1.0.11, and each one now has a
+test that keeps it fixed — `test/store-review.test.mts` for the store rules that
+`homey app validate` never checks, `test/views/settings-page.test.mts` for the settings
+page.
 
 ## Naming note
 
@@ -190,10 +200,13 @@ it saves your server from an unnoticed power cut, you can support the work:
 - ☕ Buy me a coffee: https://buymeacoffee.com/byackee
 - 🔗 All my links: https://linktr.ee/byackee
 
-Opening an issue with what your own hardware reports helps just as much — every device
-that lands here makes the next one work out of the box. Thank you for using it, and for
-every bit of support 🙏
+Opening an [issue](https://github.com/byackee/homey-netdevices/issues) — or a post in the
+[community thread][forum] — with what your own hardware reports helps just as much: every
+device that lands here makes the next one work out of the box. Thank you for using it, and
+for every bit of support 🙏
 
 ## Licence
 
 See `LICENSE`.
+
+[forum]: https://community.homey.app/t/app-pro-snmp-network-devices-your-ups-nas-and-switch-ports-in-homey/158664
